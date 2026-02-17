@@ -1,7 +1,8 @@
+import { config } from "./src/config/env.js";
 import express from "express";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.PORT;
 
 app.get("/health", (req, res) => {
     res.status(200).json({ status: "OK", message: "Server está activo" });
