@@ -12,7 +12,7 @@ export class RefreshTokenService {
         const token = this.generateRefreshToken();
         const expiresAt = new Date();
         const daysToExpire = parseInt(
-            config.jwtRefreshExpiresIn.replace("d", ""),
+            config.JWT_REFRESH_EXPIRES_IN.replace("d", ""),
         );
         expiresAt.setDate(expiresAt.getDate() + daysToExpire);
 

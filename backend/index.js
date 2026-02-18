@@ -4,7 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./src/middlewares/errorHandle.js";
-import authRoutes from "./src/routes/authRoutes.js";
+import authRoutes from "./src/auth/authRoutes.js";
 
 const app = express();
 const PORT = config.PORT;

@@ -3,11 +3,12 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
 import { RefreshTokenService } from "./refreshTokenService.js";
+import { validateEmail } from "../config/emailAllowed.js";
 
 export class AuthService {
     static generateAccessToken(userId) {
-        return jwt.sign({ userId }, config.jwtSecret, {
-            expiresIn: config.jwtExpiresIn,
+        return jwt.sign({ userId }, config.JWT_SECRET, {
+            expiresIn: config.JWT_EXPIRES_IN,
         });
     }
 
@@ -26,9 +27,7 @@ export class AuthService {
         });
 
         if (existingUser) {
-            if (!existingUser.isVerified) {
-                await VerificationService.createVerification(existingUser.id);
-
+            if (!existingUser) {
                 return {
                     user: {
                         id: existingUser.id,
@@ -62,8 +61,6 @@ export class AuthService {
             },
         });
 
-        await VerificationService.createVerification(user.id);
-
         const accessToken = this.generateAccessToken(user.id);
         const refreshToken = await RefreshTokenService.createRefreshToken(
             user.id,
@@ -94,14 +91,6 @@ export class AuthService {
         if (!isValidPassword) {
             const error = new Error("Credenciales inválidas");
             error.statusCode = 401;
-            throw error;
-        }
-
-        if (!user.isVerified) {
-            const error = new Error(
-                "Debes verificar tu email antes de iniciar sesión",
-            );
-            error.statusCode = 403;
             throw error;
         }
 
