@@ -11,11 +11,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldLabel,
+} from "@/components/ui/field";
+import { ModeToggle } from "../components/mode-toggle.tsx";
 
 export default function Login() {
     return (
         <Card className="w-full max-w-sm">
             <CardHeader>
+                <ModeToggle></ModeToggle>
                 <CardTitle>Register to your account</CardTitle>
                 <CardDescription>
                     Enter your email below to register to your account
@@ -60,6 +69,21 @@ export default function Login() {
                                 </Label>
                             </div>
                             <Input id="password" type="password" required />
+                            <Field orientation="horizontal">
+                                <Checkbox
+                                    id="terms-checkbox-2"
+                                    name="terms-checkbox-2"
+                                />
+                                <FieldContent>
+                                    <FieldLabel htmlFor="terms-checkbox-2">
+                                        Accept terms and conditions
+                                    </FieldLabel>
+                                    <FieldDescription>
+                                        By clicking this checkbox, you agree to
+                                        the terms.
+                                    </FieldDescription>
+                                </FieldContent>
+                            </Field>
                         </div>
                     </div>
                 </form>

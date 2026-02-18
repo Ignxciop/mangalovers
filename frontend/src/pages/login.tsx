@@ -11,11 +11,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field } from "@/components/ui/field";
+import { ModeToggle } from "../components/mode-toggle.tsx";
 
 export default function Login() {
     return (
         <Card className="w-full max-w-sm">
             <CardHeader>
+                <ModeToggle></ModeToggle>
                 <CardTitle>Login to your account</CardTitle>
                 <CardDescription>
                     Enter your email below to login to your account
@@ -43,6 +47,15 @@ export default function Login() {
                                 <Label htmlFor="password">Password</Label>
                             </div>
                             <Input id="password" type="password" required />
+                            <Field orientation="horizontal">
+                                <Checkbox
+                                    id="terms-checkbox"
+                                    name="terms-checkbox"
+                                />
+                                <Label htmlFor="terms-checkbox">
+                                    Remember me
+                                </Label>
+                            </Field>
                         </div>
                     </div>
                 </form>
