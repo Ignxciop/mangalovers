@@ -5,12 +5,12 @@ import Register from "./pages/registerForm.tsx";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ProtectedRoute, GuestRoute } from "@/components/protectedRoutes.tsx";
 import MainLayout from "./components/layouts/mainLayout.tsx";
-import Dashboard from "./pages/dashboard.tsx";
+import Home from "./pages/home.tsx";
 import { useAuthStore } from "./store/authStore.ts";
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
-    return <Navigate to={isAutenticated ? "/dashboard" : "/login"} replace />;
+    return <Navigate to={isAutenticated ? "/home" : "/login"} replace />;
 }
 
 function App() {
@@ -26,7 +26,7 @@ function App() {
                     </Route>
                     <Route element={<ProtectedRoute />}>
                         <Route element={<MainLayout />}>
-                            <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/home" element={<Home />} />
                         </Route>
                     </Route>
                     <Route path="*" element={<SmartDirect />} />

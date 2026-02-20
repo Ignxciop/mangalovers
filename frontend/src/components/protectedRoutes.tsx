@@ -15,7 +15,7 @@ export function GuestRoute() {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
     if (isAuthenticated) {
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/home" replace />;
     }
 
     return <Outlet />;
