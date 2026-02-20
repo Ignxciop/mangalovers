@@ -1,1 +1,1 @@
-# Proyecto para trackeo personal de gimnasio
+# Proyecto para lectura de manga ad-free
