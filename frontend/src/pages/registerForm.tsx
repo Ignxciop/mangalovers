@@ -52,7 +52,7 @@ export default function Register() {
         e.preventDefault();
 
         if (form.password !== form.repeatpassword) {
-            setPasswordError("Las contraseñas no coinciden");
+            setPasswordError("The passwords do not match.");
             return;
         }
 
@@ -114,6 +114,10 @@ export default function Register() {
                                 onChange={handleChange}
                                 required
                             />
+                            <FieldDescription>
+                                We&apos;ll use this to contact you. We will not
+                                share your email with anyone else.
+                            </FieldDescription>
                         </div>
                         <div className="grid gap-2">
                             <div className="flex items-center">
@@ -128,6 +132,9 @@ export default function Register() {
                                 onChange={handleChange}
                                 required
                             />
+                            <FieldDescription>
+                                Must be at least 6 characters long.
+                            </FieldDescription>
                         </div>
                         <div className="grid gap-2">
                             <div className="flex items-center">
@@ -144,6 +151,9 @@ export default function Register() {
                                 onChange={handleChange}
                                 required
                             />
+                            <FieldDescription className="mb-4">
+                                Please confirm your password.
+                            </FieldDescription>
                             <Field orientation="horizontal">
                                 <Checkbox
                                     id="terms-checkbox-1"
