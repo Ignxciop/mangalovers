@@ -7,7 +7,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -18,11 +18,19 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { Dumbbell, UserRound, EllipsisVertical } from "lucide-react";
-import { ModeToggle } from "./mode-toggle";
+import {
+    Dumbbell,
+    UserRound,
+    EllipsisVertical,
+    Moon,
+    Sun,
+    LogOut,
+} from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 
 export function AppSidebar() {
     const { logout, user } = useAuth();
+    const { theme, setTheme } = useTheme();
 
     return (
         <Sidebar>
@@ -45,13 +53,13 @@ export function AppSidebar() {
                                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                                 >
                                     <Avatar className="h-8 w-8 rounded-lg grayscale">
-                                        <AvatarImage>
-                                            <UserRound />
-                                        </AvatarImage>
+                                        <AvatarFallback className="rounded-lg">
+                                            <UserRound className="h-4 w-4" />
+                                        </AvatarFallback>
                                     </Avatar>
                                     <div className="grid flex-1 text-left text-sm leading-tight">
                                         <span className="truncate font-medium">
-                                            {user?.name}
+                                            {user?.name} {user?.lastname}
                                         </span>
                                         <span className="text-muted-foreground truncate text-xs">
                                             {user?.email}
@@ -68,10 +76,10 @@ export function AppSidebar() {
                             >
                                 <DropdownMenuLabel className="p-0 font-normal">
                                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                                        <Avatar className="h-8 w-8 rounded-lg">
-                                            <AvatarImage>
-                                                <UserRound />
-                                            </AvatarImage>
+                                        <Avatar className="h-8 w-8 rounded-lg grayscale">
+                                            <AvatarFallback className="rounded-lg">
+                                                <UserRound className="h-4 w-4" />
+                                            </AvatarFallback>
                                         </Avatar>
                                         <div className="grid flex-1 text-left text-sm leading-tight">
                                             <span className="truncate font-medium">
@@ -85,16 +93,26 @@ export function AppSidebar() {
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuGroup>
-                                    <DropdownMenuItem>
-                                        <ModeToggle></ModeToggle>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>Billing</DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        Notifications
+                                    <DropdownMenuItem
+                                        onSelect={() =>
+                                            setTheme(
+                                                theme === "dark"
+                                                    ? "light"
+                                                    : "dark",
+                                            )
+                                        }
+                                    >
+                                        {theme === "light" ? (
+                                            <Moon className="h-4 w-4" />
+                                        ) : (
+                                            <Sun className="h-4 w-4" />
+                                        )}
+                                        Theme
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={logout}>
+                                <DropdownMenuItem onSelect={logout}>
+                                    <LogOut />
                                     Log out
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
