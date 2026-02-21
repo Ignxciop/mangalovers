@@ -107,7 +107,9 @@ export function AppSidebar() {
                                         ) : (
                                             <Sun className="h-4 w-4" />
                                         )}
-                                        Theme
+                                        {theme === "light"
+                                            ? "Modo Oscuro"
+                                            : "Modo Claro"}
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
