@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import {
-    Dumbbell,
     UserRound,
     EllipsisVertical,
     Moon,
@@ -30,6 +29,7 @@ import {
     LogOut,
     House,
     LibraryBig,
+    BookHeart,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 
@@ -41,8 +41,10 @@ export function AppSidebar() {
         <Sidebar>
             <SidebarHeader className="mb-4 items-center">
                 <a href="#" className="flex gap-1 items-center">
-                    <Dumbbell className="size-5" />
-                    <span className="font-semibold text-[20px]">Gymlovers</span>
+                    <BookHeart className="size-5" />
+                    <span className="font-semibold text-[20px]">
+                        Mangalovers
+                    </span>
                 </a>
             </SidebarHeader>
             <SidebarContent className="ml-4">
