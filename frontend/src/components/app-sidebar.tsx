@@ -2,10 +2,13 @@ import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
+    SidebarGroup,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarGroupLabel,
+    SidebarGroupContent,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -25,6 +28,8 @@ import {
     Moon,
     Sun,
     LogOut,
+    House,
+    LibraryBig,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 
@@ -41,7 +46,27 @@ export function AppSidebar() {
                 </a>
             </SidebarHeader>
             <SidebarContent className="ml-4">
-                <div>Navegación</div>
+                <SidebarGroup>
+                    <SidebarGroupLabel>Navegación</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            <a
+                                href="/"
+                                className="flex gap-1 mb-2 text-l items-center"
+                            >
+                                <House className="size-4" />
+                                Inicio
+                            </a>
+                            <a
+                                href="/mangas"
+                                className="flex gap-1 mb-2 text-l items-center"
+                            >
+                                <LibraryBig className="size-4" />
+                                Mangas
+                            </a>
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
                 <SidebarMenu>

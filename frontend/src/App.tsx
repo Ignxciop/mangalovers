@@ -7,6 +7,7 @@ import { ProtectedRoute, GuestRoute } from "@/components/protectedRoutes.tsx";
 import MainLayout from "./components/layouts/mainLayout.tsx";
 import Home from "./pages/home.tsx";
 import { useAuthStore } from "./store/authStore.ts";
+import MangaList from "./pages/mangaList.tsx";
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -27,6 +28,7 @@ function App() {
                     <Route element={<ProtectedRoute />}>
                         <Route element={<MainLayout />}>
                             <Route path="/" element={<Home />} />
+                            <Route path="/mangas" element={<MangaList />} />
                         </Route>
                     </Route>
                     <Route path="*" element={<SmartDirect />} />
