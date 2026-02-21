@@ -36,17 +36,20 @@ model RefreshToken {
 }
 
 model Series {
-  id           Int     @id
+  id           Int     @id @default(autoincrement())
   name         String
   slug         String  @unique
   status       String?
   cover        String?
   chapterCount Int
+  summary   String?
 
   lastChapterPublishedAt DateTime?
+  metadataFetchedAt DateTime?
 
   chapters       Chapter[]
   providerSeries ProviderSeries[]
+  genres         SeriesGenre[]
 
   lastChaptersCheck DateTime?
   createdAt         DateTime  @default(now())
@@ -54,6 +57,7 @@ model Series {
 
   @@index([slug])
   @@index([name])
+  @@index([lastChapterPublishedAt])
 }
 
 model Chapter {
@@ -95,19 +99,26 @@ model Provider {
 }
 
 model ProviderSeries {
-  id Int @id @default(autoincrement())
+  id          Int    @id @default(autoincrement())
+  providerId  Int
+  seriesId    Int
 
-  providerId Int
-  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  externalId  String
+  slug        String
+  url         String?
 
-  externalId Int
-  slug       String
+  summary     String?
+  status      String?
+  cover       String?
 
-  seriesId Int
-  series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  provider    Provider @relation(fields: [providerId], references: [id])
+  series      Series   @relation(fields: [seriesId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime? @updatedAt
 
   @@unique([providerId, externalId])
-  @@index([seriesId])
+  @@unique([providerId, seriesId])
 }
 
 model ProviderChapter {
@@ -123,4 +134,21 @@ model ProviderChapter {
 
   @@unique([providerId, externalId])
   @@index([chapterId])
+}
+
+model Genre {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+
+  series SeriesGenre[]
+}
+
+model SeriesGenre {
+  seriesId Int
+  genreId  Int
+
+  series Series @relation(fields: [seriesId], references: [id])
+  genre  Genre  @relation(fields: [genreId], references: [id])
+
+  @@id([seriesId, genreId])
 }
