@@ -77,16 +77,19 @@ export default function MangaList() {
                                         {[
                                             {
                                                 label: "Emisión",
-                                                value: "En Emisión",
+                                                value: "Activo",
                                             },
                                             {
                                                 label: "Finalizado",
                                                 value: "Finalizado",
                                             },
-                                            { label: "Hiato", value: "Hiatus" },
+                                            {
+                                                label: "Hiatus",
+                                                value: "Pausado por el autor (Hiatus)",
+                                            },
                                             {
                                                 label: "Abandonado",
-                                                value: "Abandonado",
+                                                value: "Abandonado por el scan",
                                             },
                                         ].map(({ label, value }) => (
                                             <Badge
