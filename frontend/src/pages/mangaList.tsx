@@ -18,11 +18,26 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 
+import React, { useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useMangaList } from "@/hooks/useMangaList";
 
-    const [page, setPage] = useState(1);
-    const { data, loading, error } = useMangaList({ page });
+export default function MangaList() {
+    const [page, setPage] = useState<number>(1);
+    const [search, setSearch] = useState("");
+    const [status, setStatus] = useState("");
+    const [provider, setProvider] = useState("");
+    const [sort, setSort] = useState("updated");
+    const [order, setOrder] = useState("desc");
+
+    const { data, loading, error } = useMangaList({
+        page,
+        search,
+        status,
+        provider,
+        sort,
+        order,
+    });
 
     return (
         <div className="min-h-screen bg-background">
@@ -34,6 +49,11 @@ import { useMangaList } from "@/hooks/useMangaList";
                         <Input
                             placeholder="Buscar por nombre..."
                             className="pl-9 w-full bg-secondary/50"
+                            value={search}
+                            onChange={(e) => {
+                                setSearch(e.target.value);
+                                setPage(1);
+                            }}
                         />
                     </div>
 
@@ -54,24 +74,41 @@ import { useMangaList } from "@/hooks/useMangaList";
                                         Estado
                                     </h3>
                                     <div className="flex flex-wrap gap-2">
-                                        <Badge
-                                            variant="outline"
-                                            className="cursor-pointer"
-                                        >
-                                            Emisión
-                                        </Badge>
-                                        <Badge
-                                            variant="outline"
-                                            className="cursor-pointer"
-                                        >
-                                            Finalizado
-                                        </Badge>
-                                        <Badge
-                                            variant="outline"
-                                            className="cursor-pointer"
-                                        >
-                                            Hiato
-                                        </Badge>
+                                        {[
+                                            {
+                                                label: "Emisión",
+                                                value: "En Emisión",
+                                            },
+                                            {
+                                                label: "Finalizado",
+                                                value: "Finalizado",
+                                            },
+                                            { label: "Hiato", value: "Hiatus" },
+                                            {
+                                                label: "Abandonado",
+                                                value: "Abandonado",
+                                            },
+                                        ].map(({ label, value }) => (
+                                            <Badge
+                                                key={value}
+                                                variant={
+                                                    status === value
+                                                        ? "secondary"
+                                                        : "outline"
+                                                }
+                                                className="cursor-pointer"
+                                                onClick={() => {
+                                                    setStatus(
+                                                        status === value
+                                                            ? ""
+                                                            : value,
+                                                    );
+                                                    setPage(1);
+                                                }}
+                                            >
+                                                {label}
+                                            </Badge>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -83,8 +120,12 @@ import { useMangaList } from "@/hooks/useMangaList";
                 <div className="mb-8">
                     <MangaPagination
                         page={page}
-                        totalPages={data?.meta?.totalPages || 1}
-                        onPageChange={setPage}
+                        totalPages={
+                            data && typeof data.meta === "object"
+                                ? data.meta.totalPages
+                                : 1
+                        }
+                        setPage={setPage}
                     />
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
@@ -104,12 +145,20 @@ import { useMangaList } from "@/hooks/useMangaList";
                         </div>
                     )}
                     {data &&
-                        data.data.map((manga) => (
+                        Array.isArray(data.data) &&
+                        data.data.map((manga: any) => (
                             <div
                                 key={manga.id}
                                 className="group cursor-pointer"
                             >
                                 <div className="relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted shadow-sm transition-transform group-hover:scale-[1.03]">
+                                    {/* Badge de capítulos */}
+                                    <Badge
+                                        variant="secondary"
+                                        className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium"
+                                    >
+                                        {manga.chapterCount}
+                                    </Badge>
                                     <img
                                         src={
                                             manga.cover ||
@@ -125,9 +174,15 @@ import { useMangaList } from "@/hooks/useMangaList";
                                     </div>
                                 </div>
                                 <div className="mt-3 space-y-2">
-                                    <h3 className="text-sm font-bold truncate leading-none group-hover:text-primary transition-colors">
-                                        {manga.name}
-                                    </h3>
+                                    {/* Tooltip para nombre completo */}
+                                    <div className="relative">
+                                        <h3
+                                            className="text-sm font-bold truncate leading-none group-hover:text-primary transition-colors"
+                                            title={manga.name}
+                                        >
+                                            {manga.name}
+                                        </h3>
+                                    </div>
                                     <div className="flex flex-wrap gap-1.5">
                                         <Badge
                                             variant="secondary"
@@ -139,7 +194,21 @@ import { useMangaList } from "@/hooks/useMangaList";
                                             variant="outline"
                                             className="text-[10px] px-1.5 py-0 h-5 border-primary/50 text-primary font-medium"
                                         >
-                                            {manga.status || "En Emisión"}
+                                            {(() => {
+                                                if (
+                                                    manga.status ===
+                                                    "Pausado por el autor (Hiatus)"
+                                                )
+                                                    return "Pausado";
+                                                if (
+                                                    manga.status ===
+                                                    "Abandonado por el scan"
+                                                )
+                                                    return "Abandonado";
+                                                return (
+                                                    manga.status || "Abandonado"
+                                                );
+                                            })()}
                                         </Badge>
                                     </div>
                                 </div>
@@ -149,8 +218,12 @@ import { useMangaList } from "@/hooks/useMangaList";
                 <div className="mt-12 mb-8 pt-8">
                     <MangaPagination
                         page={page}
-                        totalPages={data?.meta?.totalPages || 1}
-                        onPageChange={setPage}
+                        totalPages={
+                            data && typeof data.meta === "object"
+                                ? data.meta.totalPages
+                                : 1
+                        }
+                        setPage={setPage}
                     />
                 </div>
             </main>
@@ -161,22 +234,50 @@ import { useMangaList } from "@/hooks/useMangaList";
 interface MangaPaginationProps {
     page: number;
     totalPages: number;
-    onPageChange: (page: number) => void;
+    setPage: (page: number) => void;
 }
 
-function MangaPagination({ page, totalPages, onPageChange }: MangaPaginationProps) {
-    // Mostrar máximo 5 páginas en la paginación
-    const getPages = () => {
-        const pages = [];
-        let start = Math.max(1, page - 2);
-        let end = Math.min(totalPages, page + 2);
-        if (end - start < 4) {
-            if (start === 1) end = Math.min(totalPages, start + 4);
-            if (end === totalPages) start = Math.max(1, end - 4);
-        }
-        for (let i = start; i <= end; i++) pages.push(i);
-        return pages;
+const MangaPagination: React.FC<MangaPaginationProps> = ({
+    page,
+    totalPages,
+    setPage,
+}) => {
+    const handlePrev = () => {
+        if (page > 1) setPage(page - 1);
     };
+    const handleNext = () => {
+        if (page < totalPages) setPage(page + 1);
+    };
+    // Calcular rango de páginas a mostrar
+    const pageNumbers: number[] = [];
+    // Siempre mostrar la primera página
+    pageNumbers.push(1);
+
+    // Rango centrado en la actual
+    let start = Math.max(page - 3, 2);
+    let end = Math.min(page + 3, totalPages - 1);
+
+    // Ajustar si estamos cerca del inicio o final
+    if (page <= 4) {
+        start = 2;
+        end = Math.min(7, totalPages - 1);
+    }
+    if (page >= totalPages - 3) {
+        start = Math.max(totalPages - 6, 2);
+        end = totalPages - 1;
+    }
+
+    for (let i = start; i <= end; i++) {
+        pageNumbers.push(i);
+    }
+
+    // Siempre mostrar la última página si hay más de una
+    if (totalPages > 1) {
+        pageNumbers.push(totalPages);
+    }
+
+    // Eliminar duplicados
+    const uniquePages = [...new Set(pageNumbers)];
 
     return (
         <Pagination>
@@ -184,33 +285,44 @@ function MangaPagination({ page, totalPages, onPageChange }: MangaPaginationProp
                 <PaginationItem>
                     <PaginationPrevious
                         href="#"
-                        onClick={e => {
+                        onClick={(e) => {
                             e.preventDefault();
-                            if (page > 1) onPageChange(page - 1);
+                            handlePrev();
                         }}
                         aria-disabled={page === 1}
                     />
                 </PaginationItem>
-                {getPages().map(p => (
-                    <PaginationItem key={p}>
-                        <PaginationLink
-                            href="#"
-                            isActive={p === page}
-                            onClick={e => {
-                                e.preventDefault();
-                                onPageChange(p);
-                            }}
-                        >
-                            {p}
-                        </PaginationLink>
-                    </PaginationItem>
+                {uniquePages.map((p, idx) => (
+                    <React.Fragment key={p}>
+                        {/* Mostrar puntos suspensivos si hay salto */}
+                        {idx > 0 &&
+                            uniquePages[idx] - uniquePages[idx - 1] > 1 && (
+                                <PaginationItem key={`ellipsis-${p}`}>
+                                    <span className="px-2 text-muted-foreground">
+                                        ...
+                                    </span>
+                                </PaginationItem>
+                            )}
+                        <PaginationItem>
+                            <PaginationLink
+                                href="#"
+                                isActive={p === page}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setPage(p);
+                                }}
+                            >
+                                {p}
+                            </PaginationLink>
+                        </PaginationItem>
+                    </React.Fragment>
                 ))}
                 <PaginationItem>
                     <PaginationNext
                         href="#"
-                        onClick={e => {
+                        onClick={(e) => {
                             e.preventDefault();
-                            if (page < totalPages) onPageChange(page + 1);
+                            handleNext();
                         }}
                         aria-disabled={page === totalPages}
                     />
@@ -218,4 +330,4 @@ function MangaPagination({ page, totalPages, onPageChange }: MangaPaginationProp
             </PaginationContent>
         </Pagination>
     );
-}
+};
