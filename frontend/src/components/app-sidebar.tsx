@@ -115,7 +115,7 @@ export function AppSidebar() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onSelect={logout}>
                                     <LogOut />
-                                    Log out
+                                    Cerrar Sesión
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
