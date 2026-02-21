@@ -5,6 +5,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./src/middlewares/errorHandle.js";
 import authRoutes from "./src/auth/authRoutes.js";
+import mangaRoutes from "./src/manga/mangaRoutes.js";
 
 const app = express();
 const PORT = config.PORT;
@@ -23,6 +24,7 @@ app.get("/health", (req, res) => {
     res.status(200).json({ status: "OK", message: "Server está activo" });
 });
 app.use("/api/auth", authRoutes);
+app.use("/api/manga", mangaRoutes);
 
 app.use(errorHandler);
 app.listen(PORT, () => {

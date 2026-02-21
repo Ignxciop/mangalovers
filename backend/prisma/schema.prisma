@@ -8,14 +8,14 @@ datasource db {
 }
 
 model User {
-  id                String             @id @default(uuid())
-  email             String             @unique
-  password          String
-  name              String
-  lastname          String
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  refreshTokens     RefreshToken[]
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  lastname      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
 
   @@map("users")
 }
@@ -33,4 +33,94 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
+}
+
+model Series {
+  id           Int     @id
+  name         String
+  slug         String  @unique
+  status       String?
+  cover        String?
+  chapterCount Int
+
+  lastChapterPublishedAt DateTime?
+
+  chapters       Chapter[]
+  providerSeries ProviderSeries[]
+
+  lastChaptersCheck DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([name])
+}
+
+model Chapter {
+  id          Int      @id
+  name        String
+  publishedAt DateTime
+
+  seriesId Int
+  series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  pages            Page[]
+  providerChapters ProviderChapter[]
+
+  pagesScraped Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([seriesId])
+  @@index([publishedAt])
+}
+
+model Page {
+  id        Int     @id @default(autoincrement())
+  url       String
+  chapterId Int
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([url, chapterId])
+  @@index([chapterId])
+}
+
+model Provider {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  series   ProviderSeries[]
+  chapters ProviderChapter[]
+}
+
+model ProviderSeries {
+  id Int @id @default(autoincrement())
+
+  providerId Int
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  externalId Int
+  slug       String
+
+  seriesId Int
+  series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, externalId])
+  @@index([seriesId])
+}
+
+model ProviderChapter {
+  id Int @id @default(autoincrement())
+
+  providerId Int
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  externalId Int
+
+  chapterId Int
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, externalId])
+  @@index([chapterId])
 }

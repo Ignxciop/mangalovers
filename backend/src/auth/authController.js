@@ -116,35 +116,4 @@ export class AuthController {
             next(error);
         }
     }
-
-    static async verifyEmail(req, res, next) {
-        try {
-            const { email, code } = req.body;
-
-            const { user, accessToken, refreshToken } =
-                await AuthService.verifyEmail(email, code);
-
-            res.status(200).json({
-                success: true,
-                message: "Email verificado exitosamente",
-                data: { user, accessToken, refreshToken },
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
-
-    static async resendVerification(req, res, next) {
-        try {
-            const { email } = req.body;
-            const result = await AuthService.resendVerification(email);
-
-            res.status(200).json({
-                success: true,
-                message: result.message,
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
 }
