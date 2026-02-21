@@ -117,3 +117,53 @@ export async function getLatestManga(limit = 16) {
         },
     });
 }
+
+export async function getSeriesDetailBySlug(slug) {
+    const series = await prisma.series.findUnique({
+        where: { slug },
+        include: {
+            genres: {
+                include: {
+                    genre: true,
+                },
+            },
+            chapters: {
+                orderBy: {
+                    publishedAt: "desc",
+                },
+            },
+            providerSeries: {
+                include: {
+                    provider: true,
+                },
+            },
+        },
+    });
+
+    if (!series) return null;
+
+    return {
+        id: series.id,
+        name: series.name,
+        slug: series.slug,
+        cover: series.cover,
+        status: series.status,
+        summary: series.summary,
+        chapterCount: series.chapterCount,
+
+        genres: series.genres.map((g) => g.genre.name),
+
+        providers: series.providerSeries.map((p) => ({
+            provider: p.provider.name,
+            externalSlug: p.slug,
+            externalUrl: p.url,
+        })),
+
+        chapters: series.chapters.map((c) => ({
+            id: c.id,
+            number: c.number,
+            title: c.title,
+            createdAt: c.createdAt,
+        })),
+    };
+}
