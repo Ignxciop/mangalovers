@@ -16,12 +16,13 @@ export function useAuth() {
     } = useAuthStore();
     const navigate = useNavigate();
 
-    const login = async (payload: LoginPayload, rememberMe = false) => {
+
+    const login = async (payload: LoginPayload) => {
         setIsLoading(true);
         setError(null);
         try {
             const data = await authApi.login(payload);
-            setAuth(data.accessToken, data.refreshToken, data.user, rememberMe);
+            setAuth(data.accessToken, data.refreshToken, data.user);
             navigate("/");
         } catch (err: unknown) {
             setError(getErrorMessage(err));
@@ -35,7 +36,7 @@ export function useAuth() {
         setError(null);
         try {
             const data = await authApi.register(payload);
-            setAuth(data.accessToken, data.refreshToken, data.user, false);
+            setAuth(data.accessToken, data.refreshToken, data.user);
             navigate("/");
         } catch (err: unknown) {
             setError(getErrorMessage(err));

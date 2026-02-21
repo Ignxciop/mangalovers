@@ -1,9 +1,16 @@
-import { createContext, useState, useEffect } from "react";
-import { api } from "@/services/api";
+import { createContext, useState } from "react";
+import type { ReactNode } from "react";
+import { api } from "@/api/axios";
 
-export const AuthContext = createContext(null);
+interface AuthContextType {
+    user: any;
+    login: (email: string, password: string) => Promise<void>;
+    logout: () => Promise<void>;
+}
 
-export const AuthProvider = ({ children }) => {
+export const AuthContext = createContext<AuthContextType | null>(null);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState(null);
 
     const login = async (email: string, password: string) => {

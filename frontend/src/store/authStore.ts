@@ -20,7 +20,6 @@ interface AuthState {
         accessToken: string,
         refreshToken: string,
         user: User,
-        rememberMe: boolean,
     ) => void;
     setAccessToken: (accessToken: string) => void;
     logout: () => void;
@@ -34,12 +33,8 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             isAuthenticated: false,
 
-            setAuth: (accessToken, refreshToken, user, rememberMe) => {
-                if (rememberMe) {
-                    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-                } else {
-                    localStorage.removeItem(REFRESH_TOKEN_KEY);
-                }
+            setAuth: (accessToken, refreshToken, user) => {
+                localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
                 set({ accessToken, refreshToken, user, isAuthenticated: true });
             },
 
