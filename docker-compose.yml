@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+    backend:
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        ports:
+            - "4008:4008"
+        environment:
+            NODE_ENV: production
+            PORT: 4008
+            DATABASE_URL: ${DATABASE_URL}
+            JWT_SECRET: ${JWT_SECRET}
+            JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+            JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+            JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+            FRONTEND_URL: ${FRONTEND_URL}
+        networks:
+            - mangalovers-network
+            - default
+
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+            args:
+                VITE_API_URL: "/api"
+        restart: unless-stopped
+        ports:
+            - "4007:4007"
+        depends_on:
+            - backend
+        networks:
+            - mangalovers-network
+
+    cloudflared:
+        image: cloudflare/cloudflared:latest
+        restart: unless-stopped
+        environment:
+            TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+        networks:
+            - mangalovers-network
+        command:
+            - tunnel
+            - --no-autoupdate
+            - run
+        depends_on:
+            - frontend
+            - backend
+
+networks:
+    mangalovers-network:
+        driver: bridge
+    default:
+        name: dokploy-network
+        external: true
