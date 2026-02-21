@@ -22,7 +22,7 @@ export function useAuth() {
         try {
             const data = await authApi.login(payload);
             setAuth(data.accessToken, data.refreshToken, data.user, rememberMe);
-            navigate("/dashboard");
+            navigate("/");
         } catch (err: unknown) {
             setError(getErrorMessage(err));
         } finally {
@@ -36,7 +36,7 @@ export function useAuth() {
         try {
             const data = await authApi.register(payload);
             setAuth(data.accessToken, data.refreshToken, data.user, false);
-            navigate("/dashboard");
+            navigate("/");
         } catch (err: unknown) {
             setError(getErrorMessage(err));
         } finally {
@@ -54,7 +54,7 @@ export function useAuth() {
             // Silenciar
         } finally {
             clearStore();
-            navigate("/login");
+            navigate("/acceso");
         }
     };
 

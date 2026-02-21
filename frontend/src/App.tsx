@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AuthLayout from "./components/layouts/authLayout.tsx";
-import Login from "./pages/loginForm.tsx";
-import Register from "./pages/registerForm.tsx";
+import { Login } from "./pages/loginForm.tsx";
+import { Register } from "./pages/registerForm.tsx";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ProtectedRoute, GuestRoute } from "@/components/protectedRoutes.tsx";
 import MainLayout from "./components/layouts/mainLayout.tsx";
@@ -10,7 +10,7 @@ import { useAuthStore } from "./store/authStore.ts";
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
-    return <Navigate to={isAutenticated ? "/home" : "/login"} replace />;
+    return <Navigate to={isAutenticated ? "/" : "/acceso"} replace />;
 }
 
 function App() {
@@ -20,13 +20,13 @@ function App() {
                 <Routes>
                     <Route element={<GuestRoute />}>
                         <Route element={<AuthLayout />}>
-                            <Route path="/login" element={<Login />} />
-                            <Route path="/register" element={<Register />} />
+                            <Route path="/acceso" element={<Login />} />
+                            <Route path="/registro" element={<Register />} />
                         </Route>
                     </Route>
                     <Route element={<ProtectedRoute />}>
                         <Route element={<MainLayout />}>
-                            <Route path="/home" element={<Home />} />
+                            <Route path="/" element={<Home />} />
                         </Route>
                     </Route>
                     <Route path="*" element={<SmartDirect />} />

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const REFRESH_TOKEN_KEY = "gymlovers-refresh-token";
+const REFRESH_TOKEN_KEY = "mangalovers-refresh-token";
 
 interface User {
     id: string;
@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>()(
             },
         }),
         {
-            name: "gymlovers-auth",
+            name: "mangalovers-auth",
             partialize: (state) => ({
                 user: state.user,
                 isAuthenticated: state.isAuthenticated,

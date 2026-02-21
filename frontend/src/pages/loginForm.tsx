@@ -1,25 +1,19 @@
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-    Card,
-    CardAction,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Field } from "@/components/ui/field";
-import { ModeToggle } from "../components/mode-toggle.tsx";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircleIcon } from "lucide-react";
 
-export default function Login() {
+export function Login({ className, ...props }: React.ComponentProps<"div">) {
     const { login, isLoading, error } = useAuth();
 
     const [form, setForm] = useState({
@@ -37,70 +31,74 @@ export default function Login() {
     };
 
     return (
-        <Card className="w-full max-w-sm">
-            <CardHeader>
-                <ModeToggle></ModeToggle>
-                <CardTitle>Login to your account</CardTitle>
-                <CardDescription>
-                    Enter your email below to login to your account
-                </CardDescription>
-                <CardAction>
-                    <Link to="/register">
-                        <Button variant="link">Sign Up</Button>
-                    </Link>
-                </CardAction>
-            </CardHeader>
-            <CardContent>
-                <form id="login-form" onSubmit={handleSubmit}>
-                    <div className="flex flex-col gap-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                name="email"
-                                placeholder="your@email.com"
-                                value={form.email}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <div className="flex items-center">
-                                <Label htmlFor="password">Password</Label>
+        <div className={cn("flex flex-col gap-6", className)} {...props}>
+            <Card className="overflow-hidden p-0">
+                <CardContent className="grid p-0 md:grid-cols-2">
+                    <form className="p-6 md:p-8" onSubmit={handleSubmit}>
+                        <FieldGroup>
+                            <div className="flex flex-col items-center gap-2 text-center">
+                                <h1 className="text-2xl font-bold">
+                                    Bienvenido de nuevo
+                                </h1>
+                                <p className="text-muted-foreground text-balance">
+                                    Inicia sesión en tu cuenta de Mangalovers
+                                </p>
                             </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                name="password"
-                                placeholder="••••••••"
-                                value={form.password}
-                                onChange={handleChange}
-                                required
-                            />
-                            <Field orientation="horizontal">
-                                <Checkbox
-                                    id="rememberme-checkbox"
-                                    name="rememberme-checkbox"
+                            <Field>
+                                <FieldLabel htmlFor="email">Email</FieldLabel>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    placeholder="correo@ejemplo.com"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    required
                                 />
-                                <Label htmlFor="rememberme-checkbox">
-                                    Remember me
-                                </Label>
                             </Field>
-                        </div>
+                            <Field>
+                                <div className="flex items-center">
+                                    <FieldLabel htmlFor="password">
+                                        Contraseña
+                                    </FieldLabel>
+                                </div>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    placeholder="••••••"
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </Field>
+                            <Field>
+                                <Button type="submit" disabled={isLoading}>
+                                    {isLoading
+                                        ? "Iniciando sesión..."
+                                        : "Iniciar Sesión"}
+                                </Button>
+                            </Field>
+                            <FieldDescription className="text-center">
+                                ¿No tienes una cuenta?{" "}
+                                <a href="/registro">Registrate</a>
+                            </FieldDescription>
+                        </FieldGroup>
+                    </form>
+                    <div className="bg-muted relative hidden md:block">
+                        <img
+                            src="/public/auth-form-anime.png"
+                            alt="Image"
+                            className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                        />
                     </div>
-                </form>
-            </CardContent>
-            <CardFooter className="flex-col gap-2">
-                <Button
-                    type="submit"
-                    form="login-form"
-                    className="w-full"
-                    disabled={isLoading}
-                >
-                    {isLoading ? "Logging in..." : "Login"}
-                </Button>
-            </CardFooter>
+                </CardContent>
+            </Card>
+            <FieldDescription className="px-6 text-center">
+                Al hacer clic en continuar, aceptas nuestros{" "}
+                <a href="#">Términos de Servicio</a> y{" "}
+                <a href="#">Política de Privacidad</a>.
+            </FieldDescription>
             {error && (
                 <Alert variant="destructive" className="border-0">
                     <AlertCircleIcon />
@@ -108,6 +106,6 @@ export default function Login() {
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}
-        </Card>
+        </div>
     );
 }

@@ -1,30 +1,19 @@
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardAction,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
 import {
     Field,
-    FieldContent,
     FieldDescription,
+    FieldGroup,
     FieldLabel,
 } from "@/components/ui/field";
-import { ModeToggle } from "../components/mode-toggle.tsx";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircleIcon } from "lucide-react";
 
-export default function Register() {
+export function Register({ className, ...props }: React.ComponentProps<"div">) {
     const { register, isLoading, error } = useAuth();
 
     const [form, setForm] = useState({
@@ -38,7 +27,10 @@ export default function Register() {
     const [passwordError, setPasswordError] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+        setForm((prev) => ({
+            ...prev,
+            [e.target.name]: e.target.value,
+        }));
 
         if (
             e.target.name === "password" ||
@@ -52,7 +44,7 @@ export default function Register() {
         e.preventDefault();
 
         if (form.password !== form.repeatpassword) {
-            setPasswordError("The passwords do not match.");
+            setPasswordError("Las contraseñas no coinciden.");
             return;
         }
 
@@ -63,134 +55,136 @@ export default function Register() {
     const displayError = passwordError || error;
 
     return (
-        <Card className="w-full max-w-sm">
-            <CardHeader>
-                <ModeToggle></ModeToggle>
-                <CardTitle>Register to your account</CardTitle>
-                <CardDescription>
-                    Enter your email below to register to your account
-                </CardDescription>
-                <CardAction>
-                    <Link to="/login">
-                        <Button variant="link">Sign In</Button>
-                    </Link>
-                </CardAction>
-            </CardHeader>
-            <CardContent>
-                <form id="register-form" onSubmit={handleSubmit}>
-                    <div className="flex flex-col gap-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="name">Name</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                name="name"
-                                placeholder="Name"
-                                value={form.name}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="lastname">Lastname</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                name="lastname"
-                                placeholder="Lastname"
-                                value={form.lastname}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                name="email"
-                                placeholder="your@email.com"
-                                value={form.email}
-                                onChange={handleChange}
-                                required
-                            />
-                            <FieldDescription>
-                                We&apos;ll use this to contact you. We will not
-                                share your email with anyone else.
-                            </FieldDescription>
-                        </div>
-                        <div className="grid gap-2">
-                            <div className="flex items-center">
-                                <Label htmlFor="password">Password</Label>
+        <div className={cn("flex flex-col gap-6", className)} {...props}>
+            <Card className="overflow-hidden p-0">
+                <CardContent className="grid p-0 md:grid-cols-2">
+                    <form className="p-6 md:p-8" onSubmit={handleSubmit}>
+                        <FieldGroup>
+                            <div className="flex flex-col items-center gap-2 text-center">
+                                <h1 className="text-2xl font-bold">
+                                    Crea tu cuenta
+                                </h1>
+                                <p className="text-muted-foreground text-sm text-balance">
+                                    Introduce tu correo electrónico a
+                                    continuación para crear tu cuenta
+                                </p>
                             </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                name="password"
-                                placeholder="••••••••"
-                                value={form.password}
-                                onChange={handleChange}
-                                required
-                            />
-                            <FieldDescription>
-                                Must be at least 6 characters long.
-                            </FieldDescription>
-                        </div>
-                        <div className="grid gap-2">
-                            <div className="flex items-center">
-                                <Label htmlFor="repeatpassword">
-                                    Repeat Password
-                                </Label>
-                            </div>
-                            <Input
-                                id="repeatpassword"
-                                type="password"
-                                name="repeatpassword"
-                                placeholder="••••••••"
-                                value={form.repeatpassword}
-                                onChange={handleChange}
-                                required
-                            />
-                            <FieldDescription className="mb-4">
-                                Please confirm your password.
-                            </FieldDescription>
-                            <Field orientation="horizontal">
-                                <Checkbox
-                                    id="terms-checkbox-1"
-                                    name="terms-checkbox-1"
+                            <Field className="grid grid-cols-2 gap-4">
+                                <Field>
+                                    <FieldLabel htmlFor="name">
+                                        Nombre
+                                    </FieldLabel>
+                                    <Input
+                                        id="name"
+                                        type="text"
+                                        name="name"
+                                        placeholder="José"
+                                        value={form.name}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="lastname">
+                                        Apellido
+                                    </FieldLabel>
+                                    <Input
+                                        id="lastname"
+                                        type="text"
+                                        name="lastname"
+                                        placeholder="Núñez"
+                                        value={form.lastname}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </Field>
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="email">Email</FieldLabel>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    placeholder="correo@ejemplo.com"
+                                    value={form.email}
+                                    onChange={handleChange}
                                     required
                                 />
-                                <FieldContent>
-                                    <FieldLabel htmlFor="terms-checkbox-1">
-                                        Accept terms and conditions
-                                    </FieldLabel>
-                                    <FieldDescription>
-                                        By clicking this checkbox, you agree to
-                                        the terms.
-                                    </FieldDescription>
-                                </FieldContent>
+                                <FieldDescription>
+                                    Usaremos esta información para contactarte.
+                                    No compartiremos tu correo electrónico con
+                                    nadie más.
+                                </FieldDescription>
                             </Field>
-                        </div>
+                            <Field>
+                                <Field className="grid grid-cols-2 gap-4">
+                                    <Field>
+                                        <FieldLabel htmlFor="password">
+                                            Contraseña
+                                        </FieldLabel>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            name="password"
+                                            placeholder="••••••"
+                                            value={form.password}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </Field>
+                                    <Field>
+                                        <FieldLabel htmlFor="confirm-password">
+                                            Confirmar Contraseña
+                                        </FieldLabel>
+                                        <Input
+                                            id="confirm-password"
+                                            type="password"
+                                            name="repeatpassword"
+                                            placeholder="••••••"
+                                            value={form.repeatpassword}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </Field>
+                                </Field>
+                                <FieldDescription>
+                                    Debe tener al menos 6 caracteres.
+                                </FieldDescription>
+                            </Field>
+                            <Field>
+                                <Button type="submit" disabled={isLoading}>
+                                    {isLoading
+                                        ? "Creando cuenta..."
+                                        : "Crear Cuenta"}
+                                </Button>
+                            </Field>
+                            <FieldDescription className="text-center">
+                                ¿Ya tienes una cuenta?{" "}
+                                <a href="/login">Inicia sesión</a>
+                            </FieldDescription>
+                        </FieldGroup>
+                    </form>
+                    <div className="bg-muted relative hidden md:block">
+                        <img
+                            src="/public/auth-form-anime.png"
+                            alt="Image"
+                            className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                        />
                     </div>
-                </form>
-            </CardContent>
-            <CardFooter className="flex-col gap-2">
-                <Button
-                    type="submit"
-                    form="register-form"
-                    className="w-full"
-                    disabled={isLoading}
-                >
-                    {isLoading ? "Creating account..." : "Register"}
-                </Button>
-            </CardFooter>
+                </CardContent>
+            </Card>
+            <FieldDescription className="px-6 text-center">
+                Al hacer clic en continuar, aceptas nuestros{" "}
+                <a href="#">Términos de Servicio</a> y{" "}
+                <a href="#">Política de Privacidad</a>.
+            </FieldDescription>
             {displayError && (
                 <Alert variant="destructive" className="border-0">
                     <AlertCircleIcon />
-                    <AlertTitle>Register failed</AlertTitle>
+                    <AlertTitle>Registro fallido</AlertTitle>
                     <AlertDescription>{displayError}</AlertDescription>
                 </Alert>
             )}
-        </Card>
+        </div>
     );
 }
