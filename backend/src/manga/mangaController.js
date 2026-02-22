@@ -2,6 +2,7 @@ import {
     getAllManga,
     getLatestManga,
     getSeriesDetailBySlug,
+    getChapterPages,
 } from "./mangaService.js";
 
 export async function handleGetAllManga(req, res) {
@@ -45,5 +46,26 @@ export async function getSeriesDetail(req, res) {
         return res.status(500).json({
             message: "Error interno del servidor",
         });
+    }
+}
+
+export async function handleGetChapterPages(req, res) {
+    try {
+        const { chapterId } = req.params;
+
+        if (isNaN(Number(chapterId))) {
+            return res.status(400).json({ message: "ID de capítulo inválido" });
+        }
+
+        const chapter = await getChapterPages(chapterId);
+
+        if (!chapter) {
+            return res.status(404).json({ message: "Capítulo no encontrado" });
+        }
+
+        return res.json(chapter);
+    } catch (error) {
+        console.error("Error obteniendo páginas del capítulo:", error);
+        return res.status(500).json({ message: "Error interno del servidor" });
     }
 }

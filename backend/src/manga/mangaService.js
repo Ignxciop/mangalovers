@@ -167,3 +167,34 @@ export async function getSeriesDetailBySlug(slug) {
         })),
     };
 }
+
+export async function getChapterPages(chapterId) {
+    const chapter = await prisma.chapter.findUnique({
+        where: { id: Number(chapterId) },
+        include: {
+            pages: {
+                orderBy: { id: "asc" },
+            },
+            series: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                },
+            },
+        },
+    });
+
+    if (!chapter) return null;
+
+    return {
+        chapterId: chapter.id,
+        name: chapter.name,
+        publishedAt: chapter.publishedAt,
+        series: chapter.series,
+        pages: chapter.pages.map((p) => ({
+            id: p.id,
+            url: p.url,
+        })),
+    };
+}
