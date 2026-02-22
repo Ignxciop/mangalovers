@@ -11,6 +11,8 @@ export function useMangaList(params: Record<string, string | number>) {
         let isMounted = true;
 
         async function load() {
+            setLoading(true);
+            setError(null);
             try {
                 const result = await fetchMangaList(params);
                 if (isMounted) setData(result);
@@ -26,7 +28,14 @@ export function useMangaList(params: Record<string, string | number>) {
         return () => {
             isMounted = false;
         };
-    }, [params]);
+    }, [
+        params.page,
+        params.search,
+        params.status,
+        params.provider,
+        params.sort,
+        params.order,
+    ]);
 
     return { data, loading, error };
 }
