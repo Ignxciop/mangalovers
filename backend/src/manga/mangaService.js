@@ -159,11 +159,12 @@ export async function getSeriesDetailBySlug(slug) {
             externalUrl: p.url,
         })),
 
-        chapters: series.chapters.map((c) => ({
+        chapters: series.chapters.map((c, index, arr) => ({
             id: c.id,
-            number: c.number,
-            title: c.title,
+            name: c.name,
+            publishedAt: c.publishedAt,
             createdAt: c.createdAt,
+            chapterNumber: arr.length - index,
         })),
     };
 }
@@ -187,11 +188,32 @@ export async function getChapterPages(chapterId) {
 
     if (!chapter) return null;
 
+    const [prev, next] = await Promise.all([
+        prisma.chapter.findFirst({
+            where: {
+                seriesId: chapter.seriesId,
+                publishedAt: { gt: chapter.publishedAt },
+            },
+            orderBy: { publishedAt: "asc" },
+            select: { id: true, name: true },
+        }),
+        prisma.chapter.findFirst({
+            where: {
+                seriesId: chapter.seriesId,
+                publishedAt: { lt: chapter.publishedAt },
+            },
+            orderBy: { publishedAt: "desc" },
+            select: { id: true, name: true },
+        }),
+    ]);
+
     return {
         chapterId: chapter.id,
         name: chapter.name,
         publishedAt: chapter.publishedAt,
         series: chapter.series,
+        prev: next ? { id: next.id, name: next.name } : null,
+        next: prev ? { id: prev.id, name: prev.name } : null,
         pages: chapter.pages.map((p) => ({
             id: p.id,
             url: p.url,

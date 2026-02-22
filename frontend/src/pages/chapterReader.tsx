@@ -1,7 +1,49 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useChapterPages } from "@/hooks/useChapterPages";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+function ChapterNav({
+    slug,
+    prev,
+    next,
+}: {
+    slug: string;
+    prev: { id: number; name: string } | null;
+    next: { id: number; name: string } | null;
+}) {
+    const navigate = useNavigate();
+
+    return (
+        <div className="flex items-center justify-between gap-4 w-full max-w-2xl mx-auto px-4 py-4">
+            <button
+                disabled={!prev}
+                onClick={() =>
+                    prev && navigate(`/manga/${slug}/capitulo/${prev.id}`)
+                }
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed min-w-0"
+            >
+                <ChevronLeft className="h-4 w-4 shrink-0" />
+                <span className="truncate">
+                    {prev ? prev.name : "Sin anterior"}
+                </span>
+            </button>
+
+            <button
+                disabled={!next}
+                onClick={() =>
+                    next && navigate(`/manga/${slug}/capitulo/${next.id}`)
+                }
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed min-w-0"
+            >
+                <span className="truncate">
+                    {next ? next.name : "Sin siguiente"}
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0" />
+            </button>
+        </div>
+    );
+}
 
 export default function ChapterReader() {
     const { slug, chapterId } = useParams<{
@@ -60,8 +102,11 @@ export default function ChapterReader() {
                 </div>
             </div>
 
+            {/* Nav superior */}
+            <ChapterNav slug={slug!} prev={chapter.prev} next={chapter.next} />
+
             {/* Pages */}
-            <div className="flex flex-col items-center gap-1 py-4">
+            <div className="flex flex-col items-center gap-1">
                 {chapter.pages.map((page, index) => (
                     <img
                         key={page.id}
@@ -73,8 +118,11 @@ export default function ChapterReader() {
                 ))}
             </div>
 
+            {/* Nav inferior */}
+            <ChapterNav slug={slug!} prev={chapter.prev} next={chapter.next} />
+
             {/* Footer */}
-            <div className="text-center py-10 text-muted-foreground text-sm">
+            <div className="text-center py-6 text-muted-foreground text-sm">
                 Fin del capítulo —{" "}
                 <button
                     onClick={() => navigate(`/manga/${slug}`)}

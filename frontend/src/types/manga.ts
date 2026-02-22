@@ -19,6 +19,7 @@ export interface Chapter {
     name: string;
     publishedAt: string;
     createdAt: string;
+    chapterNumber: number;
 }
 
 export interface SeriesProvider {
@@ -49,6 +50,8 @@ export interface ChapterPages {
         name: string;
         slug: string;
     };
+    prev: { id: number; name: string } | null;
+    next: { id: number; name: string } | null;
     pages: {
         id: number;
         url: string;

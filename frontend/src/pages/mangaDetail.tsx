@@ -4,9 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, ChevronLeft, Clock, Hash, Layers } from "lucide-react";
-
-// ─── Loading skeleton ────────────────────────────────────────────────────────
+import { BookOpen, ChevronLeft, Clock, Hash, Layers, Play } from "lucide-react";
 
 function MangaDetailSkeleton() {
     return (
@@ -36,8 +34,6 @@ function MangaDetailSkeleton() {
         </div>
     );
 }
-
-// ─── Status badge helper ──────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string | null }) {
     if (!status) return null;
@@ -76,11 +72,8 @@ function StatusBadge({ status }: { status: string | null }) {
     );
 }
 
-// ─── Chapter row ─────────────────────────────────────────────────────────────
-
 function ChapterRow({
     chapter,
-    index,
     onClick,
 }: {
     chapter: {
@@ -88,8 +81,8 @@ function ChapterRow({
         name: string;
         publishedAt: string;
         createdAt: string;
+        chapterNumber: number;
     };
-    index: number;
     onClick: () => void;
 }) {
     const date = new Date(chapter.publishedAt).toLocaleDateString("es-ES", {
@@ -105,7 +98,7 @@ function ChapterRow({
         >
             <div className="flex items-center gap-3 min-w-0">
                 <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 text-right">
-                    {index + 1}
+                    {chapter.chapterNumber}
                 </span>
                 <BookOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="text-sm text-foreground/90 truncate group-hover:text-foreground transition-colors">
@@ -119,8 +112,6 @@ function ChapterRow({
         </div>
     );
 }
-
-// ─── Stat pill ────────────────────────────────────────────────────────────────
 
 function StatPill({
     icon: Icon,
@@ -143,8 +134,6 @@ function StatPill({
         </div>
     );
 }
-
-// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function MangaDetail() {
     const { slug } = useParams<{ slug: string }>();
@@ -175,18 +164,14 @@ export default function MangaDetail() {
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8 max-w-6xl">
-                {/* Back */}
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate("/mangas")}
                     className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
                 >
                     <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                     Volver
                 </button>
-
-                {/* Main layout */}
                 <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
-                    {/* ── LEFT: Cover ── */}
                     <div className="md:w-56 lg:w-64 shrink-0">
                         <div className="sticky top-8">
                             <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50">
@@ -201,11 +186,8 @@ export default function MangaDetail() {
                                         <BookOpen className="h-12 w-12 text-muted-foreground/40" />
                                     </div>
                                 )}
-                                {/* Subtle gradient at bottom of cover */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
                             </div>
-
-                            {/* Stats below cover */}
                             <div className="mt-4 grid grid-cols-2 gap-2">
                                 <StatPill
                                     icon={Layers}
@@ -218,8 +200,6 @@ export default function MangaDetail() {
                                     value={series.genres.length}
                                 />
                             </div>
-
-                            {/* Providers */}
                             {series.providers.length > 0 && (
                                 <div className="mt-4">
                                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
@@ -240,18 +220,13 @@ export default function MangaDetail() {
                             )}
                         </div>
                     </div>
-
-                    {/* ── RIGHT: Info + chapters ── */}
                     <div className="flex-1 min-w-0">
-                        {/* Title & status */}
                         <div className="flex flex-wrap items-start gap-3 mb-2">
                             <h1 className="text-2xl lg:text-3xl font-extrabold leading-tight tracking-tight flex-1">
                                 {series.name}
                             </h1>
                             <StatusBadge status={series.status} />
                         </div>
-
-                        {/* Genres */}
                         {series.genres.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mb-5">
                                 {series.genres.map((genre) => (
@@ -265,10 +240,24 @@ export default function MangaDetail() {
                                 ))}
                             </div>
                         )}
-
+                        {series.chapters.length > 0 && (
+                            <button
+                                onClick={() => {
+                                    const firstChapter =
+                                        series.chapters[
+                                            series.chapters.length - 1
+                                        ];
+                                    navigate(
+                                        `/manga/${slug}/capitulo/${firstChapter.id}`,
+                                    );
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors mb-5"
+                            >
+                                <Play className="h-4 w-4" />
+                                Leer desde el capítulo 1
+                            </button>
+                        )}
                         <Separator className="mb-5 opacity-20" />
-
-                        {/* Summary */}
                         {series.summary && (
                             <div className="mb-8">
                                 <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
@@ -279,8 +268,6 @@ export default function MangaDetail() {
                                 </p>
                             </div>
                         )}
-
-                        {/* Chapters */}
                         <div>
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -298,20 +285,17 @@ export default function MangaDetail() {
                             ) : (
                                 <ScrollArea className="h-[420px] rounded-xl border border-white/10 bg-white/[0.02] pr-2">
                                     <div className="p-2 space-y-0.5">
-                                        {series.chapters.map(
-                                            (chapter, index) => (
-                                                <ChapterRow
-                                                    key={chapter.id}
-                                                    chapter={chapter}
-                                                    index={index}
-                                                    onClick={() =>
-                                                        navigate(
-                                                            `/manga/${slug}/capitulo/${chapter.id}`,
-                                                        )
-                                                    }
-                                                />
-                                            ),
-                                        )}
+                                        {series.chapters.map((chapter) => (
+                                            <ChapterRow
+                                                key={chapter.id}
+                                                chapter={chapter}
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/manga/${slug}/capitulo/${chapter.id}`,
+                                                    )
+                                                }
+                                            />
+                                        ))}
                                     </div>
                                 </ScrollArea>
                             )}
