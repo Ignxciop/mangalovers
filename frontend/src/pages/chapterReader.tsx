@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useChapterPages } from "@/hooks/useChapterPages";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 function ChapterNav({
     slug,
@@ -87,7 +88,8 @@ export default function ChapterReader() {
         <div className="min-h-screen bg-black">
             {/* Header */}
             <div className="sticky top-0 z-40 bg-black/80 backdrop-blur border-b border-white/10">
-                <div className="container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
+                <div className="justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
+                    <SidebarTrigger />
                     <button
                         onClick={() => navigate(`/manga/${slug}`)}
                         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"

@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, ChevronLeft, Clock, Hash, Layers, Play } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 function MangaDetailSkeleton() {
     return (
@@ -164,13 +165,16 @@ export default function MangaDetail() {
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8 max-w-6xl">
-                <button
-                    onClick={() => navigate("/mangas")}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-                >
-                    <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-                    Volver
-                </button>
+                <div className="flex">
+                    <SidebarTrigger />
+                    <button
+                        onClick={() => navigate("/mangas")}
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
+                    >
+                        <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                        Volver
+                    </button>
+                </div>
                 <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
                     <div className="md:w-56 lg:w-64 shrink-0">
                         <div className="sticky top-8">
