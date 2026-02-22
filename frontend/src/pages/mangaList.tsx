@@ -21,6 +21,7 @@ import {
 import React, { useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useMangaList } from "@/hooks/useMangaList";
+import { useNavigate } from "react-router-dom";
 
 export default function MangaList() {
     const [page, setPage] = useState<number>(1);
@@ -38,6 +39,8 @@ export default function MangaList() {
         sort,
         order,
     });
+
+    const navigate = useNavigate();
 
     return (
         <div className="min-h-screen bg-background">
@@ -76,7 +79,7 @@ export default function MangaList() {
                                     <div className="flex flex-wrap gap-2">
                                         {[
                                             {
-                                                label: "Emisión",
+                                                label: "Activo",
                                                 value: "Activo",
                                             },
                                             {
@@ -84,7 +87,7 @@ export default function MangaList() {
                                                 value: "Finalizado",
                                             },
                                             {
-                                                label: "Hiatus",
+                                                label: "Pausado",
                                                 value: "Pausado por el autor (Hiatus)",
                                             },
                                             {
@@ -153,9 +156,9 @@ export default function MangaList() {
                             <div
                                 key={manga.id}
                                 className="group cursor-pointer"
+                                onClick={() => navigate(`/manga/${manga.slug}`)}
                             >
                                 <div className="relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted shadow-sm transition-transform group-hover:scale-[1.03]">
-                                    {/* Badge de capítulos */}
                                     <Badge
                                         variant="secondary"
                                         className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium"
@@ -177,7 +180,6 @@ export default function MangaList() {
                                     </div>
                                 </div>
                                 <div className="mt-3 space-y-2">
-                                    {/* Tooltip para nombre completo */}
                                     <div className="relative">
                                         <h3
                                             className="text-sm font-bold truncate leading-none group-hover:text-primary transition-colors"
@@ -251,16 +253,12 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
     const handleNext = () => {
         if (page < totalPages) setPage(page + 1);
     };
-    // Calcular rango de páginas a mostrar
     const pageNumbers: number[] = [];
-    // Siempre mostrar la primera página
     pageNumbers.push(1);
 
-    // Rango centrado en la actual
     let start = Math.max(page - 3, 2);
     let end = Math.min(page + 3, totalPages - 1);
 
-    // Ajustar si estamos cerca del inicio o final
     if (page <= 4) {
         start = 2;
         end = Math.min(7, totalPages - 1);
@@ -274,12 +272,10 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
         pageNumbers.push(i);
     }
 
-    // Siempre mostrar la última página si hay más de una
     if (totalPages > 1) {
         pageNumbers.push(totalPages);
     }
 
-    // Eliminar duplicados
     const uniquePages = [...new Set(pageNumbers)];
 
     return (
@@ -297,7 +293,6 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
                 </PaginationItem>
                 {uniquePages.map((p, idx) => (
                     <React.Fragment key={p}>
-                        {/* Mostrar puntos suspensivos si hay salto */}
                         {idx > 0 &&
                             uniquePages[idx] - uniquePages[idx - 1] > 1 && (
                                 <PaginationItem key={`ellipsis-${p}`}>

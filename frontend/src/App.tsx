@@ -8,6 +8,7 @@ import MainLayout from "./components/layouts/mainLayout.tsx";
 import Home from "./pages/home.tsx";
 import { useAuthStore } from "./store/authStore.ts";
 import MangaList from "./pages/mangaList.tsx";
+import MangaDetail from "./pages/mangaDetail.tsx";
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -29,6 +30,10 @@ function App() {
                         <Route element={<MainLayout />}>
                             <Route path="/" element={<Home />} />
                             <Route path="/mangas" element={<MangaList />} />
+                            <Route
+                                path="/manga/:slug"
+                                element={<MangaDetail />}
+                            />
                         </Route>
                     </Route>
                     <Route path="*" element={<SmartDirect />} />

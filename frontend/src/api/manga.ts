@@ -1,5 +1,5 @@
 import { api } from "@/api/axios.ts";
-import type { Manga, MangaListResponse } from "@/types/manga";
+import type { Manga, MangaListResponse, SeriesDetail } from "@/types/manga";
 
 export async function fetchLatestManga(limit = 16): Promise<Manga[]> {
     const { data } = await api.get<Manga[]>("/manga/latest", {
@@ -16,5 +16,10 @@ export async function fetchMangaList(
         params,
     });
 
+    return data;
+}
+
+export async function fetchSeriesDetail(slug: string): Promise<SeriesDetail> {
+    const { data } = await api.get<SeriesDetail>(`/manga/${slug}`);
     return data;
 }
