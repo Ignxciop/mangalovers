@@ -57,3 +57,19 @@ export interface ChapterPages {
         url: string;
     }[];
 }
+
+export interface Favorite {
+    id: number;
+    userId: string;
+    seriesId: number;
+    status: "Siguiendo" | "Terminado";
+    createdAt: string;
+    series: {
+        id: number;
+        name: string;
+        slug: string;
+        cover: string | null;
+        status: string | null;
+        chapterCount: number;
+    };
+}

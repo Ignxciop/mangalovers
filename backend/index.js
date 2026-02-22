@@ -6,6 +6,8 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./src/middlewares/errorHandle.js";
 import authRoutes from "./src/auth/authRoutes.js";
 import mangaRoutes from "./src/manga/mangaRoutes.js";
+import favoriteRoutes from "./src/favorite/favoriteRoutes.js";
+import readRoutes from "./src/read/readRoutes.js";
 
 const app = express();
 const PORT = config.PORT;
@@ -25,6 +27,8 @@ app.get("/health", (req, res) => {
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/manga", mangaRoutes);
+app.use("/api/favorites", favoriteRoutes);
+app.use("/api/reads", readRoutes);
 
 app.use(errorHandler);
 app.listen(PORT, () => {

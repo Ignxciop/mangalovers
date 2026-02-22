@@ -4,8 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, ChevronLeft, Clock, Hash, Layers, Play } from "lucide-react";
+import {
+    BookOpen,
+    ChevronLeft,
+    Clock,
+    Hash,
+    Layers,
+    Play,
+    Eye,
+    EyeOff,
+    Heart,
+} from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useFavorite } from "@/hooks/useFavorite";
+import { useReadChapters } from "@/hooks/useReadChapters";
 
 function MangaDetailSkeleton() {
     return (
@@ -75,6 +87,8 @@ function StatusBadge({ status }: { status: string | null }) {
 
 function ChapterRow({
     chapter,
+    isRead,
+    onToggleRead,
     onClick,
 }: {
     chapter: {
@@ -84,6 +98,8 @@ function ChapterRow({
         createdAt: string;
         chapterNumber: number;
     };
+    isRead: boolean;
+    onToggleRead: (e: React.MouseEvent) => void;
     onClick: () => void;
 }) {
     const date = new Date(chapter.publishedAt).toLocaleDateString("es-ES", {
@@ -110,6 +126,17 @@ function ChapterRow({
                 <Clock className="h-3 w-3" />
                 {date}
             </div>
+            <button
+                onClick={onToggleRead}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title={isRead ? "Marcar como no leído" : "Marcar como leído"}
+            >
+                {isRead ? (
+                    <Eye className="h-3.5 w-3.5" />
+                ) : (
+                    <EyeOff className="h-3.5 w-3.5" />
+                )}
+            </button>
         </div>
     );
 }
@@ -140,6 +167,13 @@ export default function MangaDetail() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const { series, loading, error } = useSeriesDetail(slug ?? "");
+    const {
+        status: favStatus,
+        loading: favLoading,
+        save: saveFav,
+        remove: removeFav,
+    } = useFavorite(series?.id ?? 0);
+    const { readIds, toggle: toggleRead } = useReadChapters(series?.id ?? 0);
 
     if (loading) return <MangaDetailSkeleton />;
 
@@ -261,6 +295,43 @@ export default function MangaDetail() {
                                 Leer desde el capítulo 1
                             </button>
                         )}
+                        {!favLoading && (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() =>
+                                        favStatus
+                                            ? removeFav()
+                                            : saveFav("Siguiendo")
+                                    }
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                                        favStatus
+                                            ? "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
+                                            : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                                    }`}
+                                >
+                                    <Heart
+                                        className={`h-4 w-4 ${favStatus ? "fill-rose-400" : ""}`}
+                                    />
+                                    {favStatus ?? "Guardar"}
+                                </button>
+                                {favStatus && (
+                                    <select
+                                        value={favStatus}
+                                        onChange={(e) =>
+                                            saveFav(e.target.value)
+                                        }
+                                        className="text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white/70 cursor-pointer"
+                                    >
+                                        <option value="Siguiendo">
+                                            Siguiendo
+                                        </option>
+                                        <option value="Terminado">
+                                            Terminado
+                                        </option>
+                                    </select>
+                                )}
+                            </div>
+                        )}
                         <Separator className="mb-5 opacity-20" />
                         {series.summary && (
                             <div className="mb-8">
@@ -293,6 +364,11 @@ export default function MangaDetail() {
                                             <ChapterRow
                                                 key={chapter.id}
                                                 chapter={chapter}
+                                                isRead={readIds.has(chapter.id)}
+                                                onToggleRead={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleRead(chapter.id);
+                                                }}
                                                 onClick={() =>
                                                     navigate(
                                                         `/manga/${slug}/capitulo/${chapter.id}`,

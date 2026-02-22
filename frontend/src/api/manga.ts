@@ -37,3 +37,37 @@ export async function fetchChapterPages(
     );
     return data;
 }
+
+export async function fetchFavorites() {
+    const { data } = await api.get("/favorites");
+    return data;
+}
+
+export async function fetchFavorite(seriesId: number) {
+    const { data } = await api.get(`/favorites/${seriesId}`);
+    return data;
+}
+
+export async function upsertFavorite(seriesId: number, status: string) {
+    const { data } = await api.post("/favorites", { seriesId, status });
+    return data;
+}
+
+export async function deleteFavorite(seriesId: number) {
+    const { data } = await api.delete(`/favorites/${seriesId}`);
+    return data;
+}
+
+export async function fetchReadChapterIds(seriesId: number): Promise<number[]> {
+    const { data } = await api.get<number[]>(`/reads/series/${seriesId}`);
+    return data;
+}
+
+export async function toggleChapterRead(
+    chapterId: number,
+): Promise<{ read: boolean }> {
+    const { data } = await api.post<{ read: boolean }>(
+        `/reads/chapter/${chapterId}/toggle`,
+    );
+    return data;
+}
