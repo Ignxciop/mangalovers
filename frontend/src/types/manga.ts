@@ -39,3 +39,18 @@ export interface SeriesDetail {
     providers: SeriesProvider[];
     chapters: Chapter[];
 }
+
+export interface ChapterPages {
+    chapterId: number;
+    name: string;
+    publishedAt: string;
+    series: {
+        id: number;
+        name: string;
+        slug: string;
+    };
+    pages: {
+        id: number;
+        url: string;
+    }[];
+}

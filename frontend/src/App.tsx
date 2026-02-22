@@ -9,6 +9,7 @@ import Home from "./pages/home.tsx";
 import { useAuthStore } from "./store/authStore.ts";
 import MangaList from "./pages/mangaList.tsx";
 import MangaDetail from "./pages/mangaDetail.tsx";
+import ChapterReader from "./pages/chapterReader.tsx";
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -33,6 +34,10 @@ function App() {
                             <Route
                                 path="/manga/:slug"
                                 element={<MangaDetail />}
+                            />
+                            <Route
+                                path="/manga/:slug/capitulo/:chapterId"
+                                element={<ChapterReader />}
                             />
                         </Route>
                     </Route>

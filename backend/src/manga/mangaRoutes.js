@@ -5,13 +5,12 @@ import {
     getSeriesDetail,
     handleGetChapterPages,
 } from "./mangaController.js";
-import { authenticate } from "../middlewares/auth.js";
 
 const router = Router();
 
 router.get("/", handleGetAllManga);
 router.get("/latest", handleGetLatestManga);
+router.get("/capitulo/:chapterId/pages", handleGetChapterPages);
 router.get("/:slug", getSeriesDetail);
-router.get("/:chapterId/pages", handleGetChapterPages);
 
 export default router;

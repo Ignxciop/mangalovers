@@ -81,6 +81,7 @@ function StatusBadge({ status }: { status: string | null }) {
 function ChapterRow({
     chapter,
     index,
+    onClick,
 }: {
     chapter: {
         id: number;
@@ -89,6 +90,7 @@ function ChapterRow({
         createdAt: string;
     };
     index: number;
+    onClick: () => void;
 }) {
     const date = new Date(chapter.publishedAt).toLocaleDateString("es-ES", {
         day: "2-digit",
@@ -97,7 +99,10 @@ function ChapterRow({
     });
 
     return (
-        <div className="group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all duration-150 hover:bg-white/5 border border-transparent hover:border-white/10">
+        <div
+            onClick={onClick}
+            className="group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all duration-150 hover:bg-white/5 border border-transparent hover:border-white/10"
+        >
             <div className="flex items-center gap-3 min-w-0">
                 <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 text-right">
                     {index + 1}
@@ -299,6 +304,11 @@ export default function MangaDetail() {
                                                     key={chapter.id}
                                                     chapter={chapter}
                                                     index={index}
+                                                    onClick={() =>
+                                                        navigate(
+                                                            `/manga/${slug}/capitulo/${chapter.id}`,
+                                                        )
+                                                    }
                                                 />
                                             ),
                                         )}
