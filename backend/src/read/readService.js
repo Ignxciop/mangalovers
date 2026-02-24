@@ -29,33 +29,26 @@ export const toggleChapterRead = async (userId, chapterId) => {
 export async function markChaptersUntil(userId, chapterId) {
     const target = await prisma.chapter.findUnique({
         where: { id: Number(chapterId) },
-        select: {
-            seriesId: true,
-            publishedAt: true,
-        },
+        select: { seriesId: true, name: true },
     });
 
-    if (!target) {
-        throw new Error("Chapter not found");
-    }
+    if (!target) throw new Error("Chapter not found");
 
-    const chapters = await prisma.chapter.findMany({
-        where: {
-            seriesId: target.seriesId,
-            publishedAt: {
-                lte: target.publishedAt,
-            },
-        },
-        select: { id: true },
+    const targetNumber = parseFloat(target.name);
+
+    const allChapters = await prisma.chapter.findMany({
+        where: { seriesId: target.seriesId },
+        select: { id: true, name: true },
     });
+
+    const chapters = allChapters.filter(
+        (c) => parseFloat(c.name) <= targetNumber,
+    );
 
     if (chapters.length === 0) return { updated: 0 };
 
     await prisma.userChapterRead.createMany({
-        data: chapters.map((c) => ({
-            userId,
-            chapterId: c.id,
-        })),
+        data: chapters.map((c) => ({ userId, chapterId: c.id })),
         skipDuplicates: true,
     });
 
@@ -65,32 +58,26 @@ export async function markChaptersUntil(userId, chapterId) {
 export async function unmarkChaptersFrom(userId, chapterId) {
     const target = await prisma.chapter.findUnique({
         where: { id: Number(chapterId) },
-        select: {
-            seriesId: true,
-            publishedAt: true,
-        },
+        select: { seriesId: true, name: true },
     });
 
-    if (!target) {
-        throw new Error("Chapter not found");
-    }
+    if (!target) throw new Error("Chapter not found");
 
-    const chapters = await prisma.chapter.findMany({
-        where: {
-            seriesId: target.seriesId,
-            publishedAt: {
-                gte: target.publishedAt,
-            },
-        },
-        select: { id: true },
+    const targetNumber = parseFloat(target.name);
+
+    const allChapters = await prisma.chapter.findMany({
+        where: { seriesId: target.seriesId },
+        select: { id: true, name: true },
     });
+
+    const chapters = allChapters.filter(
+        (c) => parseFloat(c.name) >= targetNumber,
+    );
 
     await prisma.userChapterRead.deleteMany({
         where: {
             userId,
-            chapterId: {
-                in: chapters.map((c) => c.id),
-            },
+            chapterId: { in: chapters.map((c) => c.id) },
         },
     });
 
