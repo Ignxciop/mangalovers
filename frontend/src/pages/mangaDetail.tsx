@@ -14,10 +14,18 @@ import {
     Eye,
     EyeOff,
     Heart,
+    ChevronDown,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useFavorite } from "@/hooks/useFavorite";
 import { useReadChapters } from "@/hooks/useReadChapters";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 function MangaDetailSkeleton() {
     return (
@@ -315,20 +323,41 @@ export default function MangaDetail() {
                                     {favStatus ?? "Guardar"}
                                 </button>
                                 {favStatus && (
-                                    <select
-                                        value={favStatus}
-                                        onChange={(e) =>
-                                            saveFav(e.target.value)
-                                        }
-                                        className="text-xs bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white/70 cursor-pointer"
-                                    >
-                                        <option value="Siguiendo">
-                                            Siguiendo
-                                        </option>
-                                        <option value="Terminado">
-                                            Terminado
-                                        </option>
-                                    </select>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                                            >
+                                                {favStatus}
+                                                <ChevronDown className="ml-2 h-3 w-3 opacity-70" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+
+                                        <DropdownMenuContent
+                                            align="end"
+                                            className="bg-popover border border-border"
+                                        >
+                                            <DropdownMenuItem
+                                                onClick={() =>
+                                                    saveFav("Siguiendo")
+                                                }
+                                                className="cursor-pointer"
+                                            >
+                                                Siguiendo
+                                            </DropdownMenuItem>
+
+                                            <DropdownMenuItem
+                                                onClick={() =>
+                                                    saveFav("Terminado")
+                                                }
+                                                className="cursor-pointer"
+                                            >
+                                                Terminado
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 )}
                             </div>
                         )}

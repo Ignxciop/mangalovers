@@ -3,8 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Heart } from "lucide-react";
+import { BookOpen, Heart, Check } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export default function FavoritesList() {
     const navigate = useNavigate();
@@ -142,24 +149,64 @@ export default function FavoritesList() {
                                     >
                                         {fav.series.name}
                                     </h3>
-                                    <select
-                                        value={fav.status}
-                                        onChange={(e) =>
-                                            handleStatusChange(
-                                                fav.seriesId,
-                                                e.target.value,
-                                            )
-                                        }
-                                        className="w-full text-[10px] bg-white/5 border border-white/10 rounded-md px-2 py-1 text-white/70 cursor-pointer"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <option value="Siguiendo">
-                                            Siguiendo
-                                        </option>
-                                        <option value="Terminado">
-                                            Terminado
-                                        </option>
-                                    </select>
+                                    {fav.status && (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-full text-[10px] bg-white/5 border-white/10 text-white/70 h-7 px-2 py-1 justify-between"
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
+                                                    }
+                                                >
+                                                    {fav.status}
+                                                </Button>
+                                            </DropdownMenuTrigger>
+
+                                            <DropdownMenuContent
+                                                align="end"
+                                                className="w-[140px]"
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                            >
+                                                <DropdownMenuItem
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleStatusChange(
+                                                            fav.seriesId,
+                                                            "Siguiendo",
+                                                        );
+                                                    }}
+                                                    className="flex justify-between cursor-pointer"
+                                                >
+                                                    Siguiendo
+                                                    {fav.status ===
+                                                        "Siguiendo" && (
+                                                        <Check className="h-3 w-3" />
+                                                    )}
+                                                </DropdownMenuItem>
+
+                                                <DropdownMenuItem
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleStatusChange(
+                                                            fav.seriesId,
+                                                            "Terminado",
+                                                        );
+                                                    }}
+                                                    className="flex justify-between cursor-pointer"
+                                                >
+                                                    Terminado
+                                                    {fav.status ===
+                                                        "Terminado" && (
+                                                        <Check className="h-3 w-3" />
+                                                    )}
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )}
                                 </div>
                             </div>
                         ))}
