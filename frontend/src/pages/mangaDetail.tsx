@@ -121,30 +121,37 @@ function ChapterRow({
             onClick={onClick}
             className="group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all duration-150 hover:bg-white/5 border border-transparent hover:border-white/10"
         >
+            {/* IZQUIERDA */}
             <div className="flex items-center gap-3 min-w-0">
                 <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 text-right">
                     {chapter.chapterNumber}
                 </span>
-                <BookOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+
+                {/* 👇 OJO AHORA AQUÍ */}
+                <button
+                    onClick={onToggleRead}
+                    className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                    title={
+                        isRead ? "Marcar como no leído" : "Marcar como leído"
+                    }
+                >
+                    {isRead ? (
+                        <Eye className="h-3.5 w-3.5" />
+                    ) : (
+                        <EyeOff className="h-3.5 w-3.5" />
+                    )}
+                </button>
+
                 <span className="text-sm text-foreground/90 truncate group-hover:text-foreground transition-colors">
                     {chapter.name}
                 </span>
             </div>
+
+            {/* DERECHA */}
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0 ml-4">
                 <Clock className="h-3 w-3" />
                 {date}
             </div>
-            <button
-                onClick={onToggleRead}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                title={isRead ? "Marcar como no leído" : "Marcar como leído"}
-            >
-                {isRead ? (
-                    <Eye className="h-3.5 w-3.5" />
-                ) : (
-                    <EyeOff className="h-3.5 w-3.5" />
-                )}
-            </button>
         </div>
     );
 }
