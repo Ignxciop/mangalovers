@@ -30,6 +30,7 @@ import {
     House,
     LibraryBig,
     BookHeart,
+    Heart,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 
@@ -65,6 +66,13 @@ export function AppSidebar() {
                             >
                                 <LibraryBig className="size-4" />
                                 Mangas
+                            </a>
+                            <a
+                                href="/favoritos"
+                                className="flex gap-1 mb-2 text-l items-center"
+                            >
+                                <Heart className="size-4" />
+                                Favoritos
                             </a>
                         </SidebarMenu>
                     </SidebarGroupContent>
