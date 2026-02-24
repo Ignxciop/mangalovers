@@ -140,6 +140,14 @@ export async function getSeriesDetailBySlug(slug) {
 
     if (!series) return null;
 
+    const sortedAsc = [...series.chapters].sort((a, b) => {
+        const dateDiff = new Date(a.publishedAt) - new Date(b.publishedAt);
+        if (dateDiff !== 0) return dateDiff;
+        return b.id - a.id;
+    });
+
+    const numberMap = new Map(sortedAsc.map((c, i) => [c.id, i + 1]));
+
     return {
         id: series.id,
         name: series.name,
@@ -157,13 +165,15 @@ export async function getSeriesDetailBySlug(slug) {
             externalUrl: p.url,
         })),
 
-        chapters: series.chapters.map((c, index, arr) => ({
-            id: c.id,
-            name: c.name,
-            publishedAt: c.publishedAt,
-            createdAt: c.createdAt,
-            chapterNumber: arr.length - index,
-        })),
+        chapters: [...series.chapters]
+            .sort((a, b) => parseFloat(b.name) - parseFloat(a.name))
+            .map((c, index, arr) => ({
+                id: c.id,
+                name: c.name,
+                publishedAt: c.publishedAt,
+                createdAt: c.createdAt,
+                chapterNumber: arr.length - index,
+            })),
     };
 }
 
