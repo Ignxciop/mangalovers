@@ -64,7 +64,9 @@ api.interceptors.response.use(
             const currentRefreshToken = useAuthStore.getState().refreshToken;
 
             if (!currentRefreshToken) {
-                throw new Error("No refresh token available");
+                useAuthStore.getState().logout();
+                window.location.href = "/acceso";
+                return Promise.reject(new Error("No refresh token available"));
             }
 
             const { data } = await axios.post(
