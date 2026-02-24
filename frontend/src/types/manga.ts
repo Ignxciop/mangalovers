@@ -5,13 +5,18 @@ export interface Manga {
     cover: string | null;
     chapterCount: number;
     lastChapterPublishedAt: string | null;
+    providers?: string[];
+    status?: string | null;
 }
 
 export interface MangaListResponse {
-    manga: Manga[];
-    total: number;
-    page: number;
-    totalPages: number;
+    data: Manga[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
 }
 
 export interface Chapter {

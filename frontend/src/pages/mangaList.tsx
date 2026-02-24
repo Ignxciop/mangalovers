@@ -27,9 +27,9 @@ export default function MangaList() {
     const [page, setPage] = useState<number>(1);
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("");
-    const [provider, setProvider] = useState("");
-    const [sort, setSort] = useState("updated");
-    const [order, setOrder] = useState("desc");
+    const [provider] = useState("");
+    const [sort] = useState("updated");
+    const [order] = useState("desc");
 
     const { data, loading, error } = useMangaList({
         page,
@@ -41,6 +41,8 @@ export default function MangaList() {
     });
 
     const navigate = useNavigate();
+
+    const mangas = data?.data ?? [];
 
     return (
         <div className="min-h-screen bg-background">
@@ -126,11 +128,7 @@ export default function MangaList() {
                 <div className="mb-8">
                     <MangaPagination
                         page={page}
-                        totalPages={
-                            data && typeof data.meta === "object"
-                                ? data.meta.totalPages
-                                : 1
-                        }
+                        totalPages={data?.meta.totalPages ?? 1}
                         setPage={setPage}
                     />
                 </div>
@@ -150,84 +148,76 @@ export default function MangaList() {
                             Error cargando mangas
                         </div>
                     )}
-                    {data &&
-                        Array.isArray(data.data) &&
-                        data.data.map((manga: any) => (
-                            <div
-                                key={manga.id}
-                                className="group cursor-pointer"
-                                onClick={() => navigate(`/manga/${manga.slug}`)}
-                            >
-                                <div className="relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted shadow-sm transition-transform group-hover:scale-[1.03]">
-                                    <Badge
-                                        variant="secondary"
-                                        className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium"
-                                    >
-                                        {manga.chapterCount}
-                                    </Badge>
-                                    <img
-                                        src={
-                                            manga.cover ||
-                                            "/api/placeholder/300/400"
-                                        }
-                                        alt={manga.name}
-                                        className="object-cover w-full h-full"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                                        <span className="text-white text-[10px] font-bold uppercase tracking-wider">
-                                            Ver detalles
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="mt-3 space-y-2">
-                                    <div className="relative">
-                                        <h3
-                                            className="text-sm font-bold truncate leading-none group-hover:text-primary transition-colors"
-                                            title={manga.name}
-                                        >
-                                            {manga.name}
-                                        </h3>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        <Badge
-                                            variant="secondary"
-                                            className="text-[10px] px-1.5 py-0 h-5 font-medium"
-                                        >
-                                            {manga.providers?.[0] || "Seinen"}
-                                        </Badge>
-                                        <Badge
-                                            variant="outline"
-                                            className="text-[10px] px-1.5 py-0 h-5 border-primary/50 text-primary font-medium"
-                                        >
-                                            {(() => {
-                                                if (
-                                                    manga.status ===
-                                                    "Pausado por el autor (Hiatus)"
-                                                )
-                                                    return "Pausado";
-                                                if (
-                                                    manga.status ===
-                                                    "Abandonado por el scan"
-                                                )
-                                                    return "Abandonado";
-                                                return (
-                                                    manga.status || "Abandonado"
-                                                );
-                                            })()}
-                                        </Badge>
-                                    </div>
+                    {mangas.map((manga) => (
+                        <div
+                            key={manga.id}
+                            className="group cursor-pointer"
+                            onClick={() => navigate(`/manga/${manga.slug}`)}
+                        >
+                            <div className="relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted shadow-sm transition-transform group-hover:scale-[1.03]">
+                                <Badge
+                                    variant="secondary"
+                                    className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium"
+                                >
+                                    {manga.chapterCount}
+                                </Badge>
+                                <img
+                                    src={
+                                        manga.cover ||
+                                        "/api/placeholder/300/400"
+                                    }
+                                    alt={manga.name}
+                                    className="object-cover w-full h-full"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                                    <span className="text-white text-[10px] font-bold uppercase tracking-wider">
+                                        Ver detalles
+                                    </span>
                                 </div>
                             </div>
-                        ))}
+                            <div className="mt-3 space-y-2">
+                                <div className="relative">
+                                    <h3
+                                        className="text-sm font-bold truncate leading-none group-hover:text-primary transition-colors"
+                                        title={manga.name}
+                                    >
+                                        {manga.name}
+                                    </h3>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    <Badge
+                                        variant="secondary"
+                                        className="text-[10px] px-1.5 py-0 h-5 font-medium"
+                                    >
+                                        {manga.providers?.[0] || "Seinen"}
+                                    </Badge>
+                                    <Badge
+                                        variant="outline"
+                                        className="text-[10px] px-1.5 py-0 h-5 border-primary/50 text-primary font-medium"
+                                    >
+                                        {(() => {
+                                            if (
+                                                manga.status ===
+                                                "Pausado por el autor (Hiatus)"
+                                            )
+                                                return "Pausado";
+                                            if (
+                                                manga.status ===
+                                                "Abandonado por el scan"
+                                            )
+                                                return "Abandonado";
+                                            return manga.status || "Abandonado";
+                                        })()}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
                 <div className="mt-12 mb-8 pt-8">
                     <MangaPagination
                         page={page}
-                        totalPages={
-                            data && typeof data.meta === "object"
-                                ? data.meta.totalPages
-                                : 1
-                        }
+                        totalPages={data?.meta.totalPages ?? 1}
                         setPage={setPage}
                     />
                 </div>
