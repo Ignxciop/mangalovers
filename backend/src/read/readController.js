@@ -2,6 +2,7 @@ import {
     getReadChapterIds,
     toggleChapterRead,
     markChaptersUntil,
+    unmarkChaptersFrom,
 } from "./readService.js";
 
 export async function handleGetReadChapters(req, res) {
@@ -15,16 +16,19 @@ export async function handleGetReadChapters(req, res) {
     }
 }
 
-export async function handleToggleChapterRead(req, res) {
+export const handleToggleChapterRead = async (req, res) => {
     try {
-        const { chapterId } = req.params;
-        const result = await toggleChapterRead(req.user.userId, chapterId);
-        res.json(result);
+        const userId = req.user.userId;
+        const chapterId = Number(req.params.chapterId);
+
+        const result = await toggleChapterRead(userId, chapterId);
+
+        return res.json(result);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        return res.status(500).json({ message: "Error toggling chapter read" });
     }
-}
+};
 
 export async function handleMarkChaptersUntil(req, res) {
     try {

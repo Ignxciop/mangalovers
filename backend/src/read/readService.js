@@ -11,25 +11,20 @@ export async function getReadChapterIds(userId, seriesId) {
     return reads.map((r) => r.chapterId);
 }
 
-export async function toggleChapterRead(userId, chapterId) {
+export const toggleChapterRead = async (userId, chapterId) => {
     const existing = await prisma.userChapterRead.findUnique({
-        where: { userId_chapterId: { userId, chapterId: Number(chapterId) } },
-    });
-
-    if (existing) {
-        await prisma.userChapterRead.delete({
-            where: {
-                userId_chapterId: { userId, chapterId: Number(chapterId) },
+        where: {
+            userId_chapterId: {
+                userId,
+                chapterId,
             },
-        });
-        return { read: false };
-    }
-
-    await prisma.userChapterRead.create({
-        data: { userId, chapterId: Number(chapterId) },
+        },
     });
-    return { read: true };
-}
+    if (existing) {
+        return await unmarkChaptersFrom(userId, chapterId);
+    }
+    return await markChaptersUntil(userId, chapterId);
+};
 
 export async function markChaptersUntil(userId, chapterId) {
     const target = await prisma.chapter.findUnique({
@@ -62,6 +57,41 @@ export async function markChaptersUntil(userId, chapterId) {
             chapterId: c.id,
         })),
         skipDuplicates: true,
+    });
+
+    return { updated: chapters.length };
+}
+
+export async function unmarkChaptersFrom(userId, chapterId) {
+    const target = await prisma.chapter.findUnique({
+        where: { id: Number(chapterId) },
+        select: {
+            seriesId: true,
+            publishedAt: true,
+        },
+    });
+
+    if (!target) {
+        throw new Error("Chapter not found");
+    }
+
+    const chapters = await prisma.chapter.findMany({
+        where: {
+            seriesId: target.seriesId,
+            publishedAt: {
+                gte: target.publishedAt,
+            },
+        },
+        select: { id: true },
+    });
+
+    await prisma.userChapterRead.deleteMany({
+        where: {
+            userId,
+            chapterId: {
+                in: chapters.map((c) => c.id),
+            },
+        },
     });
 
     return { updated: chapters.length };

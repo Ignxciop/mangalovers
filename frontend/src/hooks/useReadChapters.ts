@@ -19,6 +19,7 @@ export function useReadChapters(seriesId: number) {
 
     async function toggle(chapterId: number) {
         const isRead = readIds.has(chapterId);
+
         setReadIds((prev) => {
             const next = new Set(prev);
             isRead ? next.delete(chapterId) : next.add(chapterId);
@@ -26,11 +27,8 @@ export function useReadChapters(seriesId: number) {
         });
 
         try {
-            if (isRead) {
-                await toggleChapterRead(chapterId);
-            } else {
-                await markChapterUntil(chapterId);
-            }
+            await toggleChapterRead(chapterId);
+
             const ids = await fetchReadChapterIds(seriesId);
             setReadIds(new Set(ids));
         } catch {
