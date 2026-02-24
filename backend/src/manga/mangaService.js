@@ -196,32 +196,35 @@ export async function getChapterPages(chapterId) {
 
     if (!chapter) return null;
 
-    const [prev, next] = await Promise.all([
-        prisma.chapter.findFirst({
-            where: {
-                seriesId: chapter.seriesId,
-                publishedAt: { gt: chapter.publishedAt },
-            },
-            orderBy: { publishedAt: "asc" },
-            select: { id: true, name: true },
-        }),
-        prisma.chapter.findFirst({
-            where: {
-                seriesId: chapter.seriesId,
-                publishedAt: { lt: chapter.publishedAt },
-            },
-            orderBy: { publishedAt: "desc" },
-            select: { id: true, name: true },
-        }),
-    ]);
+    const currentNumber = parseFloat(chapter.name);
+
+    // Obtener todos los capítulos de la serie para navegar por número
+    const allChapters = await prisma.chapter.findMany({
+        where: { seriesId: chapter.seriesId },
+        select: { id: true, name: true },
+    });
+
+    const sorted = allChapters.sort(
+        (a, b) => parseFloat(a.name) - parseFloat(b.name),
+    );
+
+    const currentIndex = sorted.findIndex((c) => c.id === chapter.id);
+
+    const prevChapter = currentIndex > 0 ? sorted[currentIndex - 1] : null;
+    const nextChapter =
+        currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
 
     return {
         chapterId: chapter.id,
         name: chapter.name,
         publishedAt: chapter.publishedAt,
         series: chapter.series,
-        prev: next ? { id: next.id, name: next.name } : null,
-        next: prev ? { id: prev.id, name: prev.name } : null,
+        prev: prevChapter
+            ? { id: prevChapter.id, name: prevChapter.name }
+            : null,
+        next: nextChapter
+            ? { id: nextChapter.id, name: nextChapter.name }
+            : null,
         pages: chapter.pages.map((p) => ({
             id: p.id,
             url: p.url,
