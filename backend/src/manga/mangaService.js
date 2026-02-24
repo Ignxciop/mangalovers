@@ -128,9 +128,7 @@ export async function getSeriesDetailBySlug(slug) {
                 },
             },
             chapters: {
-                orderBy: {
-                    publishedAt: "desc",
-                },
+                orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
             },
             providerSeries: {
                 include: {
