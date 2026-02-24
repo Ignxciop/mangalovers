@@ -2,7 +2,7 @@ import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 
-const limit = pLimit(3);
+const limit = pLimit(1);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function fetchPage(page) {
@@ -123,9 +123,9 @@ async function processSeries(seriesData, providerId) {
 
     await prisma.providerSeries.upsert({
         where: {
-            providerId_seriesId: {
+            providerId_externalId: {
                 providerId,
-                seriesId: updatedSeries.id,
+                externalId: String(seriesData.id),
             },
         },
         create: {
@@ -134,7 +134,10 @@ async function processSeries(seriesData, providerId) {
             externalId: String(seriesData.id),
             slug: seriesData.slug,
         },
-        update: {},
+        update: {
+            seriesId: updatedSeries.id,
+            slug: seriesData.slug,
+        },
     });
 }
 
