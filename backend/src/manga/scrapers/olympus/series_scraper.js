@@ -5,21 +5,26 @@ import { prisma } from "../../../config/prisma.js";
 const limit = pLimit(1);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchPage(page) {
-    const { data } = await axios.get(
-        "https://dashboard.olympusbiblioteca.com/api/series",
-        {
-            params: { page, direction: "asc", type: "comic" },
-            timeout: 10000,
-        },
-    );
-
-    const seriesContainer = data.data.series;
-
-    return {
-        series: seriesContainer.data,
-        lastPage: seriesContainer.last_page,
-    };
+async function fetchPage(page, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const { data } = await axios.get(
+                "https://dashboard.olympusbiblioteca.com/api/series",
+                {
+                    params: { page, direction: "asc", type: "comic" },
+                    timeout: 30000,
+                },
+            );
+            return {
+                series: data.data.series.data,
+                lastPage: data.data.series.last_page,
+            };
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            console.warn(`Reintentando página ${page} (intento ${i + 2})...`);
+            await sleep(2000 * (i + 1));
+        }
+    }
 }
 
 async function fetchMetadata(slug) {
@@ -28,7 +33,7 @@ async function fetchMetadata(slug) {
             `https://dashboard.olympusbiblioteca.com/api/series/${slug}`,
             {
                 params: { type: "comic" },
-                timeout: 10000,
+                timeout: 30000,
             },
         );
 
@@ -46,25 +51,22 @@ async function fetchMetadata(slug) {
     }
 }
 
-async function syncGenres(seriesId, genreNames) {
+async function syncGenres(seriesId, genreNames, tx = prisma) {
     for (const name of genreNames) {
-        const genre = await prisma.genre.upsert({
+        const genre = await tx.genre.upsert({
             where: { name },
             create: { name },
             update: {},
         });
 
-        await prisma.seriesGenre.upsert({
+        await tx.seriesGenre.upsert({
             where: {
                 seriesId_genreId: {
                     seriesId,
                     genreId: genre.id,
                 },
             },
-            create: {
-                seriesId,
-                genreId: genre.id,
-            },
+            create: { seriesId, genreId: genre.id },
             update: {},
         });
     }
@@ -83,61 +85,58 @@ async function processSeries(seriesData, providerId) {
         metadata = await fetchMetadata(slug);
     }
 
-    const updatedSeries = await prisma.series.upsert({
-        where: { slug: seriesData.slug },
-
-        create: {
-            name: seriesData.name,
-            slug: seriesData.slug,
-            cover: seriesData.cover,
-            status: metadata?.status ?? seriesData.status?.name ?? null,
-            summary: metadata?.summary ?? null,
-            chapterCount: seriesData.chapter_count,
-            metadataFetchedAt: metadata ? new Date() : null,
-        },
-
-        update: {
-            name: seriesData.name,
-            cover: seriesData.cover,
-            chapterCount: seriesData.chapter_count,
-            status: metadata?.status ?? seriesData.status?.name ?? null,
-            summary: metadata?.summary ?? undefined,
-            metadataFetchedAt: metadata ? new Date() : undefined,
-        },
-    });
-
-    if (metadata?.status && existing?.status !== metadata.status) {
-        await prisma.series.update({
-            where: { id: updatedSeries.id },
-            data: {
-                status: metadata.status,
+    await prisma.$transaction(async (tx) => {
+        const updatedSeries = await tx.series.upsert({
+            where: { slug },
+            create: {
+                name: seriesData.name,
+                slug,
+                cover: seriesData.cover,
+                status: metadata?.status ?? seriesData.status?.name ?? null,
+                summary: metadata?.summary ?? null,
+                chapterCount: seriesData.chapter_count,
+                metadataFetchedAt: metadata ? new Date() : null,
+            },
+            update: {
+                name: seriesData.name,
+                cover: seriesData.cover,
+                chapterCount: seriesData.chapter_count,
+                status: metadata?.status ?? seriesData.status?.name ?? null,
+                summary: metadata?.summary ?? undefined,
+                metadataFetchedAt: metadata ? new Date() : undefined,
             },
         });
 
-        console.log(`Status actualizado para ${slug}: ${metadata.status}`);
-    }
+        if (metadata?.status && existing?.status !== metadata.status) {
+            await tx.series.update({
+                where: { id: updatedSeries.id },
+                data: { status: metadata.status },
+            });
+            console.log(`Status actualizado para ${slug}: ${metadata.status}`);
+        }
 
-    if (metadata?.genres?.length) {
-        await syncGenres(updatedSeries.id, metadata.genres);
-    }
+        if (metadata?.genres?.length) {
+            await syncGenres(updatedSeries.id, metadata.genres, tx);
+        }
 
-    await prisma.providerSeries.upsert({
-        where: {
-            providerId_externalId: {
-                providerId,
-                externalId: String(seriesData.id),
+        await tx.providerSeries.upsert({
+            where: {
+                providerId_externalId: {
+                    providerId,
+                    externalId: String(seriesData.id),
+                },
             },
-        },
-        create: {
-            providerId,
-            seriesId: updatedSeries.id,
-            externalId: String(seriesData.id),
-            slug: seriesData.slug,
-        },
-        update: {
-            seriesId: updatedSeries.id,
-            slug: seriesData.slug,
-        },
+            create: {
+                providerId,
+                seriesId: updatedSeries.id,
+                externalId: String(seriesData.id),
+                slug,
+            },
+            update: {
+                seriesId: updatedSeries.id,
+                slug,
+            },
+        });
     });
 }
 

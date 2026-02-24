@@ -8,7 +8,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function fetchPages(slug, externalChapterId) {
     const { data } = await axios.get(
         `https://olympusbiblioteca.com/api/capitulo/${slug}/${externalChapterId}`,
-        { params: { type: "comic" }, timeout: 10000 },
+        { params: { type: "comic" }, timeout: 30000 },
     );
 
     return data.chapter.pages;
