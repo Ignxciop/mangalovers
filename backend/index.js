@@ -9,6 +9,7 @@ import mangaRoutes from "./src/manga/mangaRoutes.js";
 import favoriteRoutes from "./src/favorite/favoriteRoutes.js";
 import readRoutes from "./src/read/readRoutes.js";
 import { initScraperCron } from "./src/jobs/scraperCron.js";
+import { seedProviders } from "./src/scripts/seed.js";
 
 const app = express();
 const PORT = config.PORT;
@@ -32,7 +33,15 @@ app.use("/api/favorites", favoriteRoutes);
 app.use("/api/reads", readRoutes);
 
 app.use(errorHandler);
-app.listen(PORT, () => {
-    console.log("Servidor escuchando en puerto ", PORT);
+
+async function startServer() {
+    await seedProviders();
+
+    app.listen(PORT, () => {
+        console.log(`Servidor corriendo en puerto ${PORT}`);
+    });
+
     initScraperCron();
-});
+}
+
+startServer();
