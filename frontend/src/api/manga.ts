@@ -71,3 +71,12 @@ export async function toggleChapterRead(
     );
     return data;
 }
+
+export async function markChapterUntil(
+    chapterId: number,
+): Promise<{ updated: number }> {
+    const { data } = await api.post<{ updated: number }>(
+        `/reads/chapter/${chapterId}/mark-until`,
+    );
+    return data;
+}

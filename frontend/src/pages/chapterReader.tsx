@@ -3,6 +3,8 @@ import { useChapterPages } from "@/hooks/useChapterPages";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useEffect } from "react";
+import { markChapterUntil } from "@/api/manga";
 
 function ChapterNav({
     slug,
@@ -55,6 +57,12 @@ export default function ChapterReader() {
     const { chapter, loading, error } = useChapterPages(
         chapterId ? Number(chapterId) : null,
     );
+
+    useEffect(() => {
+        if (!chapter) return;
+
+        markChapterUntil(chapter.chapterId);
+    }, [chapter]);
 
     if (loading) {
         return (

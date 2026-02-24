@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
     handleGetReadChapters,
     handleToggleChapterRead,
+    handleMarkChaptersUntil,
 } from "./readController.js";
 import { authenticate } from "../middlewares/auth.js";
 
@@ -12,6 +13,11 @@ router.post(
     "/chapter/:chapterId/toggle",
     authenticate,
     handleToggleChapterRead,
+);
+router.post(
+    "/chapter/:chapterId/mark-until",
+    authenticate,
+    handleMarkChaptersUntil,
 );
 
 export default router;

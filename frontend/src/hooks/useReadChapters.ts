@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { fetchReadChapterIds, toggleChapterRead } from "@/api/manga";
+import {
+    fetchReadChapterIds,
+    toggleChapterRead,
+    markChapterUntil,
+} from "@/api/manga";
 
 export function useReadChapters(seriesId: number) {
     const [readIds, setReadIds] = useState<Set<number>>(new Set());
@@ -14,27 +18,25 @@ export function useReadChapters(seriesId: number) {
     }, [seriesId]);
 
     async function toggle(chapterId: number) {
-        // Optimistic update
+        const isRead = readIds.has(chapterId);
         setReadIds((prev) => {
             const next = new Set(prev);
-            next.has(chapterId) ? next.delete(chapterId) : next.add(chapterId);
+            isRead ? next.delete(chapterId) : next.add(chapterId);
             return next;
         });
 
         try {
-            const { read } = await toggleChapterRead(chapterId);
-            setReadIds((prev) => {
-                const next = new Set(prev);
-                read ? next.add(chapterId) : next.delete(chapterId);
-                return next;
-            });
+            if (isRead) {
+                await toggleChapterRead(chapterId);
+            } else {
+                await markChapterUntil(chapterId);
+            }
+            const ids = await fetchReadChapterIds(seriesId);
+            setReadIds(new Set(ids));
         } catch {
-            // Revert on error
             setReadIds((prev) => {
                 const next = new Set(prev);
-                next.has(chapterId)
-                    ? next.delete(chapterId)
-                    : next.add(chapterId);
+                isRead ? next.add(chapterId) : next.delete(chapterId);
                 return next;
             });
         }
