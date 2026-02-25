@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -187,6 +187,7 @@ export default function MangaList() {
                                     variant="secondary"
                                     className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium"
                                 >
+                                    <BookOpen className="h-2.5 w-2.5" />
                                     {manga.chapterCount}
                                 </Badge>
                                 <img

@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchLatestManga } from "@/api/manga";
 import type { Manga } from "@/types/manga";
 import { Clock, Flame, BookOpen } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 function timeAgo(dateStr: string): string {
     const now = new Date();
@@ -43,12 +44,13 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
                 {/* chapter count badge */}
-                <div className="absolute top-2.5 right-2.5 bg-black/70 backdrop-blur-sm border border-white/10 rounded-md px-1.5 py-0.5 flex items-center gap-1">
-                    <BookOpen className="h-2.5 w-2.5 text-white/60" />
-                    <span className="text-[10px] font-mono text-white/80">
-                        {manga.chapterCount}
-                    </span>
-                </div>
+                <Badge
+                    variant="secondary"
+                    className="absolute top-2.5 right-2.5 flex items-center gap-1 text-[10px] px-1.5 py-0 h-5"
+                >
+                    <BookOpen className="h-2.5 w-2.5" />
+                    {manga.chapterCount}
+                </Badge>
 
                 {/* time ago */}
                 <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 text-[10px] text-white/50">
@@ -59,7 +61,7 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
 
             <div className="mt-2.5 px-0.5">
                 <h3
-                    className="text-[12px] font-semibold text-white/85 truncate leading-tight group-hover:text-white transition-colors"
+                    className="text-[12px] font-semibold text-foreground truncate leading-tight group-hover:text-white transition-colors"
                     title={manga.name}
                 >
                     {manga.name}
@@ -97,7 +99,7 @@ export default function Home() {
                     <SidebarTrigger />
                     <div className="flex items-center gap-2">
                         <Flame className="h-4 w-4 text-orange-400" />
-                        <span className="text-sm font-semibold text-white/90 tracking-wide">
+                        <span className="text-sm font-semibold text-foreground tracking-wide">
                             Últimas actualizaciones
                         </span>
                     </div>

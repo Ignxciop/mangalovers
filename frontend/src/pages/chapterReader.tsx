@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useEffect } from "react";
 import { markChapterUntil } from "@/api/manga";
+import { Button } from "@/components/ui/button";
 
 function ChapterNav({
     slug,
@@ -21,7 +22,7 @@ function ChapterNav({
 
     return (
         <div className="flex items-center justify-between gap-4 w-full max-w-2xl mx-auto px-4 py-4">
-            <button
+            <Button
                 disabled={!prev}
                 onClick={() =>
                     prev &&
@@ -29,15 +30,15 @@ function ChapterNav({
                         state: { from },
                     })
                 }
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed min-w-0"
+                className="min-w-0"
             >
                 <ChevronLeft className="h-4 w-4 shrink-0" />
                 <span className="truncate">
                     {prev ? prev.name : "Sin anterior"}
                 </span>
-            </button>
+            </Button>
 
-            <button
+            <Button
                 disabled={!next}
                 onClick={() =>
                     next &&
@@ -45,13 +46,13 @@ function ChapterNav({
                         state: { from },
                     })
                 }
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed min-w-0"
+                className="min-w-0"
             >
                 <span className="truncate">
                     {next ? next.name : "Sin siguiente"}
                 </span>
                 <ChevronRight className="h-4 w-4 shrink-0" />
-            </button>
+            </Button>
         </div>
     );
 }
@@ -105,8 +106,8 @@ export default function ChapterReader() {
     }
 
     return (
-        <div className="min-h-screen bg-black">
-            <div className="sticky top-0 z-40 bg-black/80 backdrop-blur border-b border-white/10">
+        <div className="min-h-screen bg-background">
+            <div className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-white/10">
                 <div className="justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
                     <SidebarTrigger />
                     <button
@@ -118,8 +119,8 @@ export default function ChapterReader() {
                         <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
                         {chapter.series.name}
                     </button>
-                    <span className="text-white/30">/</span>
-                    <span className="text-sm text-white/80 truncate">
+                    <span className="text-muted-foreground/50">/</span>
+                    <span className="text-sm text-foreground truncate">
                         {chapter.name}
                     </span>
                 </div>
