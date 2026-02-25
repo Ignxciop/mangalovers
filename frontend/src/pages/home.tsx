@@ -40,10 +40,8 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
                     className={`w-full h-full object-cover transition-opacity duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
                 />
 
-                {/* gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
-                {/* chapter count badge */}
                 <Badge
                     variant="secondary"
                     className="absolute top-2.5 right-2.5 flex items-center gap-1 text-[10px] px-1.5 py-0 h-5"
@@ -52,7 +50,6 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
                     {manga.chapterCount}
                 </Badge>
 
-                {/* time ago */}
                 <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 text-[10px] text-white/50">
                     <Clock className="h-2.5 w-2.5" />
                     {timeAgo(manga.lastChapterPublishedAt!)}
@@ -94,7 +91,7 @@ export default function Home() {
 
     return (
         <div className="min-h-screen bg-background">
-            <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur border-b border-white/5">
+            <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur border-b border-border">
                 <div className="container mx-auto flex h-16 items-center px-4 gap-3 max-w-7xl">
                     <SidebarTrigger />
                     <div className="flex items-center gap-2">

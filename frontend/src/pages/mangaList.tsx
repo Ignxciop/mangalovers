@@ -72,7 +72,7 @@ export default function MangaList() {
 
     return (
         <div className="min-h-screen bg-background">
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-white/5">
+            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
                 <div className="container mx-auto flex h-16 items-center px-4 gap-4 justify-between">
                     <SidebarTrigger />
                     <div className="flex flex-1 items-center max-w-md relative">

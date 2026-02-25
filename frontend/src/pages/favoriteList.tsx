@@ -61,7 +61,7 @@ export default function FavoritesList() {
 
     return (
         <div className="min-h-screen bg-background">
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-white/5">
+            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
                 <div className="container mx-auto flex h-16 items-center px-4 gap-4 max-w-5xl">
                     <SidebarTrigger />
                     <h1 className="text-lg font-bold flex-1">Mis favoritos</h1>
