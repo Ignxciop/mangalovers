@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useChapterPages } from "@/hooks/useChapterPages";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -10,10 +10,12 @@ function ChapterNav({
     slug,
     prev,
     next,
+    from,
 }: {
     slug: string;
     prev: { id: number; name: string } | null;
     next: { id: number; name: string } | null;
+    from: string;
 }) {
     const navigate = useNavigate();
 
@@ -22,7 +24,10 @@ function ChapterNav({
             <button
                 disabled={!prev}
                 onClick={() =>
-                    prev && navigate(`/manga/${slug}/capitulo/${prev.id}`)
+                    prev &&
+                    navigate(`/manga/${slug}/capitulo/${prev.id}`, {
+                        state: { from },
+                    })
                 }
                 className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed min-w-0"
             >
@@ -35,7 +40,10 @@ function ChapterNav({
             <button
                 disabled={!next}
                 onClick={() =>
-                    next && navigate(`/manga/${slug}/capitulo/${next.id}`)
+                    next &&
+                    navigate(`/manga/${slug}/capitulo/${next.id}`, {
+                        state: { from },
+                    })
                 }
                 className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed min-w-0"
             >
@@ -54,13 +62,15 @@ export default function ChapterReader() {
         chapterId: string;
     }>();
     const navigate = useNavigate();
+    const location = useLocation();
+    const from = location.state?.from ?? "/mangas";
+
     const { chapter, loading, error } = useChapterPages(
         chapterId ? Number(chapterId) : null,
     );
 
     useEffect(() => {
         if (!chapter) return;
-
         markChapterUntil(chapter.chapterId);
     }, [chapter]);
 
@@ -83,7 +93,9 @@ export default function ChapterReader() {
             <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center px-4">
                 <h2 className="text-xl font-bold">Capítulo no encontrado</h2>
                 <button
-                    onClick={() => navigate(`/manga/${slug}`)}
+                    onClick={() =>
+                        navigate(`/manga/${slug}`, { state: { from } })
+                    }
                     className="text-sm text-primary underline underline-offset-4"
                 >
                     Volver a la serie
@@ -94,12 +106,13 @@ export default function ChapterReader() {
 
     return (
         <div className="min-h-screen bg-black">
-            {/* Header */}
             <div className="sticky top-0 z-40 bg-black/80 backdrop-blur border-b border-white/10">
                 <div className="justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
                     <SidebarTrigger />
                     <button
-                        onClick={() => navigate(`/manga/${slug}`)}
+                        onClick={() =>
+                            navigate(`/manga/${slug}`, { state: { from } })
+                        }
                         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
                     >
                         <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -112,10 +125,13 @@ export default function ChapterReader() {
                 </div>
             </div>
 
-            {/* Nav superior */}
-            <ChapterNav slug={slug!} prev={chapter.prev} next={chapter.next} />
+            <ChapterNav
+                slug={slug!}
+                prev={chapter.prev}
+                next={chapter.next}
+                from={from}
+            />
 
-            {/* Pages */}
             <div className="flex flex-col items-center gap-1">
                 {chapter.pages.map((page, index) => (
                     <img
@@ -128,14 +144,19 @@ export default function ChapterReader() {
                 ))}
             </div>
 
-            {/* Nav inferior */}
-            <ChapterNav slug={slug!} prev={chapter.prev} next={chapter.next} />
+            <ChapterNav
+                slug={slug!}
+                prev={chapter.prev}
+                next={chapter.next}
+                from={from}
+            />
 
-            {/* Footer */}
             <div className="text-center py-6 text-muted-foreground text-sm">
                 Fin del capítulo —{" "}
                 <button
-                    onClick={() => navigate(`/manga/${slug}`)}
+                    onClick={() =>
+                        navigate(`/manga/${slug}`, { state: { from } })
+                    }
                     className="text-primary underline underline-offset-4"
                 >
                     volver a la serie

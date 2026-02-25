@@ -121,7 +121,9 @@ export default function FavoritesList() {
                                 <div
                                     className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 shadow-lg cursor-pointer transition-transform group-hover:scale-[1.02]"
                                     onClick={() =>
-                                        navigate(`/manga/${fav.series.slug}`)
+                                        navigate(`/manga/${fav.series.slug}`, {
+                                            state: { from: "/favoritos" },
+                                        })
                                     }
                                 >
                                     {fav.series.cover ? (

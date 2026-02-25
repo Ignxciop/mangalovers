@@ -301,6 +301,9 @@ export default function MangaDetail() {
                                         ];
                                     navigate(
                                         `/manga/${slug}/capitulo/${firstChapter.id}`,
+                                        {
+                                            state: { from: backUrl }, // 👈 faltaba esto
+                                        },
                                     );
                                 }}
                                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors mb-5"
