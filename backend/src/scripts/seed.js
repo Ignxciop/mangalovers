@@ -3,6 +3,7 @@ import { prisma } from "../config/prisma.js";
 const providers = [
     {
         name: "olympus",
+        name: "manhwaweb",
     },
 ];
 
