@@ -93,7 +93,7 @@ export default function Home() {
     return (
         <div className="min-h-screen bg-background">
             <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur border-b border-white/5">
-                <div className="container mx-auto flex h-14 items-center px-4 gap-3 max-w-7xl">
+                <div className="container mx-auto flex h-16 items-center px-4 gap-3 max-w-7xl">
                     <SidebarTrigger />
                     <div className="flex items-center gap-2">
                         <Flame className="h-4 w-4 text-orange-400" />
