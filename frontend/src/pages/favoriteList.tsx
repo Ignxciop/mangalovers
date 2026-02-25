@@ -68,17 +68,17 @@ export default function FavoritesList() {
                     <div className="flex items-center gap-2">
                         {(["Todos", "Siguiendo", "Terminado"] as const).map(
                             (f) => (
-                                <button
+                                <Button
                                     key={f}
+                                    size="sm"
+                                    variant={
+                                        filter === f ? "default" : "outline"
+                                    }
                                     onClick={() => setFilter(f)}
-                                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                                        filter === f
-                                            ? "bg-primary text-primary-foreground border-primary"
-                                            : "border-white/10 text-white/60 hover:text-white"
-                                    }`}
+                                    className="text-xs rounded-full h-7 px-3"
                                 >
                                     {f}
-                                </button>
+                                </Button>
                             ),
                         )}
                     </div>
@@ -199,7 +199,7 @@ export default function FavoritesList() {
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
-                                                    className="w-full text-[10px] bg-white/5 border-white/10 text-white/70 h-7 px-2 py-1 justify-between"
+                                                    className="w-full text-[10px] h-7 px-2 justify-between"
                                                     onClick={(e) =>
                                                         e.stopPropagation()
                                                     }
