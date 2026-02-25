@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -121,13 +121,10 @@ function ChapterRow({
             onClick={onClick}
             className="group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all duration-150 hover:bg-white/5 border border-transparent hover:border-white/10"
         >
-            {/* IZQUIERDA */}
             <div className="flex items-center gap-3 min-w-0">
                 <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 text-right">
                     {chapter.chapterNumber}
                 </span>
-
-                {/* 👇 OJO AHORA AQUÍ */}
                 <button
                     onClick={onToggleRead}
                     className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
@@ -189,6 +186,8 @@ export default function MangaDetail() {
         remove: removeFav,
     } = useFavorite(series?.id ?? 0);
     const { readIds, toggle: toggleRead } = useReadChapters(series?.id ?? 0);
+    const location = useLocation();
+    const backUrl = location.state?.from ?? "/mangas";
 
     if (loading) return <MangaDetailSkeleton />;
 
@@ -202,7 +201,7 @@ export default function MangaDetail() {
                     eliminada o el enlace sea incorrecto.
                 </p>
                 <button
-                    onClick={() => navigate("/mangas")}
+                    onClick={() => navigate(-1)}
                     className="text-sm text-primary underline underline-offset-4"
                 >
                     Volver al catálogo
@@ -217,7 +216,7 @@ export default function MangaDetail() {
                 <div className="flex">
                     <SidebarTrigger />
                     <button
-                        onClick={() => navigate("/mangas")}
+                        onClick={() => navigate(backUrl)}
                         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
                     >
                         <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
@@ -408,6 +407,11 @@ export default function MangaDetail() {
                                                 onClick={() =>
                                                     navigate(
                                                         `/manga/${slug}/capitulo/${chapter.id}`,
+                                                        {
+                                                            state: {
+                                                                from: backUrl,
+                                                            },
+                                                        },
                                                     )
                                                 }
                                             />

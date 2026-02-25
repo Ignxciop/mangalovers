@@ -18,18 +18,45 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 
-import React, { useState } from "react";
+import React from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useMangaList } from "@/hooks/useMangaList";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function MangaList() {
-    const [page, setPage] = useState<number>(1);
-    const [search, setSearch] = useState("");
-    const [status, setStatus] = useState("");
-    const [provider] = useState("");
-    const [sort] = useState("updated");
-    const [order] = useState("desc");
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const page = Number(searchParams.get("page") ?? "1");
+    const search = searchParams.get("search") ?? "";
+    const status = searchParams.get("status") ?? "";
+    const provider = "";
+    const sort = "updated";
+    const order = "desc";
+
+    function setPage(newPage: number) {
+        setSearchParams((prev) => {
+            prev.set("page", String(newPage));
+            return prev;
+        });
+    }
+
+    function setSearch(value: string) {
+        setSearchParams((prev) => {
+            if (value) prev.set("search", value);
+            else prev.delete("search");
+            prev.set("page", "1");
+            return prev;
+        });
+    }
+
+    function setStatus(value: string) {
+        setSearchParams((prev) => {
+            if (value) prev.set("status", value);
+            else prev.delete("status");
+            prev.set("page", "1");
+            return prev;
+        });
+    }
 
     const { data, loading, error } = useMangaList({
         page,
@@ -41,7 +68,6 @@ export default function MangaList() {
     });
 
     const navigate = useNavigate();
-
     const mangas = data?.data ?? [];
 
     return (
@@ -55,10 +81,7 @@ export default function MangaList() {
                             placeholder="Buscar por nombre..."
                             className="pl-9 w-full bg-secondary/50"
                             value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setPage(1);
-                            }}
+                            onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
 
@@ -105,14 +128,13 @@ export default function MangaList() {
                                                         : "outline"
                                                 }
                                                 className="cursor-pointer"
-                                                onClick={() => {
+                                                onClick={() =>
                                                     setStatus(
                                                         status === value
                                                             ? ""
                                                             : value,
-                                                    );
-                                                    setPage(1);
-                                                }}
+                                                    )
+                                                }
                                             >
                                                 {label}
                                             </Badge>
@@ -152,7 +174,13 @@ export default function MangaList() {
                         <div
                             key={manga.id}
                             className="group cursor-pointer"
-                            onClick={() => navigate(`/manga/${manga.slug}`)}
+                            onClick={() =>
+                                navigate(`/manga/${manga.slug}`, {
+                                    state: {
+                                        from: `/mangas?${searchParams.toString()}`,
+                                    },
+                                })
+                            }
                         >
                             <div className="relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted shadow-sm transition-transform group-hover:scale-[1.03]">
                                 <Badge
@@ -244,9 +272,8 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
     const handleNext = () => {
         if (page < totalPages) setPage(page + 1);
     };
-    const pageNumbers: number[] = [];
-    pageNumbers.push(1);
 
+    const pageNumbers: number[] = [1];
     let start = Math.max(page - 3, 2);
     let end = Math.min(page + 3, totalPages - 1);
 
@@ -259,13 +286,8 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
         end = totalPages - 1;
     }
 
-    for (let i = start; i <= end; i++) {
-        pageNumbers.push(i);
-    }
-
-    if (totalPages > 1) {
-        pageNumbers.push(totalPages);
-    }
+    for (let i = start; i <= end; i++) pageNumbers.push(i);
+    if (totalPages > 1) pageNumbers.push(totalPages);
 
     const uniquePages = [...new Set(pageNumbers)];
 
