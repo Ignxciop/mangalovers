@@ -143,7 +143,7 @@ export default function FavoritesList() {
                                             e.stopPropagation();
                                             handleRemove(fav.seriesId);
                                         }}
-                                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-rose-400 transition-opacity hover:bg-black/70 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                         title="Quitar de favoritos"
                                     >
                                         <Heart className="h-3.5 w-3.5 fill-rose-400" />
