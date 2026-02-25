@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-    fetchReadChapterIds,
-    toggleChapterRead,
-    markChapterUntil,
-} from "@/api/manga";
+import { fetchReadChapterIds, toggleChapterRead } from "@/api/manga";
 
 export function useReadChapters(seriesId: number) {
     const [readIds, setReadIds] = useState<Set<number>>(new Set());

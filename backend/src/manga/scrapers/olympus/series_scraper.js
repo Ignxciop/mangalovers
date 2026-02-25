@@ -72,84 +72,62 @@ async function syncGenres(seriesId, genreNames, tx = prisma) {
     }
 }
 
-async function processSeries(providerSeries, providerId) {
-    const slug = providerSeries.slug;
-    const seriesId = providerSeries.seriesId;
+async function processSeries(seriesData, providerId) {
+    const slug = seriesData.slug;
 
-    console.log(`Revisando: ${slug}`);
+    const existing = await prisma.series.findUnique({ where: { slug } });
 
-    try {
-        const firstPage = await fetchChapters(slug, 1);
-        const lastPage = firstPage.meta.last_page;
+    let metadata = null;
+    if (!existing || !existing.metadataFetchedAt || !existing.summary) {
+        metadata = await fetchMetadata(slug);
+    }
 
-        for (let page = 1; page <= lastPage; page++) {
-            const data =
-                page === 1 ? firstPage : await fetchChapters(slug, page);
-
-            for (const ch of data.data) {
-                const externalId = ch.id;
-
-                const existingProviderChapter =
-                    await prisma.providerChapter.findUnique({
-                        where: {
-                            providerId_externalId: { providerId, externalId },
-                        },
-                    });
-
-                if (existingProviderChapter) {
-                    const latestChapter = await prisma.chapter.findFirst({
-                        where: { seriesId },
-                        orderBy: { publishedAt: "desc" },
-                        select: { publishedAt: true },
-                    });
-
-                    await prisma.series.update({
-                        where: { id: seriesId },
-                        data: {
-                            lastChaptersCheck: new Date(),
-                            lastChapterPublishedAt:
-                                latestChapter?.publishedAt ?? null,
-                        },
-                    });
-
-                    console.log("Capítulo existente encontrado, stop.");
-                    return;
-                }
-
-                const newChapter = await prisma.chapter.create({
-                    data: {
-                        name: ch.name,
-                        publishedAt: new Date(ch.published_at),
-                        seriesId,
-                    },
-                });
-
-                await prisma.providerChapter.create({
-                    data: { providerId, externalId, chapterId: newChapter.id },
-                });
-
-                console.log(`Capítulo nuevo: ${ch.name}`);
-            }
-
-            await sleep(300);
-        }
-
-        const latestChapter = await prisma.chapter.findFirst({
-            where: { seriesId },
-            orderBy: { publishedAt: "desc" },
-            select: { publishedAt: true },
-        });
-
-        await prisma.series.update({
-            where: { id: seriesId },
-            data: {
-                lastChaptersCheck: new Date(),
-                lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
+    await prisma.$transaction(async (tx) => {
+        const updatedSeries = await tx.series.upsert({
+            where: { slug },
+            create: {
+                name: seriesData.name,
+                slug,
+                cover: metadata?.cover ?? seriesData.cover ?? null,
+                status: metadata?.status ?? seriesData.status?.name ?? null,
+                summary: metadata?.summary ?? null,
+                chapterCount: seriesData.chapter_count,
+                metadataFetchedAt: metadata ? new Date() : null,
+            },
+            update: {
+                name: seriesData.name,
+                cover: metadata?.cover ?? seriesData.cover ?? undefined,
+                chapterCount: seriesData.chapter_count,
+                status:
+                    metadata?.status ?? seriesData.status?.name ?? undefined,
+                summary: metadata?.summary ?? undefined,
+                metadataFetchedAt: metadata ? new Date() : undefined,
             },
         });
-    } catch (error) {
-        console.error(`Error procesando serie ${slug}:`, error.message);
-    }
+
+        if (metadata?.genres?.length) {
+            await syncGenres(updatedSeries.id, metadata.genres, tx);
+        }
+
+        await tx.providerSeries.upsert({
+            where: {
+                providerId_externalId: {
+                    providerId,
+                    externalId: String(seriesData.id),
+                },
+            },
+            create: {
+                providerId,
+                seriesId: updatedSeries.id,
+                externalId: String(seriesData.id),
+                slug,
+            },
+            update: {
+                seriesId: updatedSeries.id,
+                slug,
+            },
+        });
+    });
 }
 
 export async function scrapeSeries() {
