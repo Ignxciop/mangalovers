@@ -119,7 +119,7 @@ export default function FavoritesList() {
                         {filtered.map((fav) => (
                             <div key={fav.id} className="group">
                                 <div
-                                    className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 shadow-lg cursor-pointer transition-transform group-hover:scale-[1.02]"
+                                    className="relative aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-lg cursor-pointer transition-transform group-hover:scale-[1.02]"
                                     onClick={() =>
                                         navigate(`/manga/${fav.series.slug}`, {
                                             state: { from: "/favoritos" },
@@ -178,7 +178,7 @@ export default function FavoritesList() {
                                         )}
                                     </div>
                                     {fav.series.chapterCount > 0 && (
-                                        <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                                        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-primary rounded-full transition-all"
                                                 style={{
