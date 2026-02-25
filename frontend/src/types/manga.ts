@@ -5,6 +5,8 @@ export interface Manga {
     cover: string | null;
     chapterCount: number;
     lastChapterPublishedAt: string | null;
+    lastAvailableChapterName?: string | null;
+    lastReadChapterName?: string | null;
     providers?: string[];
     status?: string | null;
 }

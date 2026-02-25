@@ -4,7 +4,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchLatestManga } from "@/api/manga";
 import type { Manga } from "@/types/manga";
-import { Clock, Flame, BookOpen } from "lucide-react";
+import { Clock, Flame, BookOpen, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 function timeAgo(dateStr: string): string {
@@ -50,8 +50,11 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
                     variant="secondary"
                     className="absolute top-2.5 right-2.5 flex items-center gap-1 text-[10px] px-1.5 py-0 h-5"
                 >
+                    <Eye className="h-2.5 w-2.5" />
+                    {manga.lastReadChapterName ?? "0"}
+                    <span className="opacity-40">/</span>
                     <BookOpen className="h-2.5 w-2.5" />
-                    {manga.chapterCount}
+                    {manga.lastAvailableChapterName ?? "-"}
                 </Badge>
 
                 <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 text-[10px] text-white/50">

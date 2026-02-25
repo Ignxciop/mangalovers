@@ -96,16 +96,10 @@ export async function getAllManga(query) {
     };
 }
 
-export async function getLatestManga(limit = 16) {
-    return prisma.series.findMany({
-        where: {
-            lastChapterPublishedAt: {
-                not: null,
-            },
-        },
-        orderBy: {
-            lastChapterPublishedAt: "desc",
-        },
+export async function getLatestManga(userId, limit = 16) {
+    const series = await prisma.series.findMany({
+        where: { lastChapterPublishedAt: { not: null } },
+        orderBy: { lastChapterPublishedAt: "desc" },
         take: Number(limit),
         select: {
             id: true,
@@ -116,6 +110,53 @@ export async function getLatestManga(limit = 16) {
             lastChapterPublishedAt: true,
         },
     });
+
+    if (!userId || series.length === 0)
+        return series.map((s) => ({
+            ...s,
+            lastReadChapterName: null,
+            lastAvailableChapterName: null,
+        }));
+
+    const seriesIds = series.map((s) => s.id);
+
+    const allChapters = await prisma.chapter.findMany({
+        where: { seriesId: { in: seriesIds } },
+        select: { seriesId: true, name: true },
+    });
+
+    const lastChapterMap = new Map();
+    for (const c of allChapters) {
+        const current = lastChapterMap.get(c.seriesId);
+        if (!current || parseFloat(c.name) > parseFloat(current)) {
+            lastChapterMap.set(c.seriesId, c.name);
+        }
+    }
+
+    const readDetails = await prisma.userChapterRead.findMany({
+        where: {
+            userId,
+            chapter: { seriesId: { in: seriesIds } },
+        },
+        select: {
+            chapter: { select: { seriesId: true, name: true } },
+        },
+    });
+
+    const lastReadMap = new Map();
+    for (const r of readDetails) {
+        const sid = r.chapter.seriesId;
+        const current = lastReadMap.get(sid);
+        if (!current || parseFloat(r.chapter.name) > parseFloat(current)) {
+            lastReadMap.set(sid, r.chapter.name);
+        }
+    }
+
+    return series.map((s) => ({
+        ...s,
+        lastAvailableChapterName: lastChapterMap.get(s.id) ?? null,
+        lastReadChapterName: lastReadMap.get(s.id) ?? null,
+    }));
 }
 
 export async function getSeriesDetailBySlug(slug) {

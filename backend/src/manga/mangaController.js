@@ -18,9 +18,8 @@ export async function handleGetAllManga(req, res) {
 export async function handleGetLatestManga(req, res) {
     try {
         const limit = Number(req.query.limit) || 16;
-
-        const manga = await getLatestManga(limit);
-
+        const userId = req.user?.userId ?? null;
+        const manga = await getLatestManga(userId, limit);
         res.json(manga);
     } catch (error) {
         console.error(error);
