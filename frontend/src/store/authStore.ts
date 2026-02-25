@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const REFRESH_TOKEN_KEY = "mangalovers-refresh-token";
-
 interface User {
     id: string;
     name: string;
@@ -25,19 +23,17 @@ export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
             accessToken: null,
-            refreshToken: localStorage.getItem(REFRESH_TOKEN_KEY),
+            refreshToken: null,
             user: null,
             isAuthenticated: false,
 
             setAuth: (accessToken, refreshToken, user) => {
-                localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
                 set({ accessToken, refreshToken, user, isAuthenticated: true });
             },
 
             setAccessToken: (accessToken) => set({ accessToken }),
 
             logout: () => {
-                localStorage.removeItem(REFRESH_TOKEN_KEY);
                 set({
                     accessToken: null,
                     refreshToken: null,
@@ -52,6 +48,7 @@ export const useAuthStore = create<AuthState>()(
                 user: state.user,
                 isAuthenticated: state.isAuthenticated,
                 accessToken: state.accessToken,
+                refreshToken: state.refreshToken,
             }),
         },
     ),
