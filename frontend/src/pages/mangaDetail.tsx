@@ -2,7 +2,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     BookOpen,
@@ -313,7 +312,7 @@ export default function MangaDetail() {
                             </button>
                         )}
                         {!favLoading && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 mb-4">
                                 <Button
                                     variant={favStatus ? "outline" : "outline"}
                                     size="sm"
@@ -369,7 +368,6 @@ export default function MangaDetail() {
                                 )}
                             </div>
                         )}
-                        <Separator className="mb-5 opacity-20" />
                         {series.summary && (
                             <div className="mb-8">
                                 <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
