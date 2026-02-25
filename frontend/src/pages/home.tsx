@@ -27,7 +27,11 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
         <div
             className="group cursor-pointer"
             style={{ animationDelay: `${index * 40}ms` }}
-            onClick={() => navigate(`/manga/${manga.slug}`)}
+            onClick={() =>
+                navigate(`/manga/${manga.slug}`, {
+                    state: { from: "/" },
+                })
+            }
         >
             <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-white/5 border border-white/8 shadow-lg transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-2xl group-hover:border-white/20">
                 {!imgLoaded && (
