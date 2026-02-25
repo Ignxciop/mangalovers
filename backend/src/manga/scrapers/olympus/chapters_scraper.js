@@ -41,19 +41,26 @@ async function processSeries(providerSeries, providerId) {
                 page === 1 ? firstPage : await fetchChapters(slug, page);
 
             for (const ch of data.data) {
-                const externalId = ch.id;
+                const externalId = String(ch.id);
 
                 const existingProviderChapter =
                     await prisma.providerChapter.findUnique({
                         where: {
-                            providerId_externalId: { providerId, externalId },
+                            providerId_externalId: {
+                                providerId,
+                                externalId: String(ch.id),
+                            },
                         },
                     });
 
                 if (existingProviderChapter) {
                     await prisma.series.update({
                         where: { id: seriesId },
-                        data: { lastChaptersCheck: new Date() },
+                        data: {
+                            lastChaptersCheck: new Date(),
+                            lastChapterPublishedAt:
+                                latestChapter?.publishedAt ?? null,
+                        },
                     });
                     console.log("Capítulo existente encontrado, stop.");
                     return;
@@ -68,7 +75,11 @@ async function processSeries(providerSeries, providerId) {
                 });
 
                 await prisma.providerChapter.create({
-                    data: { providerId, externalId, chapterId: newChapter.id },
+                    data: {
+                        providerId,
+                        externalId: String(externalId),
+                        chapterId: newChapter.id,
+                    },
                 });
 
                 console.log(`Capítulo nuevo: ${ch.name}`);
