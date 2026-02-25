@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Heart, Check } from "lucide-react";
+import { BookOpen, Heart, Check, Clock } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
     DropdownMenu,
@@ -12,6 +12,17 @@ import {
     DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+
+function timeAgo(dateStr: string): string {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diff < 60) return "Justo ahora";
+    if (diff < 3600) return `Hace ${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)}h`;
+    if (diff < 604800) return `Hace ${Math.floor(diff / 86400)}d`;
+    return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+}
 
 export default function FavoritesList() {
     const navigate = useNavigate();
@@ -149,6 +160,37 @@ export default function FavoritesList() {
                                     >
                                         {fav.series.name}
                                     </h3>
+                                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                        <span>
+                                            {fav.readCount} /{" "}
+                                            {fav.series.chapterCount} caps
+                                        </span>
+                                        {fav.series.lastChapterPublishedAt && (
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="h-2.5 w-2.5" />
+                                                {timeAgo(
+                                                    fav.series
+                                                        .lastChapterPublishedAt,
+                                                )}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {fav.series.chapterCount > 0 && (
+                                        <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-primary rounded-full transition-all"
+                                                style={{
+                                                    width: `${Math.min((fav.readCount / fav.series.chapterCount) * 100, 100)}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                    {fav.lastReadChapterName && (
+                                        <p className="text-[10px] text-muted-foreground truncate">
+                                            Último leído: cap.{" "}
+                                            {fav.lastReadChapterName}
+                                        </p>
+                                    )}
                                     {fav.status && (
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>

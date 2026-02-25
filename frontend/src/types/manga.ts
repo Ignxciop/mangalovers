@@ -69,6 +69,8 @@ export interface Favorite {
     seriesId: number;
     status: "Siguiendo" | "Terminado";
     createdAt: string;
+    readCount: number;
+    lastReadChapterName: string | null;
     series: {
         id: number;
         name: string;
@@ -76,5 +78,6 @@ export interface Favorite {
         cover: string | null;
         status: string | null;
         chapterCount: number;
+        lastChapterPublishedAt: string | null;
     };
 }
