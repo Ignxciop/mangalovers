@@ -1,4 +1,5 @@
 import { runOlympus } from "./olympus/olympus.js";
+import { runManhwaweb } from "./manhwaweb/manhwaweb.js";
 
 let isRunning = false;
 
@@ -14,6 +15,7 @@ export async function runAllScrapers() {
         console.log("Iniciando scraping global...");
 
         await runOlympus();
+        await runManhwaweb();
 
         console.log("Scraping global terminado");
     } catch (error) {

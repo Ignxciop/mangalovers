@@ -131,7 +131,7 @@ model ProviderChapter {
   providerId Int
   provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
-  externalId Int
+  externalId String
 
   chapterId Int
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
