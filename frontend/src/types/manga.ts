@@ -69,8 +69,8 @@ export interface Favorite {
     seriesId: number;
     status: "Siguiendo" | "Terminado";
     createdAt: string;
-    readCount: number;
     lastReadChapterName: string | null;
+    lastAvailableChapterName: string | null;
     series: {
         id: number;
         name: string;

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Heart, Check, Clock } from "lucide-react";
+import { BookOpen, Heart, Check, Clock, Eye } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
     DropdownMenu,
@@ -163,9 +163,15 @@ export default function FavoritesList() {
                                         {fav.series.name}
                                     </h3>
                                     <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                        <span>
-                                            {fav.readCount} /{" "}
-                                            {fav.series.chapterCount} caps
+                                        <span className="flex items-center gap-1.5">
+                                            <Eye className="h-2.5 w-2.5" />
+                                            {fav.lastReadChapterName ?? "0"}
+                                            <span className="opacity-40">
+                                                /
+                                            </span>
+                                            <BookOpen className="h-2.5 w-2.5" />
+                                            {fav.lastAvailableChapterName ??
+                                                fav.series.chapterCount}
                                         </span>
                                         {fav.series.lastChapterPublishedAt && (
                                             <span className="flex items-center gap-1">
@@ -177,22 +183,28 @@ export default function FavoritesList() {
                                             </span>
                                         )}
                                     </div>
-                                    {fav.series.chapterCount > 0 && (
-                                        <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-primary rounded-full transition-all"
-                                                style={{
-                                                    width: `${Math.min((fav.readCount / fav.series.chapterCount) * 100, 100)}%`,
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-                                    {fav.lastReadChapterName && (
-                                        <p className="text-[10px] text-muted-foreground truncate">
-                                            Último leído: cap.{" "}
-                                            {fav.lastReadChapterName}
-                                        </p>
-                                    )}
+                                    {fav.lastReadChapterName &&
+                                        fav.series.chapterCount > 0 && (
+                                            <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary rounded-full transition-all"
+                                                    style={{
+                                                        width: `${Math.min(
+                                                            (parseFloat(
+                                                                fav.lastReadChapterName ??
+                                                                    "0",
+                                                            ) /
+                                                                parseFloat(
+                                                                    fav.lastAvailableChapterName ??
+                                                                        "1",
+                                                                )) *
+                                                                100,
+                                                            100,
+                                                        )}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
                                     {fav.status && (
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>

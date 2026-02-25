@@ -35,32 +35,41 @@ export async function getUserFavorites(userId) {
         },
     });
 
+    const lastChapters = await prisma.chapter.findMany({
+        where: { seriesId: { in: seriesIds } },
+        select: { seriesId: true, name: true },
+    });
+
+    const lastChapterMap = new Map();
+    for (const c of lastChapters) {
+        const current = lastChapterMap.get(c.seriesId);
+        if (!current || parseFloat(c.name) > parseFloat(current)) {
+            lastChapterMap.set(c.seriesId, c.name);
+        }
+    }
+
     const seriesReadMap = new Map();
     for (const r of readDetails) {
         const sid = r.chapter.seriesId;
         if (!seriesReadMap.has(sid)) {
             seriesReadMap.set(sid, {
-                readCount: 0,
                 lastReadChapterName: null,
-                lastPublishedAt: null,
             });
         }
         const entry = seriesReadMap.get(sid);
-        entry.readCount++;
         if (
-            !entry.lastPublishedAt ||
-            new Date(r.chapter.publishedAt) > new Date(entry.lastPublishedAt)
+            !entry.lastReadChapterName ||
+            parseFloat(r.chapter.name) > parseFloat(entry.lastReadChapterName)
         ) {
-            entry.lastPublishedAt = r.chapter.publishedAt;
             entry.lastReadChapterName = r.chapter.name;
         }
     }
 
     return favorites.map((f) => ({
         ...f,
-        readCount: seriesReadMap.get(f.seriesId)?.readCount ?? 0,
         lastReadChapterName:
             seriesReadMap.get(f.seriesId)?.lastReadChapterName ?? null,
+        lastAvailableChapterName: lastChapterMap.get(f.seriesId) ?? null,
     }));
 }
 
