@@ -23,70 +23,77 @@ async function fetchSeriesWithChapters(externalId, retries = 3) {
     }
 }
 
-async function processSeries(providerSeries, providerId) {
-    const externalId = providerSeries.externalId;
-    const seriesId = providerSeries.seriesId;
+async function processSeries(seriesData, providerId) {
+    const externalId = seriesData.real_id ?? seriesData._id;
+    const slug = `manhwaweb-${externalId}`;
 
-    console.log(`Revisando capítulos: ${externalId}`);
+    const existing = await prisma.providerSeries.findUnique({
+        where: { providerId_externalId: { providerId, externalId } },
+    });
+    if (existing) {
+        console.log(`↷ Ya existe: ${externalId}`);
+        return;
+    }
+
+    // ← faltaba esta línea
+    const metadata = await fetchMetadata(externalId);
+
+    const genres =
+        metadata?._categoris
+            ?.map((cat) => {
+                if (typeof cat === "object") return Object.values(cat)[0];
+                return null;
+            })
+            .filter(Boolean) ?? [];
+
+    const status = STATUS_MAP[seriesData._status] ?? seriesData._status ?? null;
+    const cover = seriesData._imagen ?? null;
+    const name = seriesData.the_real_name ?? seriesData.name_esp ?? externalId;
+    const chapterCount = seriesData._numero_cap ?? 0;
+    const summary = metadata?._sinopsis ?? null;
 
     try {
-        const data = await fetchSeriesWithChapters(externalId);
+        await prisma.$transaction(async (tx) => {
+            const updatedSeries = await tx.series.upsert({
+                where: { slug },
+                create: {
+                    name,
+                    slug,
+                    cover,
+                    status,
+                    summary,
+                    chapterCount,
+                    metadataFetchedAt: metadata ? new Date() : null,
+                },
+                update: {
+                    name,
+                    cover,
+                    status,
+                    chapterCount,
+                    summary: summary ?? undefined,
+                    metadataFetchedAt: metadata ? new Date() : undefined,
+                },
+            });
 
-        const chapters = data.chapters ?? [];
-
-        for (const ch of chapters) {
-            const chapterExternalId = `${externalId}-${ch.chapter}`;
-
-            const existingProviderChapter =
-                await prisma.providerChapter.findUnique({
-                    where: {
-                        providerId_externalId: {
-                            providerId,
-                            externalId: chapterExternalId,
-                        },
-                    },
-                });
-
-            if (existingProviderChapter) {
-                break;
+            if (genres.length) {
+                await syncGenres(updatedSeries.id, genres, tx);
             }
 
-            const publishedAt = ch.create ? new Date(ch.create) : new Date();
-
-            const newChapter = await prisma.chapter.create({
-                data: {
-                    name: String(ch.chapter),
-                    publishedAt,
-                    seriesId,
-                },
-            });
-
-            await prisma.providerChapter.create({
-                data: {
+            await tx.providerSeries.upsert({
+                where: { providerId_externalId: { providerId, externalId } },
+                create: {
                     providerId,
-                    externalId: chapterExternalId,
-                    chapterId: newChapter.id,
+                    seriesId: updatedSeries.id,
+                    externalId,
+                    slug,
                 },
+                update: { seriesId: updatedSeries.id, slug },
             });
-
-            console.log(`Capítulo nuevo: ${ch.chapter}`);
-        }
-
-        const latestChapter = await prisma.chapter.findFirst({
-            where: { seriesId },
-            orderBy: { publishedAt: "desc" },
-            select: { publishedAt: true },
         });
 
-        await prisma.series.update({
-            where: { id: seriesId },
-            data: {
-                lastChaptersCheck: new Date(),
-                lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
-            },
-        });
+        console.log(`✓ ${name}`);
     } catch (error) {
-        console.error(`Error capítulos ${externalId}:`, error.message);
+        console.error(`Error procesando serie ${externalId}:`, error.message);
     }
 }
 
@@ -100,7 +107,16 @@ export async function scrapeChapters() {
     const providerSeriesList = await prisma.providerSeries.findMany({
         where: {
             providerId: provider.id,
-            series: { lastChaptersCheck: null },
+            OR: [
+                { series: { lastChaptersCheck: null } },
+                {
+                    series: {
+                        lastChaptersCheck: {
+                            lt: new Date(Date.now() - 1000 * 60 * 60),
+                        },
+                    },
+                },
+            ],
         },
         select: {
             id: true,

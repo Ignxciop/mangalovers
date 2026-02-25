@@ -41,8 +41,6 @@ async function processSeries(providerSeries, providerId) {
                 page === 1 ? firstPage : await fetchChapters(slug, page);
 
             for (const ch of data.data) {
-                const externalId = String(ch.id);
-
                 const existingProviderChapter =
                     await prisma.providerChapter.findUnique({
                         where: {
@@ -54,6 +52,13 @@ async function processSeries(providerSeries, providerId) {
                     });
 
                 if (existingProviderChapter) {
+                    // ← latestChapter definido antes de usarlo
+                    const latestChapter = await prisma.chapter.findFirst({
+                        where: { seriesId },
+                        orderBy: { publishedAt: "desc" },
+                        select: { publishedAt: true },
+                    });
+
                     await prisma.series.update({
                         where: { id: seriesId },
                         data: {
@@ -77,7 +82,7 @@ async function processSeries(providerSeries, providerId) {
                 await prisma.providerChapter.create({
                     data: {
                         providerId,
-                        externalId: String(externalId),
+                        externalId: String(ch.id),
                         chapterId: newChapter.id,
                     },
                 });
@@ -88,9 +93,19 @@ async function processSeries(providerSeries, providerId) {
             await sleep(300);
         }
 
+        // ← faltaba lastChapterPublishedAt aquí también
+        const latestChapter = await prisma.chapter.findFirst({
+            where: { seriesId },
+            orderBy: { publishedAt: "desc" },
+            select: { publishedAt: true },
+        });
+
         await prisma.series.update({
             where: { id: seriesId },
-            data: { lastChaptersCheck: new Date() },
+            data: {
+                lastChaptersCheck: new Date(),
+                lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
+            },
         });
     } catch (error) {
         console.error(`Error procesando serie ${slug}:`, error.message);
@@ -107,7 +122,16 @@ export async function scrapeChapters() {
     const providerSeriesList = await prisma.providerSeries.findMany({
         where: {
             providerId: provider.id,
-            series: { lastChaptersCheck: null },
+            OR: [
+                { series: { lastChaptersCheck: null } },
+                {
+                    series: {
+                        lastChaptersCheck: {
+                            lt: new Date(Date.now() - 1000 * 60 * 60),
+                        },
+                    },
+                },
+            ],
         },
         select: {
             id: true,

@@ -78,12 +78,15 @@ async function processSeries(seriesData, providerId) {
     const externalId = seriesData.real_id ?? seriesData._id;
     const slug = `manhwaweb-${externalId}`;
 
-    const existing = await prisma.series.findUnique({ where: { slug } });
-
-    let metadata = null;
-    if (!existing || !existing.metadataFetchedAt || !existing.summary) {
-        metadata = await fetchMetadata(externalId);
+    const existing = await prisma.providerSeries.findUnique({
+        where: { providerId_externalId: { providerId, externalId } },
+    });
+    if (existing) {
+        console.log(`↷ Ya existe: ${externalId}`);
+        return;
     }
+
+    const metadata = await fetchMetadata(externalId);
 
     const genres =
         metadata?._categoris
