@@ -314,40 +314,40 @@ export default function MangaDetail() {
                         )}
                         {!favLoading && (
                             <div className="flex items-center gap-2">
-                                <button
+                                <Button
+                                    variant={favStatus ? "outline" : "outline"}
+                                    size="sm"
                                     onClick={() =>
                                         favStatus
                                             ? removeFav()
                                             : saveFav("Siguiendo")
                                     }
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                                    className={
                                         favStatus
-                                            ? "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
-                                            : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
-                                    }`}
+                                            ? "border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:text-rose-400"
+                                            : ""
+                                    }
                                 >
                                     <Heart
                                         className={`h-4 w-4 ${favStatus ? "fill-rose-400" : ""}`}
                                     />
                                     {favStatus ?? "Guardar"}
-                                </button>
+                                </Button>
+
                                 {favStatus && (
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="text-xs bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                                                className="text-xs"
                                             >
                                                 {favStatus}
                                                 <ChevronDown className="ml-2 h-3 w-3 opacity-70" />
                                             </Button>
                                         </DropdownMenuTrigger>
 
-                                        <DropdownMenuContent
-                                            align="end"
-                                            className="bg-popover border border-border"
-                                        >
+                                        <DropdownMenuContent align="end">
                                             <DropdownMenuItem
                                                 onClick={() =>
                                                     saveFav("Siguiendo")
@@ -356,7 +356,6 @@ export default function MangaDetail() {
                                             >
                                                 Siguiendo
                                             </DropdownMenuItem>
-
                                             <DropdownMenuItem
                                                 onClick={() =>
                                                     saveFav("Terminado")
