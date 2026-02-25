@@ -198,7 +198,6 @@ export async function getChapterPages(chapterId) {
 
     const currentNumber = parseFloat(chapter.name);
 
-    // Obtener todos los capítulos de la serie para navegar por número
     const allChapters = await prisma.chapter.findMany({
         where: { seriesId: chapter.seriesId },
         select: { id: true, name: true },
