@@ -64,19 +64,22 @@ function StatusBadge({ status }: { status: string | null }) {
         Activo: {
             label: "En emisión",
             className:
-                "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+                "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
         },
         Finalizado: {
             label: "Finalizado",
-            className: "bg-sky-500/10 text-sky-400 border-sky-500/30",
+            className:
+                "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30",
         },
         "Pausado por el autor (Hiatus)": {
             label: "Hiatus",
-            className: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+            className:
+                "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30",
         },
         "Abandonado por el scan": {
             label: "Abandonado",
-            className: "bg-rose-500/10 text-rose-400 border-rose-500/30",
+            className:
+                "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
         },
     };
     const config = map[status] ?? {
@@ -119,8 +122,8 @@ function ChapterRow({
             onClick={onClick}
             className={`group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all duration-150 border ${
                 isRead
-                    ? "border-transparent hover:bg-white/5 hover:border-white/10 opacity-50 hover:opacity-100"
-                    : "border-transparent hover:bg-white/5 hover:border-white/10"
+                    ? "border-transparent hover:bg-muted hover:border-border opacity-50 hover:opacity-100"
+                    : "border-transparent hover:bg-muted hover:border-border"
             }`}
         >
             <div className="flex items-center gap-3 min-w-0">
@@ -162,7 +165,7 @@ function StatPill({
     value: string | number;
 }) {
     return (
-        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2">
             <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
             <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none mb-0.5">
@@ -190,7 +193,6 @@ export default function MangaDetail() {
 
     const [chaptersReversed, setChaptersReversed] = useState(false);
 
-    // Capítulos en el orden actual
     const sortedChapters = useMemo(() => {
         if (!series) return [];
         return chaptersReversed
@@ -198,20 +200,15 @@ export default function MangaDetail() {
             : series.chapters;
     }, [series, chaptersReversed]);
 
-    // Botón "Seguir leyendo": encuentra el siguiente capítulo no leído
-    // series.chapters viene desc (cap más nuevo primero), así que el "siguiente"
-    // es el primero no leído desde el final (orden asc)
     const nextChapter = useMemo(() => {
         if (!series) return null;
-        const ascending = [...series.chapters].reverse(); // cap 1 → último
-        // Encontrar el último capítulo leído en orden ascendente
+        const ascending = [...series.chapters].reverse();
         let lastReadIndex = -1;
         for (let i = 0; i < ascending.length; i++) {
             if (readIds.has(ascending[i].id)) lastReadIndex = i;
         }
-        // El siguiente es el inmediatamente posterior al último leído
-        if (lastReadIndex === -1) return ascending[0]; // ninguno leído → cap 1
-        if (lastReadIndex === ascending.length - 1) return null; // ya terminó
+        if (lastReadIndex === -1) return ascending[0];
+        if (lastReadIndex === ascending.length - 1) return null;
         return ascending[lastReadIndex + 1];
     }, [series, readIds]);
 
@@ -253,7 +250,7 @@ export default function MangaDetail() {
                     {/* Columna izquierda */}
                     <div className="md:w-56 lg:w-64 shrink-0">
                         <div className="sticky top-8">
-                            <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50">
+                            <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-xl">
                                 {series.cover ? (
                                     <img
                                         src={series.cover}
@@ -265,7 +262,6 @@ export default function MangaDetail() {
                                         <BookOpen className="h-12 w-12 text-muted-foreground/40" />
                                     </div>
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-2">
                                 <StatPill
@@ -315,7 +311,7 @@ export default function MangaDetail() {
                                     <Badge
                                         key={genre}
                                         variant="outline"
-                                        className="text-[10px] border-primary/30 text-primary/80"
+                                        className="text-[10px]"
                                     >
                                         {genre}
                                     </Badge>
@@ -325,7 +321,6 @@ export default function MangaDetail() {
 
                         {/* Botones de acción */}
                         <div className="flex flex-wrap items-center gap-2 mb-5">
-                            {/* Leer desde cap 1 */}
                             {series.chapters.length > 0 && (
                                 <button
                                     onClick={() => {
@@ -345,7 +340,6 @@ export default function MangaDetail() {
                                 </button>
                             )}
 
-                            {/* Seguir leyendo */}
                             {nextChapter && readIds.size > 0 && (
                                 <button
                                     onClick={() =>
@@ -375,12 +369,12 @@ export default function MangaDetail() {
                                     }
                                     className={
                                         favStatus
-                                            ? "border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:text-rose-400"
+                                            ? "border-rose-500/30 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
                                             : ""
                                     }
                                 >
                                     <Heart
-                                        className={`h-4 w-4 ${favStatus ? "fill-rose-400" : ""}`}
+                                        className={`h-4 w-4 ${favStatus ? "fill-rose-500" : ""}`}
                                     />
                                     {favStatus ?? "Guardar"}
                                 </Button>
@@ -448,11 +442,6 @@ export default function MangaDetail() {
                                         onClick={() =>
                                             setChaptersReversed((prev) => !prev)
                                         }
-                                        title={
-                                            chaptersReversed
-                                                ? "Más reciente primero"
-                                                : "Más antiguo primero"
-                                        }
                                     >
                                         <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
                                         {chaptersReversed
@@ -463,11 +452,11 @@ export default function MangaDetail() {
                             </div>
 
                             {series.chapters.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground text-sm border border-dashed border-white/10 rounded-xl">
+                                <div className="text-center py-12 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
                                     No hay capítulos disponibles
                                 </div>
                             ) : (
-                                <ScrollArea className="h-[420px] rounded-xl border border-white/10 bg-white/[0.02] pr-2">
+                                <ScrollArea className="h-[420px] rounded-xl border border-border bg-muted/20 pr-2">
                                     <div className="p-2 space-y-0.5">
                                         {sortedChapters.map((chapter) => (
                                             <ChapterRow
