@@ -77,15 +77,12 @@ api.interceptors.response.use(
             const {
                 accessToken: newAccessToken,
                 refreshToken: newRefreshToken,
-            } = data;
+                user,
+            } = data.data;
 
             useAuthStore
                 .getState()
-                .setAuth(
-                    newAccessToken,
-                    newRefreshToken,
-                    useAuthStore.getState().user!,
-                );
+                .setAuth(newAccessToken, newRefreshToken, user);
 
             processQueue(null, newAccessToken);
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -93,6 +90,7 @@ api.interceptors.response.use(
         } catch (refreshError) {
             processQueue(refreshError, null);
             useAuthStore.getState().logout();
+            window.location.href = "/acceso";
             return Promise.reject(refreshError);
         } finally {
             isRefreshing = false;
