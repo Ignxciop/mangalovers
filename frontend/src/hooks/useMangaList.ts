@@ -35,6 +35,7 @@ export function useMangaList(params: Record<string, string | number>) {
         params.provider,
         params.sort,
         params.order,
+        params.genres,
     ]);
 
     return { data, loading, error };

@@ -2,6 +2,7 @@ import { Search, SlidersHorizontal, BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Sheet,
     SheetContent,
@@ -9,6 +10,13 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
     Pagination,
     PaginationContent,
@@ -18,20 +26,30 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useMangaList } from "@/hooks/useMangaList";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { fetchGenres } from "@/api/manga";
 
 export default function MangaList() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const [genresList, setGenresList] = useState<
+        { id: number; name: string }[]
+    >([]);
 
     const page = Number(searchParams.get("page") ?? "1");
     const search = searchParams.get("search") ?? "";
     const status = searchParams.get("status") ?? "";
+    const sort = searchParams.get("sort") ?? "updated";
+    const order = searchParams.get("order") ?? "desc";
+    const genres = searchParams.get("genres") ?? "";
+    const selectedGenres = genres.split(",").filter(Boolean);
     const provider = "";
-    const sort = "updated";
-    const order = "desc";
+
+    useEffect(() => {
+        fetchGenres().then(setGenresList);
+    }, []);
 
     function setPage(newPage: number) {
         setSearchParams((prev) => {
@@ -58,6 +76,28 @@ export default function MangaList() {
         });
     }
 
+    function setSort(value: string) {
+        setSearchParams((prev) => {
+            prev.set("sort", value);
+            prev.set("page", "1");
+            return prev;
+        });
+    }
+
+    function toggleGenre(name: string) {
+        setSearchParams((prev) => {
+            const current =
+                prev.get("genres")?.split(",").filter(Boolean) ?? [];
+            const updated = current.includes(name)
+                ? current.filter((g) => g !== name)
+                : [...current, name];
+            if (updated.length > 0) prev.set("genres", updated.join(","));
+            else prev.delete("genres");
+            prev.set("page", "1");
+            return prev;
+        });
+    }
+
     const { data, loading, error } = useMangaList({
         page,
         search,
@@ -65,10 +105,17 @@ export default function MangaList() {
         provider,
         sort,
         order,
+        genres,
     });
 
     const navigate = useNavigate();
     const mangas = data?.data ?? [];
+
+    const activeFiltersCount = [
+        status,
+        genres,
+        sort !== "updated" ? sort : "",
+    ].filter(Boolean).length;
 
     return (
         <div className="min-h-screen bg-background">
@@ -87,9 +134,17 @@ export default function MangaList() {
 
                     <Sheet>
                         <SheetTrigger asChild>
-                            <Button variant="outline" className="shrink-0">
+                            <Button
+                                variant="outline"
+                                className="shrink-0 relative"
+                            >
                                 <SlidersHorizontal className="mr-2 h-4 w-4" />
                                 Filtros
+                                {activeFiltersCount > 0 && (
+                                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                                        {activeFiltersCount}
+                                    </span>
+                                )}
                             </Button>
                         </SheetTrigger>
                         <SheetContent>
@@ -97,7 +152,37 @@ export default function MangaList() {
                                 <SheetTitle>Filtros de Búsqueda</SheetTitle>
                             </SheetHeader>
                             <div className="py-6 space-y-6">
-                                <div className="space-y-4">
+                                {/* Ordenar por */}
+                                <div className="space-y-3">
+                                    <h3 className="font-medium text-sm">
+                                        Ordenar por
+                                    </h3>
+                                    <Select
+                                        value={sort}
+                                        onValueChange={setSort}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="updated">
+                                                Más reciente
+                                            </SelectItem>
+                                            <SelectItem value="chapters">
+                                                Más capítulos
+                                            </SelectItem>
+                                            <SelectItem value="az">
+                                                A → Z
+                                            </SelectItem>
+                                            <SelectItem value="za">
+                                                Z → A
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Estado */}
+                                <div className="space-y-3">
                                     <h3 className="font-medium text-sm">
                                         Estado
                                     </h3>
@@ -124,7 +209,7 @@ export default function MangaList() {
                                                 key={value}
                                                 variant={
                                                     status === value
-                                                        ? "secondary"
+                                                        ? "default"
                                                         : "outline"
                                                 }
                                                 className="cursor-pointer"
@@ -141,11 +226,68 @@ export default function MangaList() {
                                         ))}
                                     </div>
                                 </div>
+
+                                {/* Géneros */}
+                                <div className="space-y-3">
+                                    <h3 className="font-medium text-sm">
+                                        Géneros
+                                        {selectedGenres.length > 0 && (
+                                            <span className="ml-2 text-xs text-muted-foreground font-normal">
+                                                ({selectedGenres.length}{" "}
+                                                seleccionados)
+                                            </span>
+                                        )}
+                                    </h3>
+                                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                        {genresList.map((genre) => (
+                                            <div
+                                                key={genre.id}
+                                                className="flex items-center gap-2"
+                                            >
+                                                <Checkbox
+                                                    id={`genre-${genre.id}`}
+                                                    checked={selectedGenres.includes(
+                                                        genre.name,
+                                                    )}
+                                                    onCheckedChange={() =>
+                                                        toggleGenre(genre.name)
+                                                    }
+                                                />
+                                                <label
+                                                    htmlFor={`genre-${genre.id}`}
+                                                    className="text-sm cursor-pointer select-none"
+                                                >
+                                                    {genre.name}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Limpiar filtros */}
+                                {activeFiltersCount > 0 && (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={() => {
+                                            setSearchParams((prev) => {
+                                                prev.delete("status");
+                                                prev.delete("genres");
+                                                prev.delete("sort");
+                                                prev.set("page", "1");
+                                                return prev;
+                                            });
+                                        }}
+                                    >
+                                        Limpiar filtros
+                                    </Button>
+                                )}
                             </div>
                         </SheetContent>
                     </Sheet>
                 </div>
             </header>
+
             <main className="container mx-auto py-6 px-4">
                 <div className="mb-8">
                     <MangaPagination
@@ -205,14 +347,12 @@ export default function MangaList() {
                                 </div>
                             </div>
                             <div className="mt-3 space-y-2">
-                                <div className="relative">
-                                    <h3
-                                        className="text-sm font-bold truncate leading-none group-hover:text-primary transition-colors"
-                                        title={manga.name}
-                                    >
-                                        {manga.name}
-                                    </h3>
-                                </div>
+                                <h3
+                                    className="text-sm font-bold truncate leading-none group-hover:text-primary transition-colors"
+                                    title={manga.name}
+                                >
+                                    {manga.name}
+                                </h3>
                                 <div className="flex flex-wrap gap-1.5">
                                     <Badge
                                         variant="secondary"

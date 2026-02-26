@@ -9,17 +9,14 @@ export async function getAllManga(query) {
         status,
         sort = "updated",
         order = "desc",
+        genres, // ← nuevo: string separado por comas "Acción,Romance"
     } = query;
 
     const skip = (page - 1) * limit;
-
     const where = {};
 
     if (search) {
-        where.name = {
-            contains: search,
-            mode: "insensitive",
-        };
+        where.name = { contains: search, mode: "insensitive" };
     }
 
     if (status) {
@@ -28,27 +25,31 @@ export async function getAllManga(query) {
 
     if (provider) {
         where.providerSeries = {
-            some: {
-                provider: {
-                    name: provider,
-                },
-            },
+            some: { provider: { name: provider } },
         };
     }
 
+    // ← nuevo: filtro por géneros (AND — debe tener todos los seleccionados)
+    if (genres) {
+        const genreList = genres
+            .split(",")
+            .map((g) => g.trim())
+            .filter(Boolean);
+        if (genreList.length > 0) {
+            where.genres = {
+                some: {
+                    genre: { name: { in: genreList } },
+                },
+            };
+        }
+    }
+
     let orderBy = { updatedAt: "desc" };
-
-    if (sort === "name") {
-        orderBy = { name: order };
-    }
-
-    if (sort === "chapters") {
-        orderBy = { chapterCount: order };
-    }
-
-    if (sort === "updated") {
-        orderBy = { updatedAt: order };
-    }
+    if (sort === "name") orderBy = { name: order };
+    if (sort === "chapters") orderBy = { chapterCount: order };
+    if (sort === "updated") orderBy = { lastChapterPublishedAt: order }; // ← más preciso que updatedAt
+    if (sort === "az") orderBy = { name: "asc" };
+    if (sort === "za") orderBy = { name: "desc" };
 
     const [manga, total] = await Promise.all([
         prisma.series.findMany({
@@ -65,11 +66,7 @@ export async function getAllManga(query) {
                 chapterCount: true,
                 updatedAt: true,
                 providerSeries: {
-                    select: {
-                        provider: {
-                            select: { name: true },
-                        },
-                    },
+                    select: { provider: { select: { name: true } } },
                 },
             },
         }),
@@ -94,6 +91,14 @@ export async function getAllManga(query) {
             totalPages: Math.ceil(total / limit),
         },
     };
+}
+
+export async function getAllGenres() {
+    const genres = await prisma.genre.findMany({
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+    });
+    return genres;
 }
 
 export async function getLatestManga(userId, limit = 16) {

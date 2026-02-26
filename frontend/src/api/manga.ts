@@ -80,3 +80,8 @@ export async function markChapterUntil(
     );
     return data;
 }
+
+export async function fetchGenres(): Promise<{ id: number; name: string }[]> {
+    const { data } = await api.get("/manga/genres");
+    return data;
+}

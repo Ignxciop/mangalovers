@@ -3,6 +3,7 @@ import {
     getLatestManga,
     getSeriesDetailBySlug,
     getChapterPages,
+    getAllGenres,
 } from "./mangaService.js";
 
 export async function handleGetAllManga(req, res) {
@@ -12,6 +13,16 @@ export async function handleGetAllManga(req, res) {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Error interno del servidor" });
+    }
+}
+
+export async function handleGetAllGenres(req, res) {
+    try {
+        const genres = await getAllGenres();
+        res.json(genres);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error obteniendo géneros" });
     }
 }
 
