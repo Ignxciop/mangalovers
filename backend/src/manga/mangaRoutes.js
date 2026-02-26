@@ -6,14 +6,18 @@ import {
     handleGetChapterPages,
     handleGetAllGenres,
 } from "./mangaController.js";
-import { authenticate } from "../middlewares/auth.js";
+import { authenticate, optionalAuthenticate } from "../middlewares/auth.js";
 
 const router = Router();
 
-router.get("/", authenticate, handleGetAllManga);
-router.get("/latest", authenticate, handleGetLatestManga);
-router.get("/capitulo/:chapterId/pages", authenticate, handleGetChapterPages);
-router.get("/genres", authenticate, handleGetAllGenres);
-router.get("/:slug", authenticate, getSeriesDetail);
+router.get("/", optionalAuthenticate, handleGetAllManga);
+router.get("/latest", optionalAuthenticate, handleGetLatestManga);
+router.get(
+    "/capitulo/:chapterId/pages",
+    optionalAuthenticate,
+    handleGetChapterPages,
+);
+router.get("/genres", optionalAuthenticate, handleGetAllGenres);
+router.get("/:slug", optionalAuthenticate, getSeriesDetail);
 
 export default router;

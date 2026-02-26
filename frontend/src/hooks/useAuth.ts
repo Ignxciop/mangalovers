@@ -16,7 +16,6 @@ export function useAuth() {
     } = useAuthStore();
     const navigate = useNavigate();
 
-
     const login = async (payload: LoginPayload) => {
         setIsLoading(true);
         setError(null);
@@ -55,7 +54,7 @@ export function useAuth() {
             // Silenciar
         } finally {
             clearStore();
-            navigate("/acceso");
+            navigate("/");
         }
     };
 

@@ -27,6 +27,7 @@ import {
     Moon,
     Sun,
     LogOut,
+    LogIn,
     House,
     LibraryBig,
     BookHeart,
@@ -35,19 +36,20 @@ import {
 import { useTheme } from "@/components/theme-provider";
 
 export function AppSidebar() {
-    const { logout, user } = useAuth();
+    const { logout, user, isAuthenticated } = useAuth();
     const { theme, setTheme } = useTheme();
 
     return (
         <Sidebar>
             <SidebarHeader className="mb-4 items-center">
-                <a href="#" className="flex gap-1 items-center">
+                <a href="/" className="flex gap-1 items-center">
                     <BookHeart className="size-5" />
                     <span className="font-semibold text-[20px]">
                         Mangalovers
                     </span>
                 </a>
             </SidebarHeader>
+
             <SidebarContent className="ml-4">
                 <SidebarGroup>
                     <SidebarGroupLabel>Navegación</SidebarGroupLabel>
@@ -67,17 +69,25 @@ export function AppSidebar() {
                                 <LibraryBig className="size-4" />
                                 Mangas
                             </a>
-                            <a
-                                href="/favoritos"
-                                className="flex gap-1 mb-2 text-l items-center"
-                            >
-                                <Heart className="size-4" />
-                                Favoritos
-                            </a>
+                            {isAuthenticated ? (
+                                <a
+                                    href="/favoritos"
+                                    className="flex gap-1 mb-2 text-l items-center"
+                                >
+                                    <Heart className="size-4" />
+                                    Favoritos
+                                </a>
+                            ) : (
+                                <span className="flex gap-1 mb-2 text-l items-center opacity-35 cursor-not-allowed select-none">
+                                    <Heart className="size-4" />
+                                    Favoritos
+                                </span>
+                            )}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
+
             <SidebarFooter>
                 <SidebarMenu>
                     <SidebarMenuItem>
@@ -94,18 +104,23 @@ export function AppSidebar() {
                                     </Avatar>
                                     <div className="grid flex-1 text-left text-sm leading-tight">
                                         <span className="truncate font-medium">
-                                            {user?.name} {user?.lastname}
+                                            {isAuthenticated
+                                                ? `${user?.name} ${user?.lastname}`
+                                                : "Invitado"}
                                         </span>
                                         <span className="text-muted-foreground truncate text-xs">
-                                            {user?.email}
+                                            {isAuthenticated
+                                                ? user?.email
+                                                : "Sin cuenta"}
                                         </span>
                                     </div>
                                     <EllipsisVertical className="ml-auto size-4" />
                                 </SidebarMenuButton>
                             </DropdownMenuTrigger>
+
                             <DropdownMenuContent
                                 className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                                side={"bottom"}
+                                side="bottom"
                                 align="end"
                                 sideOffset={4}
                             >
@@ -118,10 +133,14 @@ export function AppSidebar() {
                                         </Avatar>
                                         <div className="grid flex-1 text-left text-sm leading-tight">
                                             <span className="truncate font-medium">
-                                                {user?.name}
+                                                {isAuthenticated
+                                                    ? user?.name
+                                                    : "Invitado"}
                                             </span>
                                             <span className="text-muted-foreground truncate text-xs">
-                                                {user?.email}
+                                                {isAuthenticated
+                                                    ? user?.email
+                                                    : "Sin cuenta"}
                                             </span>
                                         </div>
                                     </div>
@@ -148,10 +167,21 @@ export function AppSidebar() {
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onSelect={logout}>
-                                    <LogOut />
-                                    Cerrar Sesión
-                                </DropdownMenuItem>
+                                {isAuthenticated ? (
+                                    <DropdownMenuItem onSelect={logout}>
+                                        <LogOut />
+                                        Cerrar Sesión
+                                    </DropdownMenuItem>
+                                ) : (
+                                    <DropdownMenuItem
+                                        onSelect={() =>
+                                            (window.location.href = "/acceso")
+                                        }
+                                    >
+                                        <LogIn />
+                                        Iniciar Sesión
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </SidebarMenuItem>

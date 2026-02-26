@@ -11,6 +11,8 @@ import MangaList from "./pages/mangaList.tsx";
 import MangaDetail from "./pages/mangaDetail.tsx";
 import ChapterReader from "./pages/chapterReader.tsx";
 import FavoritesList from "./pages/favoriteList.tsx";
+import TermsOfService from "./pages/termsOfService.tsx";
+import PrivacyPolicy from "./pages/privacyPolicy.tsx";
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -22,30 +24,41 @@ function App() {
         <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
             <BrowserRouter>
                 <Routes>
+                    {/* Rutas públicas de guest */}
                     <Route element={<GuestRoute />}>
                         <Route element={<AuthLayout />}>
                             <Route path="/acceso" element={<Login />} />
                             <Route path="/registro" element={<Register />} />
+                            <Route
+                                path="/terminos"
+                                element={<TermsOfService />}
+                            />
+                            <Route
+                                path="/privacidad"
+                                element={<PrivacyPolicy />}
+                            />
                         </Route>
                     </Route>
-                    <Route element={<ProtectedRoute />}>
-                        <Route element={<MainLayout />}>
-                            <Route path="/" element={<Home />} />
-                            <Route path="/mangas" element={<MangaList />} />
-                            <Route
-                                path="/manga/:slug"
-                                element={<MangaDetail />}
-                            />
-                            <Route
-                                path="/manga/:slug/capitulo/:chapterId"
-                                element={<ChapterReader />}
-                            />
+
+                    {/* Rutas públicas con MainLayout */}
+                    <Route element={<MainLayout />}>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/mangas" element={<MangaList />} />
+                        <Route path="/manga/:slug" element={<MangaDetail />} />
+                        <Route
+                            path="/manga/:slug/capitulo/:chapterId"
+                            element={<ChapterReader />}
+                        />
+
+                        {/* Favoritos protegido pero dentro del mismo layout */}
+                        <Route element={<ProtectedRoute />}>
                             <Route
                                 path="/favoritos"
                                 element={<FavoritesList />}
                             />
                         </Route>
                     </Route>
+
                     <Route path="*" element={<SmartDirect />} />
                 </Routes>
             </BrowserRouter>

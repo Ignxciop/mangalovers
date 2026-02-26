@@ -6,6 +6,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useEffect } from "react";
 import { markChapterUntil } from "@/api/manga";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/authStore";
 
 function ChapterNav({
     slug,
@@ -69,11 +70,12 @@ export default function ChapterReader() {
     const { chapter, loading, error } = useChapterPages(
         chapterId ? Number(chapterId) : null,
     );
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
     useEffect(() => {
-        if (!chapter) return;
+        if (!chapter || !isAuthenticated) return;
         markChapterUntil(chapter.chapterId);
-    }, [chapter]);
+    }, [chapter, isAuthenticated]);
 
     if (loading) {
         return (
@@ -107,7 +109,7 @@ export default function ChapterReader() {
 
     return (
         <div className="min-h-screen bg-background">
-            <div className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-white/10">
+            <div className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
                 <div className="justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
                     <SidebarTrigger />
                     <button

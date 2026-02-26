@@ -50,9 +50,13 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
                     variant="secondary"
                     className="absolute top-2.5 right-2.5 flex items-center gap-1 text-[10px] px-1.5 py-0 h-5"
                 >
-                    <Eye className="h-2.5 w-2.5" />
-                    {manga.lastReadChapterName ?? "0"}
-                    <span className="opacity-40">/</span>
+                    {manga.lastReadChapterName !== null && (
+                        <>
+                            <Eye className="h-2.5 w-2.5" />
+                            {manga.lastReadChapterName}
+                            <span className="opacity-40">/</span>
+                        </>
+                    )}
                     <BookOpen className="h-2.5 w-2.5" />
                     {manga.lastAvailableChapterName ?? "-"}
                 </Badge>
@@ -65,7 +69,7 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
 
             <div className="mt-2.5 px-0.5">
                 <h3
-                    className="text-[12px] font-semibold text-foreground truncate leading-tight group-hover:text-white transition-colors"
+                    className="text-[12px] font-semibold text-foreground truncate leading-tight transition-colors"
                     title={manga.name}
                 >
                     {manga.name}

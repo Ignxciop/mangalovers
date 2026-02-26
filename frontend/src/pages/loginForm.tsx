@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, ChevronLeft } from "lucide-react";
 
 export function Login({ className, ...props }: React.ComponentProps<"div">) {
     const { login, isLoading, error } = useAuth();
@@ -32,6 +32,15 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
 
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
+            <div className="text-center">
+                <a
+                    href="/"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
+                >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    Continuar sin cuenta
+                </a>
+            </div>
             <Card className="overflow-hidden p-0">
                 <CardContent className="grid p-0 md:grid-cols-2">
                     <form className="p-6 md:p-8" onSubmit={handleSubmit}>
@@ -96,8 +105,8 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
             </Card>
             <FieldDescription className="px-6 text-center">
                 Al hacer clic en continuar, aceptas nuestros{" "}
-                <a href="#">Términos de Servicio</a> y{" "}
-                <a href="#">Política de Privacidad</a>.
+                <a href="/terminos">Términos de Servicio</a> y{" "}
+                <a href="/privacidad">Política de Privacidad</a>.
             </FieldDescription>
             {error && (
                 <Alert variant="destructive" className="border-0">
