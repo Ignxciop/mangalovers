@@ -2,7 +2,6 @@ import { Search, SlidersHorizontal, BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
     Sheet,
     SheetContent,
@@ -147,21 +146,24 @@ export default function MangaList() {
                                 )}
                             </Button>
                         </SheetTrigger>
-                        <SheetContent>
-                            <SheetHeader>
-                                <SheetTitle>Filtros de Búsqueda</SheetTitle>
+                        <SheetContent className="flex flex-col gap-0 p-0">
+                            <SheetHeader className="px-6 py-5 border-b border-border">
+                                <SheetTitle className="text-base">
+                                    Filtros de búsqueda
+                                </SheetTitle>
                             </SheetHeader>
-                            <div className="py-6 space-y-6">
+
+                            <div className="flex-1 overflow-y-auto">
                                 {/* Ordenar por */}
-                                <div className="space-y-3">
-                                    <h3 className="font-medium text-sm">
+                                <div className="px-6 py-5 border-b border-border">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                                         Ordenar por
-                                    </h3>
+                                    </p>
                                     <Select
                                         value={sort}
                                         onValueChange={setSort}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="w-full">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -182,10 +184,10 @@ export default function MangaList() {
                                 </div>
 
                                 {/* Estado */}
-                                <div className="space-y-3">
-                                    <h3 className="font-medium text-sm">
+                                <div className="px-6 py-5 border-b border-border">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                                         Estado
-                                    </h3>
+                                    </p>
                                     <div className="flex flex-wrap gap-2">
                                         {[
                                             {
@@ -212,7 +214,7 @@ export default function MangaList() {
                                                         ? "default"
                                                         : "outline"
                                                 }
-                                                className="cursor-pointer"
+                                                className="cursor-pointer px-3 py-1 text-xs"
                                                 onClick={() =>
                                                     setStatus(
                                                         status === value
@@ -228,44 +230,66 @@ export default function MangaList() {
                                 </div>
 
                                 {/* Géneros */}
-                                <div className="space-y-3">
-                                    <h3 className="font-medium text-sm">
-                                        Géneros
+                                <div className="px-6 py-5">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            Géneros
+                                        </p>
                                         {selectedGenres.length > 0 && (
-                                            <span className="ml-2 text-xs text-muted-foreground font-normal">
-                                                ({selectedGenres.length}{" "}
-                                                seleccionados)
-                                            </span>
+                                            <button
+                                                onClick={() =>
+                                                    setSearchParams((prev) => {
+                                                        prev.delete("genres");
+                                                        prev.set("page", "1");
+                                                        return prev;
+                                                    })
+                                                }
+                                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                            >
+                                                Limpiar ({selectedGenres.length}
+                                                )
+                                            </button>
                                         )}
-                                    </h3>
-                                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                                        {genresList.map((genre) => (
+                                    </div>
+                                    <div className="overflow-y-auto max-h-72">
+                                        {genresList.map((genre, idx) => (
                                             <div
                                                 key={genre.id}
-                                                className="flex items-center gap-2"
+                                                className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
+                                                    idx !==
+                                                    genresList.length - 1
+                                                        ? "border-b border-border/40"
+                                                        : ""
+                                                }`}
+                                                onClick={() =>
+                                                    toggleGenre(genre.name)
+                                                }
                                             >
-                                                <Checkbox
-                                                    id={`genre-${genre.id}`}
-                                                    checked={selectedGenres.includes(
-                                                        genre.name,
-                                                    )}
-                                                    onCheckedChange={() =>
-                                                        toggleGenre(genre.name)
-                                                    }
-                                                />
-                                                <label
-                                                    htmlFor={`genre-${genre.id}`}
-                                                    className="text-sm cursor-pointer select-none"
+                                                <span
+                                                    className={`text-sm transition-colors ${
+                                                        selectedGenres.includes(
+                                                            genre.name,
+                                                        )
+                                                            ? "text-foreground font-medium"
+                                                            : "text-muted-foreground group-hover:text-foreground"
+                                                    }`}
                                                 >
                                                     {genre.name}
-                                                </label>
+                                                </span>
+                                                {selectedGenres.includes(
+                                                    genre.name,
+                                                ) && (
+                                                    <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                                                )}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Limpiar filtros */}
-                                {activeFiltersCount > 0 && (
+                            {/* Footer con limpiar todo */}
+                            {activeFiltersCount > 0 && (
+                                <div className="px-6 py-4 border-t border-border">
                                     <Button
                                         variant="outline"
                                         className="w-full"
@@ -279,10 +303,10 @@ export default function MangaList() {
                                             });
                                         }}
                                     >
-                                        Limpiar filtros
+                                        Limpiar todos los filtros
                                     </Button>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </SheetContent>
                     </Sheet>
                 </div>
