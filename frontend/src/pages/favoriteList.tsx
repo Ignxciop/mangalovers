@@ -377,7 +377,9 @@ export default function FavoritesList() {
                                     {isUpToDate(fav) &&
                                         fav.lastReadChapterName && (
                                             <div className="absolute bottom-2 left-2 bg-primary/90 text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                                                Al día
+                                                {fav.status === "Terminado"
+                                                    ? "Finalizado"
+                                                    : "Al día"}
                                             </div>
                                         )}
                                 </div>
