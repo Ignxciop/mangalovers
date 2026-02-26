@@ -120,7 +120,7 @@ export default function Home() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 gap-4">
                     {loading
                         ? Array.from({ length: 24 }).map((_, i) => (
                               <MangaCardSkeleton key={i} />
