@@ -14,6 +14,8 @@ import {
     EyeOff,
     Heart,
     ChevronDown,
+    ArrowUpDown,
+    PlayCircle,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useFavorite } from "@/hooks/useFavorite";
@@ -25,6 +27,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { useState, useMemo } from "react";
 
 function MangaDetailSkeleton() {
     return (
@@ -57,7 +60,6 @@ function MangaDetailSkeleton() {
 
 function StatusBadge({ status }: { status: string | null }) {
     if (!status) return null;
-
     const map: Record<string, { label: string; className: string }> = {
         Activo: {
             label: "En emisión",
@@ -77,12 +79,10 @@ function StatusBadge({ status }: { status: string | null }) {
             className: "bg-rose-500/10 text-rose-400 border-rose-500/30",
         },
     };
-
     const config = map[status] ?? {
         label: status,
         className: "bg-muted text-muted-foreground border-border",
     };
-
     return (
         <span
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase border ${config.className}`}
@@ -114,11 +114,14 @@ function ChapterRow({
         month: "short",
         year: "numeric",
     });
-
     return (
         <div
             onClick={onClick}
-            className="group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all duration-150 hover:bg-white/5 border border-transparent hover:border-white/10"
+            className={`group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all duration-150 border ${
+                isRead
+                    ? "border-transparent hover:bg-white/5 hover:border-white/10 opacity-50 hover:opacity-100"
+                    : "border-transparent hover:bg-white/5 hover:border-white/10"
+            }`}
         >
             <div className="flex items-center gap-3 min-w-0">
                 <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 text-right">
@@ -137,13 +140,10 @@ function ChapterRow({
                         <EyeOff className="h-3.5 w-3.5" />
                     )}
                 </button>
-
                 <span className="text-sm text-foreground/90 truncate group-hover:text-foreground transition-colors">
                     {chapter.name}
                 </span>
             </div>
-
-            {/* DERECHA */}
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0 ml-4">
                 <Clock className="h-3 w-3" />
                 {date}
@@ -188,6 +188,33 @@ export default function MangaDetail() {
     const location = useLocation();
     const backUrl = location.state?.from ?? "/mangas";
 
+    const [chaptersReversed, setChaptersReversed] = useState(false);
+
+    // Capítulos en el orden actual
+    const sortedChapters = useMemo(() => {
+        if (!series) return [];
+        return chaptersReversed
+            ? [...series.chapters].reverse()
+            : series.chapters;
+    }, [series, chaptersReversed]);
+
+    // Botón "Seguir leyendo": encuentra el siguiente capítulo no leído
+    // series.chapters viene desc (cap más nuevo primero), así que el "siguiente"
+    // es el primero no leído desde el final (orden asc)
+    const nextChapter = useMemo(() => {
+        if (!series) return null;
+        const ascending = [...series.chapters].reverse(); // cap 1 → último
+        // Encontrar el último capítulo leído en orden ascendente
+        let lastReadIndex = -1;
+        for (let i = 0; i < ascending.length; i++) {
+            if (readIds.has(ascending[i].id)) lastReadIndex = i;
+        }
+        // El siguiente es el inmediatamente posterior al último leído
+        if (lastReadIndex === -1) return ascending[0]; // ninguno leído → cap 1
+        if (lastReadIndex === ascending.length - 1) return null; // ya terminó
+        return ascending[lastReadIndex + 1];
+    }, [series, readIds]);
+
     if (loading) return <MangaDetailSkeleton />;
 
     if (error || !series) {
@@ -196,8 +223,7 @@ export default function MangaDetail() {
                 <p className="text-4xl">📭</p>
                 <h2 className="text-xl font-bold">Serie no encontrada</h2>
                 <p className="text-muted-foreground text-sm">
-                    No pudimos encontrar esta serie. Puede que haya sido
-                    eliminada o el enlace sea incorrecto.
+                    No pudimos encontrar esta serie.
                 </p>
                 <button
                     onClick={() => navigate(-1)}
@@ -222,7 +248,9 @@ export default function MangaDetail() {
                         Volver
                     </button>
                 </div>
+
                 <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
+                    {/* Columna izquierda */}
                     <div className="md:w-56 lg:w-64 shrink-0">
                         <div className="sticky top-8">
                             <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50">
@@ -271,6 +299,8 @@ export default function MangaDetail() {
                             )}
                         </div>
                     </div>
+
+                    {/* Columna derecha */}
                     <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-start gap-3 mb-2">
                             <h1 className="text-2xl lg:text-3xl font-extrabold leading-tight tracking-tight flex-1">
@@ -278,6 +308,7 @@ export default function MangaDetail() {
                             </h1>
                             <StatusBadge status={series.status} />
                         </div>
+
                         {series.genres.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mb-5">
                                 {series.genres.map((genre) => (
@@ -291,30 +322,51 @@ export default function MangaDetail() {
                                 ))}
                             </div>
                         )}
-                        {series.chapters.length > 0 && (
-                            <button
-                                onClick={() => {
-                                    const firstChapter =
-                                        series.chapters[
-                                            series.chapters.length - 1
-                                        ];
-                                    navigate(
-                                        `/manga/${slug}/capitulo/${firstChapter.id}`,
-                                        {
-                                            state: { from: backUrl }, // 👈 faltaba esto
-                                        },
-                                    );
-                                }}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors mb-5"
-                            >
-                                <Play className="h-4 w-4" />
-                                Leer desde el capítulo 1
-                            </button>
-                        )}
+
+                        {/* Botones de acción */}
+                        <div className="flex flex-wrap items-center gap-2 mb-5">
+                            {/* Leer desde cap 1 */}
+                            {series.chapters.length > 0 && (
+                                <button
+                                    onClick={() => {
+                                        const firstChapter =
+                                            series.chapters[
+                                                series.chapters.length - 1
+                                            ];
+                                        navigate(
+                                            `/manga/${slug}/capitulo/${firstChapter.id}`,
+                                            { state: { from: backUrl } },
+                                        );
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+                                >
+                                    <Play className="h-4 w-4" />
+                                    Desde el inicio
+                                </button>
+                            )}
+
+                            {/* Seguir leyendo */}
+                            {nextChapter && readIds.size > 0 && (
+                                <button
+                                    onClick={() =>
+                                        navigate(
+                                            `/manga/${slug}/capitulo/${nextChapter.id}`,
+                                            { state: { from: backUrl } },
+                                        )
+                                    }
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-semibold hover:bg-secondary/80 transition-colors border border-border"
+                                >
+                                    <PlayCircle className="h-4 w-4" />
+                                    Seguir leyendo · cap. {nextChapter.name}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Favorito */}
                         {!favLoading && (
                             <div className="flex items-center gap-2 mb-4">
                                 <Button
-                                    variant={favStatus ? "outline" : "outline"}
+                                    variant="outline"
                                     size="sm"
                                     onClick={() =>
                                         favStatus
@@ -345,7 +397,6 @@ export default function MangaDetail() {
                                                 <ChevronDown className="ml-2 h-3 w-3 opacity-70" />
                                             </Button>
                                         </DropdownMenuTrigger>
-
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem
                                                 onClick={() =>
@@ -368,6 +419,7 @@ export default function MangaDetail() {
                                 )}
                             </div>
                         )}
+
                         {series.summary && (
                             <div className="mb-8">
                                 <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
@@ -378,14 +430,36 @@ export default function MangaDetail() {
                                 </p>
                             </div>
                         )}
+
+                        {/* Lista de capítulos */}
                         <div>
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
                                     Capítulos
                                 </p>
-                                <span className="text-[11px] text-muted-foreground">
-                                    {series.chapters.length} disponibles
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] text-muted-foreground">
+                                        {series.chapters.length} disponibles
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                        onClick={() =>
+                                            setChaptersReversed((prev) => !prev)
+                                        }
+                                        title={
+                                            chaptersReversed
+                                                ? "Más reciente primero"
+                                                : "Más antiguo primero"
+                                        }
+                                    >
+                                        <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+                                        {chaptersReversed
+                                            ? "Antiguo → Nuevo"
+                                            : "Nuevo → Antiguo"}
+                                    </Button>
+                                </div>
                             </div>
 
                             {series.chapters.length === 0 ? (
@@ -395,7 +469,7 @@ export default function MangaDetail() {
                             ) : (
                                 <ScrollArea className="h-[420px] rounded-xl border border-white/10 bg-white/[0.02] pr-2">
                                     <div className="p-2 space-y-0.5">
-                                        {series.chapters.map((chapter) => (
+                                        {sortedChapters.map((chapter) => (
                                             <ChapterRow
                                                 key={chapter.id}
                                                 chapter={chapter}
