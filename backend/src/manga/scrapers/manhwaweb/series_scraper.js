@@ -1,6 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
+import { normalizeGenre } from "../normalizeGenre.js";
 
 const limit = pLimit(1);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -59,7 +60,10 @@ async function fetchMetadata(externalId, retries = 3) {
 }
 
 async function syncGenres(seriesId, genreNames, tx = prisma) {
-    for (const name of genreNames) {
+    for (const rawName of genreNames) {
+        const name = normalizeGenre(rawName);
+        if (!name) continue;
+
         const genre = await tx.genre.upsert({
             where: { name },
             create: { name },
