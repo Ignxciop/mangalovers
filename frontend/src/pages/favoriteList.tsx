@@ -1,9 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Heart, Check, Clock, Eye } from "lucide-react";
+import {
+    BookOpen,
+    Heart,
+    Check,
+    Clock,
+    Eye,
+    SlidersHorizontal,
+} from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
     DropdownMenu,
@@ -11,7 +18,22 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 function timeAgo(dateStr: string): string {
     const now = new Date();
@@ -24,13 +46,31 @@ function timeAgo(dateStr: string): string {
     return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
 }
 
+function chaptersLeft(fav: Favorite): number {
+    const read = parseFloat(fav.lastReadChapterName ?? "0");
+    const available = parseFloat(fav.lastAvailableChapterName ?? "0");
+    return Math.max(0, available - read);
+}
+
+function isUpToDate(fav: Favorite): boolean {
+    return chaptersLeft(fav) === 0;
+}
+
 export default function FavoritesList() {
     const navigate = useNavigate();
     const [favorites, setFavorites] = useState<Favorite[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<"Todos" | "Siguiendo" | "Terminado">(
-        "Todos",
-    );
+
+    // Filtros
+    const [statusFilter, setStatusFilter] = useState<
+        "Todos" | "Siguiendo" | "Terminado"
+    >("Todos");
+    const [progressFilter, setProgressFilter] = useState<
+        "todos" | "al-dia" | "pendiente"
+    >("todos");
+    const [sortBy, setSortBy] = useState<
+        "reciente" | "pendiente-asc" | "pendiente-desc" | "nombre"
+    >("reciente");
 
     useEffect(() => {
         fetchFavorites()
@@ -54,10 +94,42 @@ export default function FavoritesList() {
         setFavorites((prev) => prev.filter((f) => f.seriesId !== seriesId));
     }
 
-    const filtered =
-        filter === "Todos"
-            ? favorites
-            : favorites.filter((f) => f.status === filter);
+    const filtered = useMemo(() => {
+        let result = [...favorites];
+
+        if (statusFilter !== "Todos") {
+            result = result.filter((f) => f.status === statusFilter);
+        }
+
+        if (progressFilter === "al-dia") {
+            result = result.filter(isUpToDate);
+        } else if (progressFilter === "pendiente") {
+            result = result.filter((f) => !isUpToDate(f));
+        }
+
+        if (sortBy === "pendiente-asc") {
+            result.sort((a, b) => chaptersLeft(a) - chaptersLeft(b));
+        } else if (sortBy === "pendiente-desc") {
+            result.sort((a, b) => chaptersLeft(b) - chaptersLeft(a));
+        } else if (sortBy === "nombre") {
+            result.sort((a, b) => a.series.name.localeCompare(b.series.name));
+        }
+        // "reciente" usa el orden original del backend (updatedAt desc)
+
+        return result;
+    }, [favorites, statusFilter, progressFilter, sortBy]);
+
+    const activeFiltersCount = [
+        statusFilter !== "Todos" ? statusFilter : "",
+        progressFilter !== "todos" ? progressFilter : "",
+        sortBy !== "reciente" ? sortBy : "",
+    ].filter(Boolean).length;
+
+    function clearFilters() {
+        setStatusFilter("Todos");
+        setProgressFilter("todos");
+        setSortBy("reciente");
+    }
 
     return (
         <div className="min-h-screen bg-background">
@@ -65,23 +137,155 @@ export default function FavoritesList() {
                 <div className="container mx-auto flex h-16 items-center px-4 gap-4 max-w-5xl">
                     <SidebarTrigger />
                     <h1 className="text-lg font-bold flex-1">Mis favoritos</h1>
-                    <div className="flex items-center gap-2">
-                        {(["Todos", "Siguiendo", "Terminado"] as const).map(
-                            (f) => (
-                                <Button
-                                    key={f}
-                                    size="sm"
-                                    variant={
-                                        filter === f ? "default" : "outline"
-                                    }
-                                    onClick={() => setFilter(f)}
-                                    className="text-xs rounded-full h-7 px-3"
-                                >
-                                    {f}
-                                </Button>
-                            ),
-                        )}
-                    </div>
+
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="relative"
+                            >
+                                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                Filtros
+                                {activeFiltersCount > 0 && (
+                                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                                        {activeFiltersCount}
+                                    </span>
+                                )}
+                            </Button>
+                        </SheetTrigger>
+
+                        <SheetContent className="flex flex-col gap-0 p-0">
+                            <SheetHeader className="px-6 py-5 border-b border-border">
+                                <SheetTitle className="text-base">
+                                    Filtros
+                                </SheetTitle>
+                            </SheetHeader>
+
+                            <div className="flex-1 overflow-y-auto">
+                                {/* Ordenar por */}
+                                <div className="px-6 py-5 border-b border-border">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                        Ordenar por
+                                    </p>
+                                    <Select
+                                        value={sortBy}
+                                        onValueChange={(v) =>
+                                            setSortBy(v as typeof sortBy)
+                                        }
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="reciente">
+                                                Más reciente
+                                            </SelectItem>
+                                            <SelectItem value="pendiente-asc">
+                                                Menos capítulos pendientes
+                                            </SelectItem>
+                                            <SelectItem value="pendiente-desc">
+                                                Más capítulos pendientes
+                                            </SelectItem>
+                                            <SelectItem value="nombre">
+                                                A → Z
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Estado de seguimiento */}
+                                <div className="px-6 py-5 border-b border-border">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                        Estado
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(
+                                            [
+                                                "Todos",
+                                                "Siguiendo",
+                                                "Terminado",
+                                            ] as const
+                                        ).map((f) => (
+                                            <Badge
+                                                key={f}
+                                                variant={
+                                                    statusFilter === f
+                                                        ? "default"
+                                                        : "outline"
+                                                }
+                                                className="cursor-pointer px-3 py-1 text-xs"
+                                                onClick={() =>
+                                                    setStatusFilter(f)
+                                                }
+                                            >
+                                                {f}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Progreso */}
+                                <div className="px-6 py-5">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                        Progreso de lectura
+                                    </p>
+                                    <div className="overflow-y-auto">
+                                        {[
+                                            { value: "todos", label: "Todos" },
+                                            {
+                                                value: "al-dia",
+                                                label: "Al día",
+                                            },
+                                            {
+                                                value: "pendiente",
+                                                label: "Con capítulos pendientes",
+                                            },
+                                        ].map(({ value, label }, idx, arr) => (
+                                            <div
+                                                key={value}
+                                                className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
+                                                    idx !== arr.length - 1
+                                                        ? "border-b border-border/40"
+                                                        : ""
+                                                }`}
+                                                onClick={() =>
+                                                    setProgressFilter(
+                                                        value as typeof progressFilter,
+                                                    )
+                                                }
+                                            >
+                                                <span
+                                                    className={`text-sm transition-colors ${
+                                                        progressFilter === value
+                                                            ? "text-foreground font-medium"
+                                                            : "text-muted-foreground group-hover:text-foreground"
+                                                    }`}
+                                                >
+                                                    {label}
+                                                </span>
+                                                {progressFilter === value && (
+                                                    <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {activeFiltersCount > 0 && (
+                                <div className="px-6 py-4 border-t border-border">
+                                    <Button
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={clearFilters}
+                                    >
+                                        Limpiar todos los filtros
+                                    </Button>
+                                </div>
+                            )}
+                        </SheetContent>
+                    </Sheet>
                 </div>
             </header>
 
@@ -101,16 +305,25 @@ export default function FavoritesList() {
                     <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
                         <Heart className="h-12 w-12 text-muted-foreground/30" />
                         <p className="text-muted-foreground text-sm">
-                            {filter === "Todos"
-                                ? "Aún no tienes favoritos guardados"
-                                : `No tienes mangas en estado "${filter}"`}
+                            {activeFiltersCount > 0
+                                ? "No hay favoritos con estos filtros"
+                                : "Aún no tienes favoritos guardados"}
                         </p>
-                        <button
-                            onClick={() => navigate("/mangas")}
-                            className="text-sm text-primary underline underline-offset-4"
-                        >
-                            Explorar catálogo
-                        </button>
+                        {activeFiltersCount > 0 ? (
+                            <button
+                                onClick={clearFilters}
+                                className="text-sm text-primary underline underline-offset-4"
+                            >
+                                Limpiar filtros
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => navigate("/mangas")}
+                                className="text-sm text-primary underline underline-offset-4"
+                            >
+                                Explorar catálogo
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -148,6 +361,14 @@ export default function FavoritesList() {
                                     >
                                         <Heart className="h-3.5 w-3.5 fill-rose-400" />
                                     </button>
+
+                                    {/* Badge al día */}
+                                    {isUpToDate(fav) &&
+                                        fav.lastReadChapterName && (
+                                            <div className="absolute bottom-2 left-2 bg-primary/90 text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                                                Al día
+                                            </div>
+                                        )}
                                 </div>
 
                                 <div className="mt-2 space-y-1.5">
@@ -184,19 +405,17 @@ export default function FavoritesList() {
                                         )}
                                     </div>
                                     {fav.lastReadChapterName &&
-                                        fav.series.chapterCount > 0 && (
+                                        fav.lastAvailableChapterName && (
                                             <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
                                                 <div
                                                     className="h-full bg-primary rounded-full transition-all"
                                                     style={{
                                                         width: `${Math.min(
                                                             (parseFloat(
-                                                                fav.lastReadChapterName ??
-                                                                    "0",
+                                                                fav.lastReadChapterName,
                                                             ) /
                                                                 parseFloat(
-                                                                    fav.lastAvailableChapterName ??
-                                                                        "1",
+                                                                    fav.lastAvailableChapterName,
                                                                 )) *
                                                                 100,
                                                             100,
@@ -219,7 +438,6 @@ export default function FavoritesList() {
                                                     {fav.status}
                                                 </Button>
                                             </DropdownMenuTrigger>
-
                                             <DropdownMenuContent
                                                 align="end"
                                                 className="w-[140px]"
@@ -243,7 +461,6 @@ export default function FavoritesList() {
                                                         <Check className="h-3 w-3" />
                                                     )}
                                                 </DropdownMenuItem>
-
                                                 <DropdownMenuItem
                                                     onClick={(e) => {
                                                         e.stopPropagation();
