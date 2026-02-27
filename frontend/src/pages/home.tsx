@@ -108,6 +108,7 @@ function StatCard({
 }
 
 function StatsSection({ stats }: { stats: ReadingStats }) {
+    const navigate = useNavigate();
     return (
         <section className="h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
@@ -121,8 +122,7 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
                     variant="ghost"
                     size="sm"
                     className="text-xs text-muted-foreground h-7 px-2 hover:text-foreground"
-                    onClick={() => {}}
-                    disabled
+                    onClick={() => navigate("/estadisticas")}
                 >
                     Ver estadísticas completas
                     <ChevronRight className="h-3 w-3 ml-1" />
