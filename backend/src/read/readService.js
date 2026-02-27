@@ -136,8 +136,13 @@ export async function getUserReadingStats(userId) {
     const lastReadDateMap = new Map();
     for (const r of readDetails) {
         const sid = r.chapter.seriesId;
-        if (!lastReadMap.has(sid)) {
+        const current = lastReadMap.get(sid);
+        // Guardar el de número más alto
+        if (!current || parseFloat(r.chapter.name) > parseFloat(current)) {
             lastReadMap.set(sid, r.chapter.name);
+        }
+        // Para ordenar por fecha de lectura más reciente
+        if (!lastReadDateMap.has(sid)) {
             lastReadDateMap.set(sid, r.createdAt);
         }
     }
