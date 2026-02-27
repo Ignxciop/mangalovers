@@ -506,12 +506,32 @@ export async function getFullStats(userId) {
             });
         }
     }
+
+    const allChaptersForTop = await prisma.chapter.findMany({
+        where: {
+            seriesId: {
+                in: [...new Set(allReads.map((r) => r.chapter.seriesId))],
+            },
+        },
+        select: { seriesId: true, name: true },
+    });
+
+    const lastChapterNameMap = new Map();
+    for (const c of allChaptersForTop) {
+        const current = lastChapterNameMap.get(c.seriesId);
+        if (!current || parseFloat(c.name) > parseFloat(current)) {
+            lastChapterNameMap.set(c.seriesId, c.name);
+        }
+    }
+
     const topSeries = [...seriesReadCount.entries()]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
         .map(([id, chaptersRead]) => ({
             ...seriesInfo.get(id),
             chaptersRead,
+            lastReadChapterName: lastReadMap.get(id) ?? null,
+            lastAvailableChapterName: lastChapterNameMap.get(id) ?? null,
         }));
 
     // Primer día de lectura

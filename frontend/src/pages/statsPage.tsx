@@ -46,6 +46,8 @@ interface FullStats {
         cover: string | null;
         chapterCount: number;
         chaptersRead: number;
+        lastReadChapterName: string | null;
+        lastAvailableChapterName: string | null;
     }[];
     firstReadDate: string | null;
     avgChaptersPerDay: number;
@@ -322,10 +324,18 @@ function TopSeriesSection({ series }: { series: FullStats["topSeries"] }) {
             <SectionHeader icon={Star} title="Series más leídas" />
             <div className="space-y-3">
                 {series.map((s, i) => {
-                    const pct = Math.min(
-                        (s.chaptersRead / s.chapterCount) * 100,
-                        100,
-                    );
+                    const pct =
+                        s.lastReadChapterName && s.lastAvailableChapterName
+                            ? Math.min(
+                                  (parseFloat(s.lastReadChapterName) /
+                                      parseFloat(s.lastAvailableChapterName)) *
+                                      100,
+                                  100,
+                              )
+                            : Math.min(
+                                  (s.chaptersRead / s.chapterCount) * 100,
+                                  100,
+                              );
                     return (
                         <div
                             key={s.slug}
@@ -358,7 +368,11 @@ function TopSeriesSection({ series }: { series: FullStats["topSeries"] }) {
                                         />
                                     </div>
                                     <span className="text-[10px] text-muted-foreground shrink-0">
-                                        {s.chaptersRead}/{s.chapterCount}
+                                        {s.lastReadChapterName ??
+                                            s.chaptersRead}{" "}
+                                        /{" "}
+                                        {s.lastAvailableChapterName ??
+                                            s.chapterCount}
                                     </span>
                                 </div>
                             </div>
