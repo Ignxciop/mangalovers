@@ -35,6 +35,7 @@ import {
     Heart,
     ChevronRight,
     Settings,
+    BarChart3,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useLocation } from "react-router-dom";
@@ -154,6 +155,12 @@ export function AppSidebar() {
                                     href="/favoritos"
                                     icon={Heart}
                                     label="Favoritos"
+                                    disabled={!isAuthenticated}
+                                />
+                                <NavItem
+                                    href="/estadisticas"
+                                    icon={BarChart3}
+                                    label="Estadísticas"
                                     disabled={!isAuthenticated}
                                 />
                             </SidebarMenuItem>

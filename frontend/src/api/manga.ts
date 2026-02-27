@@ -90,3 +90,8 @@ export async function fetchReadingStats() {
     const { data } = await api.get("/reads/stats");
     return data;
 }
+
+export async function fetchFullStats() {
+    const { data } = await api.get("/reads/full-stats");
+    return data;
+}
