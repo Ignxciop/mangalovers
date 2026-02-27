@@ -73,11 +73,65 @@ async function syncGenres(seriesId, genreNames, tx = prisma) {
 
 async function processSeries(seriesData, providerId) {
     const slug = seriesData.slug;
+    const externalId = String(seriesData.id);
 
-    const existing = await prisma.series.findUnique({ where: { slug } });
+    const existingProviderSeries = await prisma.providerSeries.findUnique({
+        where: { providerId_externalId: { providerId, externalId } },
+        include: { series: true },
+    });
+
+    if (existingProviderSeries) {
+        const seriesId = existingProviderSeries.seriesId;
+        const oldSlug = existingProviderSeries.series.slug;
+
+        let metadata = null;
+        if (
+            !existingProviderSeries.series.metadataFetchedAt ||
+            !existingProviderSeries.series.summary
+        ) {
+            metadata = await fetchMetadata(slug);
+        }
+
+        await prisma.$transaction(async (tx) => {
+            await tx.series.update({
+                where: { id: seriesId },
+                data: {
+                    name: seriesData.name,
+                    slug,
+                    cover: metadata?.cover ?? seriesData.cover ?? undefined,
+                    chapterCount: seriesData.chapter_count,
+                    status:
+                        metadata?.status ??
+                        seriesData.status?.name ??
+                        undefined,
+                    summary: metadata?.summary ?? undefined,
+                    metadataFetchedAt: metadata ? new Date() : undefined,
+                },
+            });
+
+            if (metadata?.genres?.length) {
+                await syncGenres(seriesId, metadata.genres, tx);
+            }
+
+            await tx.providerSeries.update({
+                where: { providerId_externalId: { providerId, externalId } },
+                data: { slug },
+            });
+        });
+
+        if (oldSlug !== slug) {
+            console.log(`Slug actualizado: ${oldSlug} → ${slug}`);
+        }
+        return;
+    }
 
     let metadata = null;
-    if (!existing || !existing.metadataFetchedAt || !existing.summary) {
+    const existingBySlug = await prisma.series.findUnique({ where: { slug } });
+    if (
+        !existingBySlug ||
+        !existingBySlug.metadataFetchedAt ||
+        !existingBySlug.summary
+    ) {
         metadata = await fetchMetadata(slug);
     }
 
@@ -109,16 +163,11 @@ async function processSeries(seriesData, providerId) {
         }
 
         await tx.providerSeries.upsert({
-            where: {
-                providerId_externalId: {
-                    providerId,
-                    externalId: String(seriesData.id),
-                },
-            },
+            where: { providerId_externalId: { providerId, externalId } },
             create: {
                 providerId,
                 seriesId: updatedSeries.id,
-                externalId: String(seriesData.id),
+                externalId,
                 slug,
             },
             update: {
@@ -127,6 +176,8 @@ async function processSeries(seriesData, providerId) {
             },
         });
     });
+
+    console.log(`${seriesData.name}`);
 }
 
 export async function scrapeSeries() {
