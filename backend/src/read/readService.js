@@ -189,10 +189,18 @@ export async function getUserReadingStats(userId) {
         .map((fav) => {
             const lastRead = lastReadMap.get(fav.seriesId) ?? null;
             const lastAvail = lastAvailableMap.get(fav.seriesId) ?? null;
+
+            // Contar capítulos leídos de esta serie
+            const readCountForSeries = readDetails.filter(
+                (r) => r.chapter.seriesId === fav.seriesId,
+            ).length;
+
+            const totalChapters = fav.series.chapters.length;
             const chaptersLeft =
-                lastRead && lastAvail
-                    ? Math.max(0, parseFloat(lastAvail) - parseFloat(lastRead))
+                totalChapters > 0
+                    ? Math.max(0, totalChapters - readCountForSeries)
                     : null;
+
             return {
                 id: fav.series.id,
                 name: fav.series.name,
