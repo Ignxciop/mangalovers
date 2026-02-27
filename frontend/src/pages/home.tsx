@@ -17,6 +17,7 @@ import {
     Timer,
     TrendingUp,
     ChevronRight,
+    Trophy,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,8 @@ interface ReadingStats {
     completedSeries: number;
     completionPercent: number;
     estimatedHours: number;
+    currentStreak: number;
+    bestStreak: number;
     continueReading: {
         id: number;
         name: string;
@@ -154,6 +157,49 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
                     color="sky"
                 />
             </div>
+            {/* Racha — al final de estadísticas */}
+            {(stats.currentStreak > 0 || stats.bestStreak > 0) && (
+                <div className="mt-auto flex items-center justify-center gap-8 px-4 py-3 rounded-xl border border-border bg-card">
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center size-7 rounded-lg bg-orange-500/10 text-orange-500 shrink-0">
+                            <Flame className="size-3.5" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground leading-none mb-0.5">
+                                Racha actual
+                            </p>
+                            <p className="text-sm font-bold leading-none">
+                                {stats.currentStreak}{" "}
+                                {stats.currentStreak === 1 ? "día" : "días"}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="h-6 w-px bg-border" />
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center size-7 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                            <Trophy className="size-3.5" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground leading-none mb-0.5">
+                                Mejor racha
+                            </p>
+                            <p className="text-sm font-bold leading-none">
+                                {stats.bestStreak}{" "}
+                                {stats.bestStreak === 1 ? "día" : "días"}
+                            </p>
+                        </div>
+                    </div>
+                    {stats.currentStreak === stats.bestStreak &&
+                        stats.bestStreak > 1 && (
+                            <>
+                                <div className="h-6 w-px bg-border" />
+                                <span className="text-[11px] text-amber-500 font-semibold">
+                                    ¡Récord!
+                                </span>
+                            </>
+                        )}
+                </div>
+            )}
         </section>
     );
 }

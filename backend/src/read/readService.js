@@ -217,12 +217,72 @@ export async function getUserReadingStats(userId) {
             };
         });
 
+    // Calcular rachas
+    let currentStreak = 0;
+    let bestStreak = 0;
+
+    if (totalChaptersRead > 0) {
+        const allReads = await prisma.userChapterRead.findMany({
+            where: { userId },
+            select: { createdAt: true },
+            orderBy: { createdAt: "desc" },
+        });
+
+        // Obtener días únicos de lectura
+        const readDays = [
+            ...new Set(
+                allReads.map(
+                    (r) => new Date(r.createdAt).toISOString().split("T")[0],
+                ),
+            ),
+        ].sort((a, b) => b.localeCompare(a)); // desc
+
+        if (readDays.length > 0) {
+            const today = new Date().toISOString().split("T")[0];
+            const yesterday = new Date(Date.now() - 86400000)
+                .toISOString()
+                .split("T")[0];
+
+            // Racha actual — debe incluir hoy o ayer para estar activa
+            if (readDays[0] === today || readDays[0] === yesterday) {
+                currentStreak = 1;
+                for (let i = 1; i < readDays.length; i++) {
+                    const prev = new Date(readDays[i - 1]);
+                    const curr = new Date(readDays[i]);
+                    const diffDays = Math.round((prev - curr) / 86400000);
+                    if (diffDays === 1) {
+                        currentStreak++;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            // Mejor racha histórica
+            let streak = 1;
+            for (let i = 1; i < readDays.length; i++) {
+                const prev = new Date(readDays[i - 1]);
+                const curr = new Date(readDays[i]);
+                const diffDays = Math.round((prev - curr) / 86400000);
+                if (diffDays === 1) {
+                    streak++;
+                    bestStreak = Math.max(bestStreak, streak);
+                } else {
+                    streak = 1;
+                }
+            }
+            bestStreak = Math.max(bestStreak, currentStreak);
+        }
+    }
+
     return {
         totalChaptersRead,
         totalSeries: favorites.length,
         completedSeries,
         completionPercent,
         estimatedHours: Math.round((totalChaptersRead * 7) / 60),
+        currentStreak,
+        bestStreak,
         continueReading,
     };
 }
