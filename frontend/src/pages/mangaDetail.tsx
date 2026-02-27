@@ -244,241 +244,250 @@ export default function MangaDetail() {
                         <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                         Volver
                     </button>
+                    <span className="text-sm font-semibold truncate">
+                        {series.name}
+                    </span>
                 </div>
             </header>
 
-            <div className="container mx-auto px-4 py-8 max-w-6xl">
-                {/* Columna izquierda */}
-                <div className="md:w-56 lg:w-64 shrink-0">
-                    <div className="sticky top-8">
-                        <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-xl">
-                            {series.cover ? (
-                                <img
-                                    src={series.cover}
-                                    alt={series.name}
-                                    className="w-full h-full object-cover"
+            <div className="container mx-auto px-4 pt-8 pb-8 max-w-6xl">
+                <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
+                    {/* Columna izquierda */}
+                    <div className="md:w-56 lg:w-64 shrink-0">
+                        <div className="sticky top-8">
+                            <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-xl">
+                                {series.cover ? (
+                                    <img
+                                        src={series.cover}
+                                        alt={series.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                                        <BookOpen className="h-12 w-12 text-muted-foreground/40" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="mt-4 grid grid-cols-2 gap-2">
+                                <StatPill
+                                    icon={Layers}
+                                    label="Capítulos"
+                                    value={series.chapterCount}
                                 />
-                            ) : (
-                                <div className="w-full h-full bg-muted flex items-center justify-center">
-                                    <BookOpen className="h-12 w-12 text-muted-foreground/40" />
+                                <StatPill
+                                    icon={Hash}
+                                    label="Géneros"
+                                    value={series.genres.length}
+                                />
+                            </div>
+                            {series.providers.length > 0 && (
+                                <div className="mt-4">
+                                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                                        Fuentes
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {series.providers.map((p) => (
+                                            <Badge
+                                                key={p.provider}
+                                                variant="secondary"
+                                                className="text-[10px]"
+                                            >
+                                                {p.provider}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
-                        <div className="mt-4 grid grid-cols-2 gap-2">
-                            <StatPill
-                                icon={Layers}
-                                label="Capítulos"
-                                value={series.chapterCount}
-                            />
-                            <StatPill
-                                icon={Hash}
-                                label="Géneros"
-                                value={series.genres.length}
-                            />
+                    </div>
+
+                    {/* Columna derecha */}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-start gap-3 mb-2">
+                            <h1 className="text-2xl lg:text-3xl font-extrabold leading-tight tracking-tight flex-1">
+                                {series.name}
+                            </h1>
+                            <StatusBadge status={series.status} />
                         </div>
-                        {series.providers.length > 0 && (
-                            <div className="mt-4">
-                                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
-                                    Fuentes
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {series.providers.map((p) => (
-                                        <Badge
-                                            key={p.provider}
-                                            variant="secondary"
-                                            className="text-[10px]"
-                                        >
-                                            {p.provider}
-                                        </Badge>
-                                    ))}
-                                </div>
+
+                        {series.genres.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mb-5">
+                                {series.genres.map((genre) => (
+                                    <Badge
+                                        key={genre}
+                                        variant="outline"
+                                        className="text-[10px]"
+                                    >
+                                        {genre}
+                                    </Badge>
+                                ))}
                             </div>
                         )}
-                    </div>
-                </div>
 
-                {/* Columna derecha */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-start gap-3 mb-2">
-                        <h1 className="text-2xl lg:text-3xl font-extrabold leading-tight tracking-tight flex-1">
-                            {series.name}
-                        </h1>
-                        <StatusBadge status={series.status} />
-                    </div>
-
-                    {series.genres.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-5">
-                            {series.genres.map((genre) => (
-                                <Badge
-                                    key={genre}
-                                    variant="outline"
-                                    className="text-[10px]"
+                        {/* Botones de acción */}
+                        <div className="flex flex-wrap items-center gap-2 mb-5">
+                            {series.chapters.length > 0 && (
+                                <button
+                                    onClick={() => {
+                                        const firstChapter =
+                                            series.chapters[
+                                                series.chapters.length - 1
+                                            ];
+                                        navigate(
+                                            `/manga/${slug}/capitulo/${firstChapter.id}`,
+                                            { state: { from: backUrl } },
+                                        );
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
                                 >
-                                    {genre}
-                                </Badge>
-                            ))}
-                        </div>
-                    )}
+                                    <Play className="h-4 w-4" />
+                                    Desde el inicio
+                                </button>
+                            )}
 
-                    {/* Botones de acción */}
-                    <div className="flex flex-wrap items-center gap-2 mb-5">
-                        {series.chapters.length > 0 && (
-                            <button
-                                onClick={() => {
-                                    const firstChapter =
-                                        series.chapters[
-                                            series.chapters.length - 1
-                                        ];
-                                    navigate(
-                                        `/manga/${slug}/capitulo/${firstChapter.id}`,
-                                        { state: { from: backUrl } },
-                                    );
-                                }}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
-                            >
-                                <Play className="h-4 w-4" />
-                                Desde el inicio
-                            </button>
-                        )}
-
-                        {nextChapter && readIds.size > 0 && (
-                            <button
-                                onClick={() =>
-                                    navigate(
-                                        `/manga/${slug}/capitulo/${nextChapter.id}`,
-                                        { state: { from: backUrl } },
-                                    )
-                                }
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-semibold hover:bg-secondary/80 transition-colors border border-border"
-                            >
-                                <PlayCircle className="h-4 w-4" />
-                                Seguir leyendo · cap. {nextChapter.name}
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Favorito */}
-                    {!favLoading && (
-                        <div className="flex items-center gap-2 mb-4">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    favStatus
-                                        ? removeFav()
-                                        : saveFav("Siguiendo")
-                                }
-                                className={
-                                    favStatus
-                                        ? "border-rose-500/30 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
-                                        : ""
-                                }
-                            >
-                                <Heart
-                                    className={`h-4 w-4 ${favStatus ? "fill-rose-500" : ""}`}
-                                />
-                                {favStatus ?? "Guardar"}
-                            </Button>
-
-                            {favStatus && (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs"
-                                        >
-                                            {favStatus}
-                                            <ChevronDown className="ml-2 h-3 w-3 opacity-70" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem
-                                            onClick={() => saveFav("Siguiendo")}
-                                            className="cursor-pointer"
-                                        >
-                                            Siguiendo
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onClick={() => saveFav("Terminado")}
-                                            className="cursor-pointer"
-                                        >
-                                            Terminado
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                            {nextChapter && readIds.size > 0 && (
+                                <button
+                                    onClick={() =>
+                                        navigate(
+                                            `/manga/${slug}/capitulo/${nextChapter.id}`,
+                                            { state: { from: backUrl } },
+                                        )
+                                    }
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-semibold hover:bg-secondary/80 transition-colors border border-border"
+                                >
+                                    <PlayCircle className="h-4 w-4" />
+                                    Seguir leyendo · cap. {nextChapter.name}
+                                </button>
                             )}
                         </div>
-                    )}
 
-                    {series.summary && (
-                        <div className="mb-8">
-                            <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
-                                Sinopsis
-                            </p>
-                            <p className="text-sm text-foreground/80 leading-relaxed">
-                                {series.summary}
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Lista de capítulos */}
-                    <div>
-                        <div className="flex items-center justify-between mb-3">
-                            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                                Capítulos
-                            </p>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[11px] text-muted-foreground">
-                                    {series.chapters.length} disponibles
-                                </span>
+                        {/* Favorito */}
+                        {!favLoading && (
+                            <div className="flex items-center gap-2 mb-4">
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                                     onClick={() =>
-                                        setChaptersReversed((prev) => !prev)
+                                        favStatus
+                                            ? removeFav()
+                                            : saveFav("Siguiendo")
+                                    }
+                                    className={
+                                        favStatus
+                                            ? "border-rose-500/30 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+                                            : ""
                                     }
                                 >
-                                    <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
-                                    {chaptersReversed
-                                        ? "Antiguo → Nuevo"
-                                        : "Nuevo → Antiguo"}
+                                    <Heart
+                                        className={`h-4 w-4 ${favStatus ? "fill-rose-500" : ""}`}
+                                    />
+                                    {favStatus ?? "Guardar"}
                                 </Button>
-                            </div>
-                        </div>
 
-                        {series.chapters.length === 0 ? (
-                            <div className="text-center py-12 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
-                                No hay capítulos disponibles
+                                {favStatus && (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs"
+                                            >
+                                                {favStatus}
+                                                <ChevronDown className="ml-2 h-3 w-3 opacity-70" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem
+                                                onClick={() =>
+                                                    saveFav("Siguiendo")
+                                                }
+                                                className="cursor-pointer"
+                                            >
+                                                Siguiendo
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() =>
+                                                    saveFav("Terminado")
+                                                }
+                                                className="cursor-pointer"
+                                            >
+                                                Terminado
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                )}
                             </div>
-                        ) : (
-                            <ScrollArea className="h-[420px] rounded-xl border border-border bg-muted/20 pr-2">
-                                <div className="p-2 space-y-0.5">
-                                    {sortedChapters.map((chapter) => (
-                                        <ChapterRow
-                                            key={chapter.id}
-                                            chapter={chapter}
-                                            isRead={readIds.has(chapter.id)}
-                                            onToggleRead={(e) => {
-                                                e.stopPropagation();
-                                                toggleRead(chapter.id);
-                                            }}
-                                            onClick={() =>
-                                                navigate(
-                                                    `/manga/${slug}/capitulo/${chapter.id}`,
-                                                    {
-                                                        state: {
-                                                            from: backUrl,
-                                                        },
-                                                    },
-                                                )
-                                            }
-                                        />
-                                    ))}
-                                </div>
-                            </ScrollArea>
                         )}
+
+                        {series.summary && (
+                            <div className="mb-8">
+                                <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
+                                    Sinopsis
+                                </p>
+                                <p className="text-sm text-foreground/80 leading-relaxed">
+                                    {series.summary}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Lista de capítulos */}
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                                    Capítulos
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] text-muted-foreground">
+                                        {series.chapters.length} disponibles
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                        onClick={() =>
+                                            setChaptersReversed((prev) => !prev)
+                                        }
+                                    >
+                                        <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+                                        {chaptersReversed
+                                            ? "Antiguo → Nuevo"
+                                            : "Nuevo → Antiguo"}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {series.chapters.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
+                                    No hay capítulos disponibles
+                                </div>
+                            ) : (
+                                <ScrollArea className="h-[420px] rounded-xl border border-border bg-muted/20 pr-2">
+                                    <div className="p-2 space-y-0.5">
+                                        {sortedChapters.map((chapter) => (
+                                            <ChapterRow
+                                                key={chapter.id}
+                                                chapter={chapter}
+                                                isRead={readIds.has(chapter.id)}
+                                                onToggleRead={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleRead(chapter.id);
+                                                }}
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/manga/${slug}/capitulo/${chapter.id}`,
+                                                        {
+                                                            state: {
+                                                                from: backUrl,
+                                                            },
+                                                        },
+                                                    )
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
