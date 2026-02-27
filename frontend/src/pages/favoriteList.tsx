@@ -10,6 +10,7 @@ import {
     Clock,
     Eye,
     SlidersHorizontal,
+    Search,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 function timeAgo(dateStr: string): string {
     const now = new Date();
@@ -71,6 +73,7 @@ export default function FavoritesList() {
     const navigate = useNavigate();
     const [favorites, setFavorites] = useState<Favorite[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchText, setSearchText] = useState("");
 
     // Filtros
     const [statusFilter, setStatusFilter] = useState<
@@ -107,6 +110,13 @@ export default function FavoritesList() {
 
     const filtered = useMemo(() => {
         let result = [...favorites];
+        if (searchText.trim()) {
+            result = result.filter((f) =>
+                f.series.name
+                    .toLowerCase()
+                    .includes(searchText.toLowerCase().trim()),
+            );
+        }
 
         if (statusFilter !== "Todos") {
             result = result.filter((f) => f.status === statusFilter);
@@ -128,18 +138,20 @@ export default function FavoritesList() {
         // "reciente" usa el orden original del backend (updatedAt desc)
 
         return result;
-    }, [favorites, statusFilter, progressFilter, sortBy]);
+    }, [favorites, statusFilter, progressFilter, sortBy, searchText]);
 
     const activeFiltersCount = [
         statusFilter !== "Todos" ? statusFilter : "",
         progressFilter !== "todos" ? progressFilter : "",
         sortBy !== "reciente" ? sortBy : "",
+        searchText.trim() ? searchText : "",
     ].filter(Boolean).length;
 
     function clearFilters() {
         setStatusFilter("Todos");
         setProgressFilter("todos");
         setSortBy("reciente");
+        setSearchText("");
     }
 
     return (
@@ -147,8 +159,18 @@ export default function FavoritesList() {
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
                 <div className="container mx-auto flex h-16 items-center px-4 gap-4 max-w-5xl">
                     <SidebarTrigger />
-                    <h1 className="text-lg font-bold flex-1">Mis favoritos</h1>
-
+                    <h1 className="text-lg font-bold shrink-0">
+                        Mis favoritos
+                    </h1>
+                    <div className="flex-1 flex items-center relative">
+                        <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Buscar favorito..."
+                            className="pl-9 w-full bg-secondary/50"
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                        />
+                    </div>
                     <Sheet>
                         <SheetTrigger asChild>
                             <Button
