@@ -168,7 +168,7 @@ export default function MangaList() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="updated">
-                                                Más reciente
+                                                Actualización reciente
                                             </SelectItem>
                                             <SelectItem value="chapters">
                                                 Más capítulos

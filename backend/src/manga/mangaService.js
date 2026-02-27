@@ -44,12 +44,13 @@ export async function getAllManga(query) {
         }
     }
 
-    let orderBy = { updatedAt: "desc" };
-    if (sort === "name") orderBy = { name: order };
+    let orderBy = { lastChapterPublishedAt: "desc" };
     if (sort === "chapters") orderBy = { chapterCount: order };
-    if (sort === "updated") orderBy = { lastChapterPublishedAt: order }; // ← más preciso que updatedAt
     if (sort === "az") orderBy = { name: "asc" };
     if (sort === "za") orderBy = { name: "desc" };
+    if (sort === "updated" || !sort) {
+        where.lastChapterPublishedAt = { not: null };
+    }
 
     const [manga, total] = await Promise.all([
         prisma.series.findMany({
@@ -65,6 +66,7 @@ export async function getAllManga(query) {
                 status: true,
                 chapterCount: true,
                 updatedAt: true,
+                lastChapterPublishedAt: true,
                 providerSeries: {
                     select: { provider: { select: { name: true } } },
                 },
@@ -82,6 +84,7 @@ export async function getAllManga(query) {
             status: m.status,
             chapterCount: m.chapterCount,
             updatedAt: m.updatedAt,
+            lastChapterPublishedAt: m.lastChapterPublishedAt,
             providers: m.providerSeries.map((ps) => ps.provider.name),
         })),
         meta: {
