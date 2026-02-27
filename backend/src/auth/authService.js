@@ -169,4 +169,66 @@ export class AuthService {
     static async getActiveSessions(userId) {
         return await RefreshTokenService.getUserActiveTokens(userId);
     }
+
+    static async updateProfile(userId, data) {
+        const { name, lastname, email } = data;
+
+        if (email) {
+            const existing = await prisma.user.findUnique({ where: { email } });
+            if (existing && existing.id !== userId) {
+                const error = new Error("El email ya está en uso");
+                error.statusCode = 409;
+                throw error;
+            }
+        }
+
+        const user = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                ...(name && { name }),
+                ...(lastname && { lastname }),
+                ...(email && { email }),
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                lastname: true,
+            },
+        });
+
+        return user;
+    }
+
+    static async updatePassword(userId, { currentPassword, newPassword }) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+
+        const isValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isValid) {
+            const error = new Error("Contraseña actual incorrecta");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashed },
+        });
+
+        await RefreshTokenService.revokeAllUserTokens(userId);
+    }
+
+    static async deleteAccount(userId, { password }) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
+            const error = new Error("Contraseña incorrecta");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        await prisma.user.delete({ where: { id: userId } });
+    }
 }

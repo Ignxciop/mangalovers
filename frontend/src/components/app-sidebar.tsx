@@ -34,6 +34,7 @@ import {
     BookHeart,
     Heart,
     ChevronRight,
+    Settings,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useLocation } from "react-router-dom";
@@ -310,18 +311,28 @@ export function AppSidebar() {
                                         </span>
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
-
-                                <DropdownMenuSeparator />
-
                                 <div className="p-1">
                                     {isAuthenticated ? (
-                                        <DropdownMenuItem
-                                            onSelect={logout}
-                                            className="rounded-lg cursor-pointer gap-2.5 text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"
-                                        >
-                                            <LogOut className="h-4 w-4" />
-                                            <span>Cerrar Sesión</span>
-                                        </DropdownMenuItem>
+                                        <>
+                                            <DropdownMenuItem
+                                                onSelect={() =>
+                                                    (window.location.href =
+                                                        "/perfil")
+                                                }
+                                                className="rounded-lg cursor-pointer gap-2.5"
+                                            >
+                                                <Settings className="h-4 w-4 text-muted-foreground" />
+                                                <span>Mi perfil</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onSelect={logout}
+                                                className="rounded-lg cursor-pointer gap-2.5 text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"
+                                            >
+                                                <LogOut className="h-4 w-4" />
+                                                <span>Cerrar Sesión</span>
+                                            </DropdownMenuItem>
+                                        </>
                                     ) : (
                                         <DropdownMenuItem
                                             onSelect={() =>

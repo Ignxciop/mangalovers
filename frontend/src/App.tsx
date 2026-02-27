@@ -13,6 +13,7 @@ import ChapterReader from "./pages/chapterReader.tsx";
 import FavoritesList from "./pages/favoriteList.tsx";
 import TermsOfService from "./pages/termsOfService.tsx";
 import PrivacyPolicy from "./pages/privacyPolicy.tsx";
+import ProfilePage from "./pages/profilePage.tsx";
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -56,6 +57,7 @@ function App() {
                                 path="/favoritos"
                                 element={<FavoritesList />}
                             />
+                            <Route path="/perfil" element={<ProfilePage />} />
                         </Route>
                     </Route>
 

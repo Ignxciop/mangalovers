@@ -116,4 +116,37 @@ export class AuthController {
             next(error);
         }
     }
+
+    static async updateProfile(req, res, next) {
+        try {
+            const user = await AuthService.updateProfile(
+                req.user.userId,
+                req.body,
+            );
+            res.json({ success: true, data: { user } });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async updatePassword(req, res, next) {
+        try {
+            await AuthService.updatePassword(req.user.userId, req.body);
+            res.json({
+                success: true,
+                message: "Contraseña actualizada. Vuelve a iniciar sesión.",
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async deleteAccount(req, res, next) {
+        try {
+            await AuthService.deleteAccount(req.user.userId, req.body);
+            res.json({ success: true, message: "Cuenta eliminada" });
+        } catch (error) {
+            next(error);
+        }
+    }
 }

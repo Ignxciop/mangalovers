@@ -16,5 +16,8 @@ router.post("/logout", AuthController.logout);
 router.post("/logout-all", authenticate, AuthController.logoutAll);
 router.get("/me", authenticate, AuthController.getMe);
 router.get("/sessions", authenticate, AuthController.getActiveSessions);
+router.patch("/profile", authenticate, AuthController.updateProfile);
+router.patch("/password", authenticate, AuthController.updatePassword);
+router.delete("/account", authenticate, AuthController.deleteAccount);
 
 export default router;
