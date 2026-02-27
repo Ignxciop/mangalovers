@@ -189,7 +189,7 @@ export default function MangaDetail() {
     } = useFavorite(series?.id ?? 0);
     const { readIds, toggle: toggleRead } = useReadChapters(series?.id ?? 0);
     const location = useLocation();
-    const backUrl = location.state?.from ?? "/mangas";
+    const backUrl = location.state?.from ?? "/";
 
     const [chaptersReversed, setChaptersReversed] = useState(false);
 
