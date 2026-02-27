@@ -3,6 +3,7 @@ import {
     toggleChapterRead,
     markChaptersUntil,
     unmarkChaptersFrom,
+    getUserReadingStats,
 } from "./readService.js";
 
 export async function handleGetReadChapters(req, res) {
@@ -37,6 +38,16 @@ export async function handleMarkChaptersUntil(req, res) {
         const result = await markChaptersUntil(req.user.userId, chapterId);
 
         res.json(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error interno del servidor" });
+    }
+}
+
+export async function handleGetReadingStats(req, res) {
+    try {
+        const stats = await getUserReadingStats(req.user.userId);
+        res.json(stats);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error interno del servidor" });

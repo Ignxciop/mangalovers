@@ -3,6 +3,7 @@ import {
     handleGetReadChapters,
     handleToggleChapterRead,
     handleMarkChaptersUntil,
+    handleGetReadingStats,
 } from "./readController.js";
 import { authenticate } from "../middlewares/auth.js";
 
@@ -19,5 +20,6 @@ router.post(
     authenticate,
     handleMarkChaptersUntil,
 );
+router.get("/stats", authenticate, handleGetReadingStats);
 
 export default router;

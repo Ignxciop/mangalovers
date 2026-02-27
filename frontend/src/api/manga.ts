@@ -85,3 +85,8 @@ export async function fetchGenres(): Promise<{ id: number; name: string }[]> {
     const { data } = await api.get("/manga/genres");
     return data;
 }
+
+export async function fetchReadingStats() {
+    const { data } = await api.get("/reads/stats");
+    return data;
+}
