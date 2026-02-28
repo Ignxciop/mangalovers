@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { fetchReadChapterIds, toggleChapterRead } from "@/api/manga";
 import { useAuthStore } from "@/store/authStore";
 
@@ -7,23 +7,22 @@ export function useReadChapters(seriesId: number) {
     const [loading, setLoading] = useState(false);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-    useEffect(() => {
+    const load = useCallback(async () => {
         if (!seriesId || !isAuthenticated) return;
-
-        async function load() {
-            setLoading(true);
-            try {
-                const ids = await fetchReadChapterIds(seriesId);
-                setReadIds(new Set(ids));
-            } catch {
-                setReadIds(new Set());
-            } finally {
-                setLoading(false);
-            }
+        setLoading(true);
+        try {
+            const ids = await fetchReadChapterIds(seriesId);
+            setReadIds(new Set(ids));
+        } catch {
+            setReadIds(new Set());
+        } finally {
+            setLoading(false);
         }
-
-        load();
     }, [seriesId, isAuthenticated]);
+
+    useEffect(() => {
+        load();
+    }, [load]);
 
     async function toggle(chapterId: number) {
         if (!isAuthenticated) return;
@@ -41,7 +40,6 @@ export function useReadChapters(seriesId: number) {
 
         try {
             await toggleChapterRead(chapterId);
-
             const ids = await fetchReadChapterIds(seriesId);
             setReadIds(new Set(ids));
         } catch {
@@ -57,5 +55,5 @@ export function useReadChapters(seriesId: number) {
         }
     }
 
-    return { readIds, loading, toggle };
+    return { readIds, loading, toggle, refetch: load };
 }

@@ -7,6 +7,9 @@ import { useEffect } from "react";
 import { markChapterUntil } from "@/api/manga";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
+import { useReadChapters } from "@/hooks/useReadChapters";
+import { useSeriesDetail } from "@/hooks/useSeriesDetail";
+import { Progress } from "@/components/ui/progress";
 
 function ChapterNav({
     slug,
@@ -72,10 +75,51 @@ export default function ChapterReader() {
     );
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
+    const { refetch } = useReadChapters(chapter?.series.id ?? 0);
+    const { series } = useSeriesDetail(slug ?? "");
+
+    const currentChapterNumber = chapter ? parseFloat(chapter.name) : 0;
+    const totalChapters = series?.chapters.length ?? 0;
+
+    const chaptersLeft =
+        totalChapters > 0 && chapter
+            ? Math.max(
+                  0,
+                  totalChapters -
+                      series!.chapters.filter(
+                          (c) => parseFloat(c.name) <= currentChapterNumber,
+                      ).length,
+              )
+            : null;
+
+    const progressPercent =
+        totalChapters > 0
+            ? Math.min(
+                  Math.round(
+                      ((totalChapters - (chaptersLeft ?? 0)) / totalChapters) *
+                          100,
+                  ),
+                  100,
+              )
+            : null;
+
     useEffect(() => {
         if (!chapter || !isAuthenticated) return;
-        markChapterUntil(chapter.chapterId);
-    }, [chapter, isAuthenticated]);
+
+        async function markAndRefetch() {
+            await markChapterUntil(chapter!.chapterId);
+            await refetch();
+        }
+
+        markAndRefetch();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chapterId, isAuthenticated, refetch]);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        refetch();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chapterId]);
 
     if (loading) {
         return (
@@ -146,6 +190,27 @@ export default function ChapterReader() {
                     />
                 ))}
             </div>
+
+            {isAuthenticated &&
+                progressPercent !== null &&
+                chaptersLeft !== null && (
+                    <div className="w-full max-w-2xl mx-auto px-4 py-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-muted-foreground">
+                                Progreso{" "}
+                                <span className="font-semibold text-foreground">
+                                    {progressPercent}%
+                                </span>
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                                {chaptersLeft === 0
+                                    ? "¡Serie completada!"
+                                    : `Faltan ${chaptersLeft} ${chaptersLeft === 1 ? "capítulo" : "capítulos"}`}
+                            </span>
+                        </div>
+                        <Progress value={progressPercent} className="h-1.5" />
+                    </div>
+                )}
 
             <ChapterNav
                 slug={slug!}
