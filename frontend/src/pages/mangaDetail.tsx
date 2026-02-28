@@ -16,6 +16,7 @@ import {
     ChevronDown,
     ArrowUpDown,
     PlayCircle,
+    Share2,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useFavorite } from "@/hooks/useFavorite";
@@ -415,6 +416,25 @@ export default function MangaDetail() {
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
+                                )}
+
+                                {typeof navigator.share === "function" && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            navigator.share({
+                                                title: series.name,
+                                                text:
+                                                    series.summary ??
+                                                    `Lee ${series.name} en Mangalovers`,
+                                                url: window.location.href,
+                                            })
+                                        }
+                                    >
+                                        <Share2 className="h-4 w-4" />
+                                        Compartir
+                                    </Button>
                                 )}
                             </div>
                         )}
