@@ -1,4 +1,5 @@
 import { prisma } from "../config/prisma.js";
+import { markChaptersUntil } from "../read/readService.js";
 
 export async function getAllManga(query) {
     const {
@@ -223,7 +224,7 @@ export async function getSeriesDetailBySlug(slug) {
     };
 }
 
-export async function getChapterPages(chapterId) {
+export async function getChapterPages(chapterId, userId = null) {
     const chapter = await prisma.chapter.findUnique({
         where: { id: Number(chapterId) },
         include: {
@@ -241,6 +242,11 @@ export async function getChapterPages(chapterId) {
     });
 
     if (!chapter) return null;
+
+    // Marcar como leído automáticamente si hay usuario
+    if (userId) {
+        await markChaptersUntil(userId, chapterId);
+    }
 
     const currentNumber = parseFloat(chapter.name);
 

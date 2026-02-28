@@ -3,11 +3,8 @@ import { useChapterPages } from "@/hooks/useChapterPages";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { useEffect } from "react";
-import { markChapterUntil } from "@/api/manga";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
-import { useReadChapters } from "@/hooks/useReadChapters";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { Progress } from "@/components/ui/progress";
 
@@ -75,7 +72,6 @@ export default function ChapterReader() {
     );
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-    const { refetch } = useReadChapters(chapter?.series.id ?? 0);
     const { series } = useSeriesDetail(slug ?? "");
 
     const currentChapterNumber = chapter ? parseFloat(chapter.name) : 0;
@@ -102,24 +98,6 @@ export default function ChapterReader() {
                   100,
               )
             : null;
-
-    useEffect(() => {
-        if (!chapter || !isAuthenticated) return;
-
-        async function markAndRefetch() {
-            await markChapterUntil(chapter!.chapterId);
-            await refetch();
-        }
-
-        markAndRefetch();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [chapterId, isAuthenticated, refetch]);
-
-    useEffect(() => {
-        if (!isAuthenticated) return;
-        refetch();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [chapterId]);
 
     if (loading) {
         return (
