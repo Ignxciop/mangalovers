@@ -228,14 +228,13 @@ export async function getUserReadingStats(userId) {
             orderBy: { createdAt: "desc" },
         });
 
-        // Obtener días únicos de lectura
         const readDays = [
             ...new Set(
                 allReads.map(
                     (r) => new Date(r.createdAt).toISOString().split("T")[0],
                 ),
             ),
-        ].sort((a, b) => b.localeCompare(a)); // desc
+        ].sort((a, b) => b.localeCompare(a));
 
         if (readDays.length > 0) {
             const today = new Date().toISOString().split("T")[0];
@@ -243,28 +242,22 @@ export async function getUserReadingStats(userId) {
                 .toISOString()
                 .split("T")[0];
 
-            // Racha actual — debe incluir hoy o ayer para estar activa
             if (readDays[0] === today || readDays[0] === yesterday) {
                 currentStreak = 1;
                 for (let i = 1; i < readDays.length; i++) {
                     const prev = new Date(readDays[i - 1]);
                     const curr = new Date(readDays[i]);
-                    const diffDays = Math.round((prev - curr) / 86400000);
-                    if (diffDays === 1) {
+                    if (Math.round((prev - curr) / 86400000) === 1)
                         currentStreak++;
-                    } else {
-                        break;
-                    }
+                    else break;
                 }
             }
 
-            // Mejor racha histórica
             let streak = 1;
             for (let i = 1; i < readDays.length; i++) {
                 const prev = new Date(readDays[i - 1]);
                 const curr = new Date(readDays[i]);
-                const diffDays = Math.round((prev - curr) / 86400000);
-                if (diffDays === 1) {
+                if (Math.round((prev - curr) / 86400000) === 1) {
                     streak++;
                     bestStreak = Math.max(bestStreak, streak);
                 } else {
@@ -275,6 +268,16 @@ export async function getUserReadingStats(userId) {
         }
     }
 
+    // ← Aquí, FUERA del if
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const chaptersThisMonth = await prisma.userChapterRead.count({
+        where: { userId, createdAt: { gte: startOfMonth } },
+    });
+
+    const estimatedHoursThisMonth = Math.round((chaptersThisMonth * 7) / 60);
+
     return {
         totalChaptersRead,
         totalSeries: favorites.length,
@@ -283,6 +286,8 @@ export async function getUserReadingStats(userId) {
         estimatedHours: Math.round((totalChaptersRead * 7) / 60),
         currentStreak,
         bestStreak,
+        chaptersThisMonth,
+        estimatedHoursThisMonth,
         continueReading,
     };
 }

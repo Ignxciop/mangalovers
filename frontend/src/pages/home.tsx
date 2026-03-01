@@ -59,6 +59,8 @@ interface ReadingStats {
     estimatedHours: number;
     currentStreak: number;
     bestStreak: number;
+    chaptersThisMonth: number;
+    estimatedHoursThisMonth: number;
     continueReading: {
         id: number;
         name: string;
@@ -137,8 +139,9 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
             <div className="grid grid-cols-2 gap-3 mb-4">
                 <StatCard
                     icon={BookOpen}
-                    label="Capítulos leídos"
-                    value={stats.totalChaptersRead.toLocaleString()}
+                    label="Capítulos este mes"
+                    value={stats.chaptersThisMonth.toLocaleString()}
+                    sub={`${stats.totalChaptersRead.toLocaleString()} en total`}
                     color="primary"
                 />
                 <StatCard
@@ -156,9 +159,9 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
                 />
                 <StatCard
                     icon={Timer}
-                    label="Horas estimadas"
-                    value={stats.estimatedHours.toLocaleString()}
-                    sub="~7 min por capítulo"
+                    label="Horas este mes"
+                    value={stats.estimatedHoursThisMonth.toLocaleString()}
+                    sub={`${stats.estimatedHours.toLocaleString()} en total`}
                     color="sky"
                 />
             </div>
