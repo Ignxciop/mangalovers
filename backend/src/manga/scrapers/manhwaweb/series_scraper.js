@@ -92,6 +92,33 @@ async function processSeries(seriesData, providerId, tipo) {
         return;
     }
 
+    const name = seriesData.the_real_name ?? seriesData.name_esp ?? externalId;
+
+    // Si ya existe en olympus, vincular como provider secundario
+    const existingInOlympus = await prisma.series.findFirst({
+        where: {
+            name: { equals: name, mode: "insensitive" },
+            providerSeries: {
+                some: { provider: { name: "olympus" } },
+            },
+        },
+    });
+
+    if (existingInOlympus) {
+        await prisma.providerSeries.upsert({
+            where: { providerId_externalId: { providerId, externalId } },
+            create: {
+                providerId,
+                seriesId: existingInOlympus.id,
+                externalId,
+                slug,
+            },
+            update: { seriesId: existingInOlympus.id, slug },
+        });
+        console.log(`↷ Vinculado a olympus: ${name}`);
+        return;
+    }
+
     const metadata = await fetchMetadata(externalId);
 
     const genres =
@@ -104,7 +131,6 @@ async function processSeries(seriesData, providerId, tipo) {
 
     const status = STATUS_MAP[seriesData._status] ?? seriesData._status ?? null;
     const cover = seriesData._imagen ?? null;
-    const name = seriesData.the_real_name ?? seriesData.name_esp ?? externalId;
     const chapterCount = seriesData._numero_cap ?? 0;
     const summary = metadata?._sinopsis ?? null;
     const type = seriesData._tipo ?? tipo ?? null;
@@ -139,9 +165,7 @@ async function processSeries(seriesData, providerId, tipo) {
             }
 
             await tx.providerSeries.upsert({
-                where: {
-                    providerId_externalId: { providerId, externalId },
-                },
+                where: { providerId_externalId: { providerId, externalId } },
                 create: {
                     providerId,
                     seriesId: updatedSeries.id,
