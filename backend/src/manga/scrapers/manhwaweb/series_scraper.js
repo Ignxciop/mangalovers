@@ -11,8 +11,8 @@ const BASE_URL = "https://manhwawebbackend-production.up.railway.app";
 const STATUS_MAP = {
     publicandose: "Activo",
     finalizado: "Finalizado",
-    hiatus: "Pausado",
-    abandonado: "Abandonado",
+    hiatus: "Pausado por el autor (Hiatus)",
+    abandonado: "Abandonado por el scan",
 };
 
 async function fetchPage(page, tipo, retries = 3) {
