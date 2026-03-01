@@ -1,6 +1,6 @@
 import { prisma } from "../config/prisma.js";
 
-const providers = [{ name: "manhwaweb" }];
+const providers = [{ name: "olympus" }, { name: "manhwaweb" }];
 
 export async function seedProviders() {
     console.log("Verificando providers...");
