@@ -11,18 +11,18 @@ const BASE_URL = "https://manhwawebbackend-production.up.railway.app";
 const STATUS_MAP = {
     publicandose: "Activo",
     finalizado: "Finalizado",
-    hiatus: "Pausado por el autor (Hiatus)",
-    abandonado: "Abandonado por el scan",
+    hiatus: "Pausado",
+    abandonado: "Abandonado",
 };
 
-async function fetchPage(page, retries = 3) {
+async function fetchPage(page, tipo, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             const { data } = await axios.get(`${BASE_URL}/manhwa/library`, {
                 params: {
                     buscar: "",
                     estado: "",
-                    tipo: "manga",
+                    tipo,
                     erotico: "no",
                     demografia: "",
                     order_item: "alfabetico",
@@ -38,7 +38,9 @@ async function fetchPage(page, retries = 3) {
             };
         } catch (error) {
             if (i === retries - 1) throw error;
-            console.warn(`Reintentando página ${page} (intento ${i + 2})...`);
+            console.warn(
+                `Reintentando página ${page} tipo=${tipo} (intento ${i + 2})...`,
+            );
             await sleep(2000 * (i + 1));
         }
     }
@@ -78,7 +80,7 @@ async function syncGenres(seriesId, genreNames, tx = prisma) {
     }
 }
 
-async function processSeries(seriesData, providerId) {
+async function processSeries(seriesData, providerId, tipo) {
     const externalId = seriesData.real_id ?? seriesData._id;
     const slug = `manhwaweb-${externalId}`;
 
@@ -105,6 +107,7 @@ async function processSeries(seriesData, providerId) {
     const name = seriesData.the_real_name ?? seriesData.name_esp ?? externalId;
     const chapterCount = seriesData._numero_cap ?? 0;
     const summary = metadata?._sinopsis ?? null;
+    const type = seriesData._tipo ?? tipo ?? null;
 
     try {
         await prisma.$transaction(async (tx) => {
@@ -117,6 +120,7 @@ async function processSeries(seriesData, providerId) {
                     status,
                     summary,
                     chapterCount,
+                    type,
                     metadataFetchedAt: metadata ? new Date() : null,
                 },
                 update: {
@@ -124,6 +128,7 @@ async function processSeries(seriesData, providerId) {
                     cover,
                     status,
                     chapterCount,
+                    type,
                     summary: summary ?? undefined,
                     metadataFetchedAt: metadata ? new Date() : undefined,
                 },
@@ -150,10 +155,35 @@ async function processSeries(seriesData, providerId) {
             });
         });
 
-        console.log(`✓ ${name}`);
+        console.log(`✓ [${type ?? "?"}] ${name}`);
     } catch (error) {
         console.error(`Error procesando serie ${externalId}:`, error.message);
     }
+}
+
+async function scrapeByTipo(tipo, providerId) {
+    console.log(`\n── Scrapeando tipo: ${tipo} ──`);
+    let page = 0;
+    let hasNext = true;
+    let total = 0;
+
+    while (hasNext) {
+        console.log(`[${tipo}] Página ${page}...`);
+        const pageData = await fetchPage(page, tipo);
+
+        await Promise.all(
+            pageData.series.map((s) =>
+                limit(() => processSeries(s, providerId, tipo)),
+            ),
+        );
+
+        total += pageData.series.length;
+        hasNext = pageData.hasNext;
+        page++;
+        await sleep(400);
+    }
+
+    console.log(`[${tipo}] Listo — ${total} series procesadas`);
 }
 
 export async function scrapeSeries() {
@@ -169,23 +199,11 @@ export async function scrapeSeries() {
         );
     }
 
-    let page = 0;
-    let hasNext = true;
+    // Scrapear manga y manhwa en paralelo
+    await Promise.all([
+        scrapeByTipo("manga", provider.id),
+        scrapeByTipo("manhwa", provider.id),
+    ]);
 
-    while (hasNext) {
-        console.log(`Página ${page}...`);
-        const pageData = await fetchPage(page);
-
-        await Promise.all(
-            pageData.series.map((s) =>
-                limit(() => processSeries(s, provider.id)),
-            ),
-        );
-
-        hasNext = pageData.hasNext;
-        page++;
-        await sleep(400);
-    }
-
-    console.log("ManhwaWeb - Series listas");
+    console.log("\nManhwaWeb - Todas las series listas");
 }

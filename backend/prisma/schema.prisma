@@ -45,6 +45,7 @@ model Series {
   cover        String?
   chapterCount Int
   summary   String?
+  type         String?
 
   lastChapterPublishedAt DateTime?
   metadataFetchedAt DateTime?
