@@ -31,10 +31,11 @@ async function processSeries(providerSeries, providerId) {
 
     try {
         const data = await fetchSeriesWithChapters(externalId);
-        const chapters = (data.chapters ?? []).slice().reverse(); // desc → asc → invertir para procesar nuevos primero
+        const chapters = (data.chapters ?? []).slice().reverse();
 
         for (const ch of chapters) {
             const chapterExternalId = `${externalId}-${ch.chapter}`;
+            const chapterName = String(ch.chapter);
 
             const existingProviderChapter =
                 await prisma.providerChapter.findUnique({
@@ -46,18 +47,28 @@ async function processSeries(providerSeries, providerId) {
                     },
                 });
 
-            if (existingProviderChapter) {
-                break;
+            if (existingProviderChapter) break;
+
+            const existingChapterInSeries = await prisma.chapter.findFirst({
+                where: { seriesId, name: chapterName },
+            });
+
+            if (existingChapterInSeries) {
+                await prisma.providerChapter.create({
+                    data: {
+                        providerId,
+                        externalId: chapterExternalId,
+                        chapterId: existingChapterInSeries.id,
+                    },
+                });
+                console.log(`↷ Capítulo ya existe, vinculado: ${chapterName}`);
+                continue;
             }
 
             const publishedAt = ch.create ? new Date(ch.create) : new Date();
 
             const newChapter = await prisma.chapter.create({
-                data: {
-                    name: String(ch.chapter),
-                    publishedAt,
-                    seriesId,
-                },
+                data: { name: chapterName, publishedAt, seriesId },
             });
 
             await prisma.providerChapter.create({
@@ -68,7 +79,7 @@ async function processSeries(providerSeries, providerId) {
                 },
             });
 
-            console.log(`Capítulo nuevo: ${ch.chapter}`);
+            console.log(`Capítulo nuevo: ${chapterName}`);
         }
 
         const latestChapter = await prisma.chapter.findFirst({
