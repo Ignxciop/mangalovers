@@ -116,6 +116,8 @@ export async function getUserReadingStats(userId) {
             completedSeries: 0,
             completionPercent: 0,
             estimatedHours: Math.round((totalChaptersRead * 7) / 60),
+            chaptersThisMonth: 0,
+            estimatedHoursThisMonth: 0,
             continueReading: [],
         };
     }
