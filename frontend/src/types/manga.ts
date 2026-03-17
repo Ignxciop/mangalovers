@@ -9,6 +9,7 @@ export interface Manga {
     lastReadChapterName?: string | null;
     providers?: string[];
     status?: string | null;
+    type?: string | null;
 }
 
 export interface MangaListResponse {

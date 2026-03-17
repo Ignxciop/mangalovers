@@ -44,7 +44,7 @@ model Series {
   status       String?
   cover        String?
   chapterCount Int
-  summary   String?
+  summary      String?
   type         String?
 
   lastChapterPublishedAt DateTime?
@@ -53,7 +53,8 @@ model Series {
   chapters       Chapter[]
   providerSeries ProviderSeries[]
   genres         SeriesGenre[]
-  favorites     UserFavorite[]
+  favorites      UserFavorite[]
+  aliases        SeriesAlias[]
 
   lastChaptersCheck DateTime?
   createdAt         DateTime  @default(now())
@@ -62,6 +63,16 @@ model Series {
   @@index([slug])
   @@index([name])
   @@index([lastChapterPublishedAt])
+}
+
+model SeriesAlias {
+  id       Int    @id @default(autoincrement())
+  seriesId Int
+  alias    String @unique
+
+  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@map("series_aliases")
 }
 
 model Chapter {

@@ -5,6 +5,7 @@ import {
     getSeriesDetail,
     handleGetChapterPages,
     handleGetAllGenres,
+    handleGetRecommended,
 } from "./mangaController.js";
 import { authenticate, optionalAuthenticate } from "../middlewares/auth.js";
 
@@ -18,6 +19,7 @@ router.get(
     handleGetChapterPages,
 );
 router.get("/genres", optionalAuthenticate, handleGetAllGenres);
+router.get("/recommended", optionalAuthenticate, handleGetRecommended);
 router.get("/:slug", optionalAuthenticate, getSeriesDetail);
 
 export default router;

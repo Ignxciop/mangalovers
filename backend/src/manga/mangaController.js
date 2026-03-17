@@ -81,3 +81,14 @@ export async function handleGetChapterPages(req, res) {
         return res.status(500).json({ message: "Error interno del servidor" });
     }
 }
+
+export async function handleGetRecommended(req, res) {
+    try {
+        if (!req.user?.userId) return res.json({ series: [], basedOn: [] });
+        const result = await getRecommendedSeries(req.user.userId);
+        res.json(result);
+    } catch (error) {
+        console.error("Error recomendaciones:", error);
+        res.status(500).json({ message: "Error interno" });
+    }
+}

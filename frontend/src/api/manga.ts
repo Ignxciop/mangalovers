@@ -95,3 +95,8 @@ export async function fetchFullStats() {
     const { data } = await api.get("/reads/full-stats");
     return data;
 }
+
+export async function fetchRecommended() {
+    const { data } = await api.get("/manga/recommended");
+    return data;
+}

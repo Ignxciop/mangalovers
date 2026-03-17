@@ -10,7 +10,7 @@ export async function getAllManga(query) {
         status,
         sort = "updated",
         order = "desc",
-        genres, // ← nuevo: string separado por comas "Acción,Romance"
+        genres,
     } = query;
 
     const skip = (page - 1) * limit;
@@ -30,7 +30,6 @@ export async function getAllManga(query) {
         };
     }
 
-    // ← nuevo: filtro por géneros (AND — debe tener todos los seleccionados)
     if (genres) {
         const genreList = genres
             .split(",")
@@ -68,6 +67,7 @@ export async function getAllManga(query) {
                 chapterCount: true,
                 updatedAt: true,
                 lastChapterPublishedAt: true,
+                type: true,
                 providerSeries: {
                     select: { provider: { select: { name: true } } },
                 },
@@ -86,6 +86,7 @@ export async function getAllManga(query) {
             chapterCount: m.chapterCount,
             updatedAt: m.updatedAt,
             lastChapterPublishedAt: m.lastChapterPublishedAt,
+            type: m.type,
             providers: m.providerSeries.map((ps) => ps.provider.name),
         })),
         meta: {
@@ -281,4 +282,85 @@ export async function getChapterPages(chapterId, userId = null) {
             url: p.url,
         })),
     };
+}
+
+export async function getRecommendedSeries(userId, limit = 12) {
+    // 1. Top géneros del usuario
+    const reads = await prisma.userChapterRead.findMany({
+        where: { userId },
+        select: {
+            chapter: {
+                select: {
+                    series: {
+                        select: {
+                            genres: {
+                                select: { genre: { select: { name: true } } },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    const genreCount = new Map();
+    for (const r of reads) {
+        for (const g of r.chapter.series.genres) {
+            const name = g.genre.name;
+            genreCount.set(name, (genreCount.get(name) ?? 0) + 1);
+        }
+    }
+
+    const topGenres = [...genreCount.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([name]) => name);
+
+    if (topGenres.length === 0) return [];
+
+    // 2. Series que el usuario NO tiene en favoritos
+    const favorites = await prisma.userFavorite.findMany({
+        where: { userId },
+        select: { seriesId: true },
+    });
+    const favIds = favorites.map((f) => f.seriesId);
+
+    // 3. Series con esos géneros
+    const candidates = await prisma.series.findMany({
+        where: {
+            id: { notIn: favIds.length > 0 ? favIds : [-1] },
+            genres: {
+                some: {
+                    genre: { name: { in: topGenres } },
+                },
+            },
+        },
+        select: {
+            id: true,
+            name: true,
+            slug: true,
+            cover: true,
+            status: true,
+            chapterCount: true,
+            type: true,
+            genres: {
+                select: { genre: { select: { name: true } } },
+            },
+        },
+        take: 50,
+    });
+
+    // 4. Ordenar por cuántos géneros top coinciden
+    const scored = candidates
+        .map((s) => {
+            const seriesGenres = s.genres.map((g) => g.genre.name);
+            const score = topGenres.filter((g) =>
+                seriesGenres.includes(g),
+            ).length;
+            return { ...s, score, genres: seriesGenres };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+    return { series: scored, basedOn: topGenres };
 }
