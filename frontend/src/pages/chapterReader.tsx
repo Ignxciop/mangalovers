@@ -13,6 +13,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
+import { useReadChapters } from "@/hooks/useReadChapters";
 import { Progress } from "@/components/ui/progress";
 import { useEffect, useRef, useState } from "react";
 
@@ -264,9 +265,21 @@ export default function ChapterReader() {
     );
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const { series } = useSeriesDetail(slug ?? "");
+    const { markUntil } = useReadChapters(
+        series?.id ?? 0,
+        series?.chapters ?? [],
+    );
     const headerVisible = useHideOnScrollDown();
 
     const [prefs, setPrefs] = useState<ReaderPrefs>(loadPrefs);
+
+    const seriesLoaded = !!series;
+
+    useEffect(() => {
+        if (!isAuthenticated && chapter && seriesLoaded) {
+            markUntil(chapter.chapterId);
+        }
+    }, [chapter, isAuthenticated, seriesLoaded, markUntil]);
 
     function updateMode(mode: ReadMode) {
         const updated = { ...prefs, mode };
@@ -400,26 +413,24 @@ export default function ChapterReader() {
                 />
             )}
 
-            {isAuthenticated &&
-                progressPercent !== null &&
-                chaptersLeft !== null && (
-                    <div className="w-full max-w-2xl mx-auto px-4 py-6">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-muted-foreground">
-                                Progreso{" "}
-                                <span className="font-semibold text-foreground">
-                                    {progressPercent}%
-                                </span>
+            {progressPercent !== null && chaptersLeft !== null && (
+                <div className="w-full max-w-2xl mx-auto px-4 py-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-muted-foreground">
+                            Progreso{" "}
+                            <span className="font-semibold text-foreground">
+                                {progressPercent}%
                             </span>
-                            <span className="text-xs text-muted-foreground">
-                                {chaptersLeft === 0
-                                    ? "¡Serie completada!"
-                                    : `Faltan ${chaptersLeft} ${chaptersLeft === 1 ? "capítulo" : "capítulos"}`}
-                            </span>
-                        </div>
-                        <Progress value={progressPercent} className="h-1.5" />
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            {chaptersLeft === 0
+                                ? "¡Serie completada!"
+                                : `Faltan ${chaptersLeft} ${chaptersLeft === 1 ? "capítulo" : "capítulos"}`}
+                        </span>
                     </div>
-                )}
+                    <Progress value={progressPercent} className="h-1.5" />
+                </div>
+            )}
 
             <ChapterNav
                 slug={slug!}

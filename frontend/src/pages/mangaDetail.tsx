@@ -188,7 +188,10 @@ export default function MangaDetail() {
         save: saveFav,
         remove: removeFav,
     } = useFavorite(series?.id ?? 0);
-    const { readIds, toggle: toggleRead } = useReadChapters(series?.id ?? 0);
+    const { readIds, toggle: toggleRead } = useReadChapters(
+        series?.id ?? 0,
+        series?.chapters ?? [],
+    );
     const location = useLocation();
     const backUrl = location.state?.from ?? "/";
 
