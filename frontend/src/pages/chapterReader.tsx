@@ -7,6 +7,31 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { Progress } from "@/components/ui/progress";
+import { useEffect, useRef, useState } from "react";
+
+function useHideOnScrollDown() {
+    const [visible, setVisible] = useState(true);
+    const lastScrollY = useRef(0);
+
+    useEffect(() => {
+        function onScroll() {
+            const current = window.scrollY;
+            if (current < 10) {
+                setVisible(true);
+            } else if (current > lastScrollY.current) {
+                setVisible(false);
+            } else {
+                setVisible(true);
+            }
+            lastScrollY.current = current;
+        }
+
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
+
+    return visible;
+}
 
 function ChapterNav({
     slug,
@@ -71,8 +96,8 @@ export default function ChapterReader() {
         chapterId ? Number(chapterId) : null,
     );
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-
     const { series } = useSeriesDetail(slug ?? "");
+    const headerVisible = useHideOnScrollDown();
 
     const currentChapterNumber = chapter ? parseFloat(chapter.name) : 0;
     const totalChapters = series?.chapters.length ?? 0;
@@ -131,20 +156,29 @@ export default function ChapterReader() {
 
     return (
         <div className="min-h-screen bg-background">
-            <div className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border">
+            <div
+                className={`
+                    sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border
+                    transition-transform duration-300
+                    md:translate-y-0
+                    ${headerVisible ? "translate-y-0" : "-translate-y-full"}
+                `}
+            >
                 <div className="justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
                     <SidebarTrigger />
                     <button
                         onClick={() =>
                             navigate(`/manga/${slug}`, { state: { from } })
                         }
-                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
                     >
                         <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                        {chapter.series.name}
+                        <span className="truncate max-w-[250px] sm:max-w-[200px]">
+                            {chapter.series.name}
+                        </span>
                     </button>
-                    <span className="text-muted-foreground/50">/</span>
-                    <span className="text-sm text-foreground truncate">
+                    <span className="text-muted-foreground/50 shrink-0">/</span>
+                    <span className="text-sm text-foreground shrink-0">
                         {chapter.name}
                     </span>
                 </div>
