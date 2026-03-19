@@ -22,8 +22,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function timeAgo(dateStr: string): string {
     const now = new Date();
     const date = new Date(dateStr);
@@ -48,8 +46,6 @@ function timeAgo(dateStr: string): string {
     if (years === 1) return "1 año";
     return `${years} años`;
 }
-
-// ─── Stats ────────────────────────────────────────────────────────────────────
 
 interface ReadingStats {
     totalChaptersRead: number;
@@ -165,7 +161,7 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
                     color="sky"
                 />
             </div>
-            {/* Racha — al final de estadísticas */}
+
             {(stats.currentStreak > 0 || stats.bestStreak > 0) && (
                 <div className="mt-auto flex items-center justify-center gap-8 px-4 py-3 rounded-xl border border-border bg-card">
                     <div className="flex items-center gap-2">
@@ -202,8 +198,6 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
         </section>
     );
 }
-
-// ─── Continuar leyendo ────────────────────────────────────────────────────────
 
 function ContinueReadingSection({
     items,
@@ -274,12 +268,15 @@ function ContinueReadingSection({
                             : 0;
 
                     return (
-                        <div
-                            key={item.id}
-                            className="group cursor-pointer"
-                            onClick={() => navigate(`/manga/${item.slug}`)}
-                        >
-                            <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-lg">
+                        <div key={item.id} className="group">
+                            <a
+                                href={`/manga/${item.slug}`}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate(`/manga/${item.slug}`);
+                                }}
+                                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-lg"
+                            >
                                 {item.cover ? (
                                     <img
                                         src={item.cover}
@@ -292,8 +289,6 @@ function ContinueReadingSection({
                                     </div>
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
-                                {/* Progreso */}
                                 <div className="absolute bottom-0 left-0 right-0 px-2 pb-2">
                                     <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
                                         <div
@@ -302,8 +297,6 @@ function ContinueReadingSection({
                                         />
                                     </div>
                                 </div>
-
-                                {/* Cap leído */}
                                 {item.lastReadChapterName && (
                                     <div className="absolute top-2 right-2">
                                         <Badge
@@ -315,8 +308,7 @@ function ContinueReadingSection({
                                         </Badge>
                                     </div>
                                 )}
-                            </div>
-
+                            </a>
                             <div className="mt-2 space-y-0.5">
                                 <h3
                                     className="text-[11px] font-semibold truncate leading-tight"
@@ -344,21 +336,20 @@ function ContinueReadingSection({
     );
 }
 
-// ─── Latest updates ───────────────────────────────────────────────────────────
-
 function MangaCard({ manga, index }: { manga: Manga; index: number }) {
     const navigate = useNavigate();
     const [imgLoaded, setImgLoaded] = useState(false);
 
     return (
-        <div
-            className="group cursor-pointer"
-            style={{ animationDelay: `${index * 30}ms` }}
-            onClick={() =>
-                navigate(`/manga/${manga.slug}`, { state: { from: "/" } })
-            }
-        >
-            <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-lg">
+        <div className="group" style={{ animationDelay: `${index * 30}ms` }}>
+            <a
+                href={`/manga/${manga.slug}`}
+                onClick={(e) => {
+                    e.preventDefault();
+                    navigate(`/manga/${manga.slug}`, { state: { from: "/" } });
+                }}
+                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-lg"
+            >
                 {!imgLoaded && (
                     <div className="absolute inset-0 bg-muted animate-pulse" />
                 )}
@@ -369,7 +360,6 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
                     className={`w-full h-full object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
                 <Badge
                     variant="secondary"
                     className="absolute top-2 right-2 flex items-center gap-1 text-[9px] px-1.5 py-0 h-4"
@@ -384,13 +374,11 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
                     <BookOpen className="h-2 w-2" />
                     {manga.lastAvailableChapterName ?? "-"}
                 </Badge>
-
                 <div className="absolute bottom-2 left-2 flex items-center gap-1 text-[9px] text-white/60">
                     <Clock className="h-2.5 w-2.5" />
                     {timeAgo(manga.lastChapterPublishedAt!)}
                 </div>
-            </div>
-
+            </a>
             <div className="mt-2">
                 <h3
                     className="text-[11px] font-semibold text-foreground truncate leading-tight"
@@ -442,8 +430,6 @@ function ContinueSkeleton() {
     );
 }
 
-// ─── Home ─────────────────────────────────────────────────────────────────────
-
 export default function Home() {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const [mangas, setMangas] = useState<Manga[]>([]);
@@ -461,7 +447,6 @@ export default function Home() {
 
     useEffect(() => {
         if (!isAuthenticated) return;
-
         async function load() {
             setLoadingStats(true);
             try {
@@ -473,7 +458,6 @@ export default function Home() {
                 setLoadingStats(false);
             }
         }
-
         load();
     }, [isAuthenticated]);
 
@@ -492,10 +476,8 @@ export default function Home() {
             </header>
 
             <main className="container mx-auto px-4 py-8 max-w-7xl space-y-10">
-                {/* Sección: Continuar leyendo */}
                 {isAuthenticated && (
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
-                        {/* Continuar leyendo — izquierda */}
                         {loadingStats ? (
                             <ContinueSkeleton />
                         ) : (
@@ -505,8 +487,6 @@ export default function Home() {
                                 />
                             )
                         )}
-
-                        {/* Tu progreso — derecha */}
                         {loadingStats ? (
                             <StatsSkeleton />
                         ) : (
@@ -515,7 +495,6 @@ export default function Home() {
                     </div>
                 )}
 
-                {/* Sección: Últimas actualizaciones */}
                 <section>
                     <div className="flex items-center gap-2 mb-4">
                         <Flame className="h-4 w-4 text-orange-400" />

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,7 +47,6 @@ function timeAgo(dateStr: string): string {
     const months = Math.floor(days / 30);
     const years = Math.floor(days / 365);
 
-    if (diff < 3600) return "Hoy";
     if (diff < 86400) return "Hoy";
     if (days === 1) return "Ayer";
     if (days <= 7) return `${days} días`;
@@ -69,28 +68,64 @@ function isUpToDate(fav: Favorite): boolean {
     return chaptersLeft(fav) === 0;
 }
 
+type StatusFilter = "Todos" | "Siguiendo" | "Terminado";
+type ProgressFilter = "todos" | "al-dia" | "pendiente";
+type SortBy = "reciente" | "pendiente-asc" | "pendiente-desc" | "nombre";
+
 export default function FavoritesList() {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [favorites, setFavorites] = useState<Favorite[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchText, setSearchText] = useState("");
 
-    // Filtros
-    const [statusFilter, setStatusFilter] = useState<
-        "Todos" | "Siguiendo" | "Terminado"
-    >("Todos");
-    const [progressFilter, setProgressFilter] = useState<
-        "todos" | "al-dia" | "pendiente"
-    >("todos");
-    const [sortBy, setSortBy] = useState<
-        "reciente" | "pendiente-asc" | "pendiente-desc" | "nombre"
-    >("reciente");
+    const searchText = searchParams.get("search") ?? "";
+    const statusFilter = (searchParams.get("status") ??
+        "Todos") as StatusFilter;
+    const progressFilter = (searchParams.get("progress") ??
+        "todos") as ProgressFilter;
+    const sortBy = (searchParams.get("sort") ?? "reciente") as SortBy;
 
     useEffect(() => {
         fetchFavorites()
             .then(setFavorites)
             .finally(() => setLoading(false));
     }, []);
+
+    function setSearch(value: string) {
+        setSearchParams((prev) => {
+            if (value) prev.set("search", value);
+            else prev.delete("search");
+            return prev;
+        });
+    }
+
+    function setStatusFilter(value: StatusFilter) {
+        setSearchParams((prev) => {
+            if (value === "Todos") prev.delete("status");
+            else prev.set("status", value);
+            return prev;
+        });
+    }
+
+    function setProgressFilter(value: ProgressFilter) {
+        setSearchParams((prev) => {
+            if (value === "todos") prev.delete("progress");
+            else prev.set("progress", value);
+            return prev;
+        });
+    }
+
+    function setSortBy(value: SortBy) {
+        setSearchParams((prev) => {
+            if (value === "reciente") prev.delete("sort");
+            else prev.set("sort", value);
+            return prev;
+        });
+    }
+
+    function clearFilters() {
+        setSearchParams({});
+    }
 
     async function handleStatusChange(seriesId: number, newStatus: string) {
         await upsertFavorite(seriesId, newStatus);
@@ -110,6 +145,7 @@ export default function FavoritesList() {
 
     const filtered = useMemo(() => {
         let result = [...favorites];
+
         if (searchText.trim()) {
             result = result.filter((f) =>
                 f.series.name
@@ -135,7 +171,6 @@ export default function FavoritesList() {
         } else if (sortBy === "nombre") {
             result.sort((a, b) => a.series.name.localeCompare(b.series.name));
         }
-        // "reciente" usa el orden original del backend (updatedAt desc)
 
         return result;
     }, [favorites, statusFilter, progressFilter, sortBy, searchText]);
@@ -144,15 +179,10 @@ export default function FavoritesList() {
         statusFilter !== "Todos" ? statusFilter : "",
         progressFilter !== "todos" ? progressFilter : "",
         sortBy !== "reciente" ? sortBy : "",
-        searchText.trim() ? searchText : "",
+        searchText.trim(),
     ].filter(Boolean).length;
 
-    function clearFilters() {
-        setStatusFilter("Todos");
-        setProgressFilter("todos");
-        setSortBy("reciente");
-        setSearchText("");
-    }
+    const fromUrl = `/favoritos?${searchParams.toString()}`;
 
     return (
         <div className="min-h-screen bg-background">
@@ -168,7 +198,7 @@ export default function FavoritesList() {
                             placeholder="Buscar favorito..."
                             className="pl-9 w-full bg-secondary/50"
                             value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
+                            onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                     <Sheet>
@@ -196,7 +226,6 @@ export default function FavoritesList() {
                             </SheetHeader>
 
                             <div className="flex-1 overflow-y-auto">
-                                {/* Ordenar por */}
                                 <div className="px-6 py-5 border-b border-border">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                                         Ordenar por
@@ -204,7 +233,7 @@ export default function FavoritesList() {
                                     <Select
                                         value={sortBy}
                                         onValueChange={(v) =>
-                                            setSortBy(v as typeof sortBy)
+                                            setSortBy(v as SortBy)
                                         }
                                     >
                                         <SelectTrigger className="w-full">
@@ -227,7 +256,6 @@ export default function FavoritesList() {
                                     </Select>
                                 </div>
 
-                                {/* Estado de seguimiento */}
                                 <div className="px-6 py-5 border-b border-border">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                                         Estado
@@ -258,7 +286,6 @@ export default function FavoritesList() {
                                     </div>
                                 </div>
 
-                                {/* Progreso */}
                                 <div className="px-6 py-5">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                                         Progreso de lectura
@@ -284,7 +311,7 @@ export default function FavoritesList() {
                                                 }`}
                                                 onClick={() =>
                                                     setProgressFilter(
-                                                        value as typeof progressFilter,
+                                                        value as ProgressFilter,
                                                     )
                                                 }
                                             >
@@ -364,13 +391,16 @@ export default function FavoritesList() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         {filtered.map((fav) => (
                             <div key={fav.id} className="group">
-                                <div
-                                    className="relative aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-lg cursor-pointer transition-transform group-hover:scale-[1.02]"
-                                    onClick={() =>
+                                {/* Card imagen — <a> envuelve solo la imagen */}
+                                <a
+                                    href={`/manga/${fav.series.slug}`}
+                                    onClick={(e) => {
+                                        e.preventDefault();
                                         navigate(`/manga/${fav.series.slug}`, {
-                                            state: { from: "/favoritos" },
-                                        })
-                                    }
+                                            state: { from: fromUrl },
+                                        });
+                                    }}
+                                    className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-lg cursor-pointer transition-transform group-hover:scale-[1.02]"
                                 >
                                     {fav.series.cover ? (
                                         <img
@@ -384,18 +414,7 @@ export default function FavoritesList() {
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleRemove(fav.seriesId);
-                                        }}
-                                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-rose-400 transition-opacity hover:bg-black/70 opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                                        title="Quitar de favoritos"
-                                    >
-                                        <Heart className="h-3.5 w-3.5 fill-rose-400" />
-                                    </button>
 
-                                    {/* Badge al día */}
                                     {isUpToDate(fav) &&
                                         fav.lastReadChapterName && (
                                             <div className="absolute bottom-2 left-2 bg-primary/90 text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
@@ -404,20 +423,39 @@ export default function FavoritesList() {
                                                     : "Al día"}
                                             </div>
                                         )}
-                                </div>
+                                </a>
+
+                                {/* Botón quitar — fuera del <a> para no interferir */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemove(fav.seriesId);
+                                    }}
+                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-rose-400 transition-opacity hover:bg-black/70 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                                    title="Quitar de favoritos"
+                                    style={{ position: "absolute" }}
+                                >
+                                    <Heart className="h-3.5 w-3.5 fill-rose-400" />
+                                </button>
 
                                 <div className="mt-2 space-y-1.5">
-                                    <h3
-                                        className="text-sm font-semibold truncate cursor-pointer hover:text-primary transition-colors"
-                                        title={fav.series.name}
-                                        onClick={() =>
+                                    <a
+                                        href={`/manga/${fav.series.slug}`}
+                                        onClick={(e) => {
+                                            e.preventDefault();
                                             navigate(
                                                 `/manga/${fav.series.slug}`,
-                                            )
-                                        }
+                                                {
+                                                    state: { from: fromUrl },
+                                                },
+                                            );
+                                        }}
+                                        className="block text-sm font-semibold truncate hover:text-primary transition-colors"
+                                        title={fav.series.name}
                                     >
                                         {fav.series.name}
-                                    </h3>
+                                    </a>
+
                                     <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                                         <span className="flex items-center gap-1.5">
                                             <Eye className="h-2.5 w-2.5" />
@@ -439,6 +477,7 @@ export default function FavoritesList() {
                                             </span>
                                         )}
                                     </div>
+
                                     {fav.lastReadChapterName &&
                                         fav.lastAvailableChapterName && (
                                             <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
@@ -459,6 +498,7 @@ export default function FavoritesList() {
                                                 />
                                             </div>
                                         )}
+
                                     {fav.status && (
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -466,9 +506,6 @@ export default function FavoritesList() {
                                                     variant="outline"
                                                     size="sm"
                                                     className="w-full text-[10px] h-7 px-2 justify-between"
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
                                                 >
                                                     {fav.status}
                                                 </Button>
@@ -476,18 +513,14 @@ export default function FavoritesList() {
                                             <DropdownMenuContent
                                                 align="end"
                                                 className="w-[140px]"
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
                                             >
                                                 <DropdownMenuItem
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
+                                                    onClick={() =>
                                                         handleStatusChange(
                                                             fav.seriesId,
                                                             "Siguiendo",
-                                                        );
-                                                    }}
+                                                        )
+                                                    }
                                                     className="flex justify-between cursor-pointer"
                                                 >
                                                     Siguiendo
@@ -497,13 +530,12 @@ export default function FavoritesList() {
                                                     )}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
+                                                    onClick={() =>
                                                         handleStatusChange(
                                                             fav.seriesId,
                                                             "Terminado",
-                                                        );
-                                                    }}
+                                                        )
+                                                    }
                                                     className="flex justify-between cursor-pointer"
                                                 >
                                                     Terminado

@@ -154,7 +154,6 @@ export default function MangaList() {
                             </SheetHeader>
 
                             <div className="flex-1 overflow-y-auto">
-                                {/* Ordenar por */}
                                 <div className="px-6 py-5 border-b border-border">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                                         Ordenar por
@@ -183,7 +182,6 @@ export default function MangaList() {
                                     </Select>
                                 </div>
 
-                                {/* Estado */}
                                 <div className="px-6 py-5 border-b border-border">
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                                         Estado
@@ -229,7 +227,6 @@ export default function MangaList() {
                                     </div>
                                 </div>
 
-                                {/* Géneros */}
                                 <div className="px-6 py-5">
                                     <div className="flex items-center justify-between mb-3">
                                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -287,7 +284,6 @@ export default function MangaList() {
                                 </div>
                             </div>
 
-                            {/* Footer con limpiar todo */}
                             {activeFiltersCount > 0 && (
                                 <div className="px-6 py-4 border-t border-border">
                                     <Button
@@ -337,21 +333,25 @@ export default function MangaList() {
                         </div>
                     )}
                     {mangas.map((manga) => (
-                        <div
-                            key={manga.id}
-                            className="group cursor-pointer"
-                            onClick={() =>
-                                navigate(`/manga/${manga.slug}`, {
-                                    state: {
-                                        from: `/mangas?${searchParams.toString()}`,
-                                    },
-                                })
-                            }
-                        >
+                        <div key={manga.id} className="group">
                             <div className="relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted shadow-sm transition-transform group-hover:scale-[1.03]">
+                                {/* Enlace principal — cubre todo el card */}
+                                <a
+                                    href={`/manga/${manga.slug}`}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        navigate(`/manga/${manga.slug}`, {
+                                            state: {
+                                                from: `/mangas?${searchParams.toString()}`,
+                                            },
+                                        });
+                                    }}
+                                    className="absolute inset-0 z-0"
+                                    aria-label={manga.name}
+                                />
                                 <Badge
                                     variant="secondary"
-                                    className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium"
+                                    className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium pointer-events-none"
                                 >
                                     <BookOpen className="h-2.5 w-2.5" />
                                     {manga.chapterCount}
@@ -364,7 +364,7 @@ export default function MangaList() {
                                     alt={manga.name}
                                     className="object-cover w-full h-full"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 pointer-events-none">
                                     <span className="text-white text-[10px] font-bold uppercase tracking-wider">
                                         Ver detalles
                                     </span>
