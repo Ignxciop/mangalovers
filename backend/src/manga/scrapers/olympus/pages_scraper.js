@@ -29,6 +29,13 @@ async function processChapter(providerChapter, providerId) {
             providerChapter.externalId,
         );
 
+        if (!pages.length) {
+            console.warn(
+                `Sin páginas: ${providerChapter.chapterId}, se reintentará`,
+            );
+            return;
+        }
+
         await prisma.page.createMany({
             data: pages.map((url) => ({
                 url,
@@ -43,10 +50,12 @@ async function processChapter(providerChapter, providerId) {
         });
 
         console.log(`${providerChapter.chapterId} → ${pages.length} páginas`);
-
         await sleep(200);
     } catch (err) {
-        console.error(`Error capítulo ${providerChapter.chapterId}`);
+        console.error(
+            `Error capítulo ${providerChapter.chapterId}:`,
+            err.message,
+        );
     }
 }
 
@@ -60,11 +69,14 @@ export async function scrapePages() {
     const providerChapters = await prisma.providerChapter.findMany({
         where: {
             providerId: provider.id,
-            chapter: { pagesScraped: false },
+            chapter: {
+                pagesScraped: false,
+                createdAt: {
+                    lt: new Date(Date.now() - 1000 * 60 * 30),
+                },
+            },
         },
-        include: {
-            chapter: true,
-        },
+        include: { chapter: true },
     });
 
     await Promise.all(

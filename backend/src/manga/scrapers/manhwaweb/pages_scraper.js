@@ -27,11 +27,9 @@ async function processChapter(providerChapter, providerId) {
         const pages = await fetchPages(providerChapter.externalId);
 
         if (!pages.length) {
-            console.warn(`Sin páginas: ${providerChapter.externalId}`);
-            await prisma.chapter.update({
-                where: { id: providerChapter.chapterId },
-                data: { pagesScraped: true },
-            });
+            console.warn(
+                `Sin páginas: ${providerChapter.externalId}, se reintentará`,
+            );
             return;
         }
 
@@ -68,7 +66,12 @@ export async function scrapePages() {
     const providerChapters = await prisma.providerChapter.findMany({
         where: {
             providerId: provider.id,
-            chapter: { pagesScraped: false },
+            chapter: {
+                pagesScraped: false,
+                createdAt: {
+                    lt: new Date(Date.now() - 1000 * 60 * 30),
+                },
+            },
         },
         include: { chapter: true },
     });
