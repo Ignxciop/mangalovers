@@ -5,26 +5,34 @@ async function fixEmptyChapters() {
 
     const emptyChapters = await prisma.chapter.findMany({
         where: {
-            pagesScraped: true,
-            pages: { none: {} },
+            pages: {
+                none: {},
+            },
         },
-        select: { id: true, name: true, seriesId: true },
+        select: {
+            id: true,
+            name: true,
+            pagesScraped: true,
+        },
     });
 
     console.log(`${emptyChapters.length} capítulos sin páginas encontrados`);
 
     if (emptyChapters.length === 0) return;
 
+    const ids = emptyChapters.map((c) => c.id);
+
     await prisma.chapter.updateMany({
         where: {
-            id: { in: emptyChapters.map((c) => c.id) },
+            id: { in: ids },
         },
-        data: { pagesScraped: false },
+        data: {
+            pagesScraped: false,
+        },
     });
 
-    console.log(
-        `${emptyChapters.length} capítulos reseteados — se procesarán en el próximo scrape`,
-    );
+    console.log(`${ids.length} capítulos reseteados — listos para re-scrape`);
+
     await prisma.$disconnect();
 }
 
