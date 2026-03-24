@@ -68,7 +68,7 @@ export async function scrapePages() {
             providerId: provider.id,
             chapter: {
                 pagesScraped: false,
-                createdAt: {
+                publishedAt: {
                     lt: new Date(Date.now() - 1000 * 60 * 30),
                 },
             },
