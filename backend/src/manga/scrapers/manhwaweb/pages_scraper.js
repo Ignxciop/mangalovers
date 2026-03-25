@@ -66,14 +66,11 @@ export async function scrapePages() {
     const providerChapters = await prisma.providerChapter.findMany({
         where: {
             providerId: provider.id,
-            chapter: {
-                pagesScraped: false,
-                publishedAt: {
-                    lt: new Date(Date.now() - 1000 * 60 * 30),
-                },
-            },
+            chapter: { pagesScraped: false },
         },
-        include: { chapter: true },
+        include: {
+            chapter: true,
+        },
     });
 
     await Promise.all(
