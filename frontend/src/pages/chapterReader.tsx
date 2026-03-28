@@ -15,7 +15,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { useReadChapters } from "@/hooks/useReadChapters";
 import { Progress } from "@/components/ui/progress";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 const STORAGE_KEY = "reader_prefs";
 type ReadMode = "cascade" | "pagination";
@@ -265,21 +265,24 @@ export default function ChapterReader() {
     );
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const { series } = useSeriesDetail(slug ?? "");
-    const { markUntil } = useReadChapters(
-        series?.id ?? 0,
-        series?.chapters ?? [],
-    );
+    const chapters = useMemo(() => series?.chapters ?? [], [series]);
+    const { markUntil } = useReadChapters(series?.id ?? 0, chapters);
     const headerVisible = useHideOnScrollDown();
 
     const [prefs, setPrefs] = useState<ReaderPrefs>(loadPrefs);
 
-    const seriesLoaded = !!series;
+    const markUntilRef = useRef(markUntil);
+    useEffect(() => {
+        markUntilRef.current = markUntil;
+    });
+
+    const chapterId_dep = chapter?.chapterId;
+    const seriesReady = !!series;
 
     useEffect(() => {
-        if (!isAuthenticated && chapter && seriesLoaded) {
-            markUntil(chapter.chapterId);
-        }
-    }, [chapter, isAuthenticated, seriesLoaded, markUntil]);
+        if (isAuthenticated || !chapter || !series) return;
+        markUntilRef.current(chapter.chapterId);
+    }, [chapterId_dep, isAuthenticated, seriesReady, chapter, series]);
 
     function updateMode(mode: ReadMode) {
         const updated = { ...prefs, mode };
