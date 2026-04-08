@@ -28,7 +28,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 function MangaDetailSkeleton() {
     return (
@@ -215,6 +215,14 @@ export default function MangaDetail() {
         if (lastReadIndex === ascending.length - 1) return null;
         return ascending[lastReadIndex + 1];
     }, [series, readIds]);
+
+    useEffect(() => {
+        if (!series) return;
+        document.title = series.name;
+        return () => {
+            document.title = "Mangalovers";
+        };
+    }, [series]);
 
     if (loading) return <MangaDetailSkeleton />;
 

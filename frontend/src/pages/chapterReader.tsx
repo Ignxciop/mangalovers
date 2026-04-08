@@ -296,6 +296,14 @@ export default function ChapterReader() {
         savePrefs(updated);
     }
 
+    useEffect(() => {
+        if (!chapter) return;
+        document.title = `${chapter.series.name} — Cap. ${chapter.name}`;
+        return () => {
+            document.title = "Mangalovers";
+        };
+    }, [chapter]);
+
     const currentChapterNumber = chapter ? parseFloat(chapter.name) : 0;
     const totalChapters = series?.chapters.length ?? 0;
 
