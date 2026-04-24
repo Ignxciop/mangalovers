@@ -10,7 +10,7 @@ async function fetchPage(page, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             const { data } = await axios.get(
-                "https://dashboard.olympusbiblioteca.com/api/series",
+                "https://olympusbiblioteca.com/api/series",
                 {
                     params: { page, direction: "asc", type: "comic" },
                     timeout: 30000,
