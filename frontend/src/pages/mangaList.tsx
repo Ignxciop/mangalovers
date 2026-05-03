@@ -354,7 +354,7 @@ export default function MangaList() {
                                     className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium pointer-events-none"
                                 >
                                     <BookOpen className="h-2.5 w-2.5" />
-                                    {manga.chapterCount}
+                                    {manga.lastChapterNumber ?? "?"}
                                 </Badge>
                                 <img
                                     src={

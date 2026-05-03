@@ -4,6 +4,7 @@ export interface Manga {
     slug: string;
     cover: string | null;
     chapterCount: number;
+    lastChapterNumber?: number | null;
     lastChapterPublishedAt: string | null;
     lastAvailableChapterName?: string | null;
     lastReadChapterName?: string | null;

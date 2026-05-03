@@ -35,6 +35,7 @@ export async function getAllManga(query) {
             .split(",")
             .map((g) => g.trim())
             .filter(Boolean);
+
         if (genreList.length > 0) {
             where.genres = {
                 some: {
@@ -45,6 +46,7 @@ export async function getAllManga(query) {
     }
 
     let orderBy = { lastChapterPublishedAt: "desc" };
+
     if (sort === "chapters") orderBy = { chapterCount: order };
     if (sort === "az") orderBy = { name: "asc" };
     if (sort === "za") orderBy = { name: "desc" };
@@ -52,7 +54,7 @@ export async function getAllManga(query) {
         where.lastChapterPublishedAt = { not: null };
     }
 
-    const [manga, total] = await Promise.all([
+    const [seriesList, total] = await Promise.all([
         prisma.series.findMany({
             where,
             skip,
@@ -64,12 +66,15 @@ export async function getAllManga(query) {
                 slug: true,
                 cover: true,
                 status: true,
-                chapterCount: true,
+                chapterCount: true, // se mantiene pero ya no se usa como último
                 updatedAt: true,
                 lastChapterPublishedAt: true,
                 type: true,
                 providerSeries: {
                     select: { provider: { select: { name: true } } },
+                },
+                chapters: {
+                    select: { name: true },
                 },
             },
         }),
@@ -77,18 +82,33 @@ export async function getAllManga(query) {
     ]);
 
     return {
-        data: manga.map((m) => ({
-            id: m.id,
-            name: m.name,
-            slug: m.slug,
-            cover: m.cover,
-            status: m.status,
-            chapterCount: m.chapterCount,
-            updatedAt: m.updatedAt,
-            lastChapterPublishedAt: m.lastChapterPublishedAt,
-            type: m.type,
-            providers: m.providerSeries.map((ps) => ps.provider.name),
-        })),
+        data: seriesList.map((s) => {
+            let lastChapter = null;
+
+            for (const ch of s.chapters) {
+                const num = parseFloat(ch.name);
+
+                if (!isNaN(num)) {
+                    if (lastChapter === null || num > lastChapter) {
+                        lastChapter = num;
+                    }
+                }
+            }
+
+            return {
+                id: s.id,
+                name: s.name,
+                slug: s.slug,
+                cover: s.cover,
+                status: s.status,
+                chapterCount: s.chapterCount,
+                lastChapterNumber: lastChapter,
+                updatedAt: s.updatedAt,
+                lastChapterPublishedAt: s.lastChapterPublishedAt,
+                type: s.type,
+                providers: s.providerSeries.map((ps) => ps.provider.name),
+            };
+        }),
         meta: {
             total,
             page: Number(page),
@@ -188,13 +208,28 @@ export async function getSeriesDetailBySlug(slug) {
 
     if (!series) return null;
 
-    const sortedAsc = [...series.chapters].sort((a, b) => {
-        const dateDiff = new Date(a.publishedAt) - new Date(b.publishedAt);
-        if (dateDiff !== 0) return dateDiff;
-        return b.id - a.id;
-    });
+    const extractChapterNumber = (name) => {
+        if (!name) return 0;
+        const match = String(name).match(/(\d+(\.\d+)?)/);
+        return match ? parseFloat(match[1]) : 0;
+    };
 
-    const numberMap = new Map(sortedAsc.map((c, i) => [c.id, i + 1]));
+    const chapters = [...series.chapters]
+        .map((c) => {
+            const chapterNumber = extractChapterNumber(c.name);
+
+            return {
+                id: c.id,
+                name: c.name,
+                publishedAt: c.publishedAt,
+                createdAt: c.createdAt,
+
+                // ✅ ESTE ES EL FIX REAL
+                chapterNumber,
+            };
+        })
+        // ✅ ORDEN REAL (NO POR FECHA, NO POR POSITION)
+        .sort((a, b) => b.chapterNumber - a.chapterNumber);
 
     return {
         id: series.id,
@@ -213,15 +248,8 @@ export async function getSeriesDetailBySlug(slug) {
             externalUrl: p.url,
         })),
 
-        chapters: [...series.chapters]
-            .sort((a, b) => parseFloat(b.name) - parseFloat(a.name))
-            .map((c, index, arr) => ({
-                id: c.id,
-                name: c.name,
-                publishedAt: c.publishedAt,
-                createdAt: c.createdAt,
-                chapterNumber: arr.length - index,
-            })),
+        // ✅ YA CORRECTO
+        chapters,
     };
 }
 

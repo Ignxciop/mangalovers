@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect } from "react";
+import type { Chapter } from "@/types/manga";
 
 function MangaDetailSkeleton() {
     return (
@@ -216,6 +217,15 @@ export default function MangaDetail() {
         return ascending[lastReadIndex + 1];
     }, [series, readIds]);
 
+    const latestChapter = useMemo(() => {
+        if (!series) return null;
+
+        return series.chapters.reduce<Chapter | null>((max, ch) => {
+            if (!max) return ch;
+            return ch.chapterNumber > max.chapterNumber ? ch : max;
+        }, null);
+    }, [series]);
+
     useEffect(() => {
         if (!series) return;
         document.title = series.name;
@@ -284,7 +294,7 @@ export default function MangaDetail() {
                                 <StatPill
                                     icon={Layers}
                                     label="Capítulos"
-                                    value={series.chapterCount}
+                                    value={latestChapter?.chapterNumber ?? "-"}
                                 />
                                 <StatPill
                                     icon={Hash}
