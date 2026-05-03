@@ -149,11 +149,13 @@ function ChapterNav({
     prev,
     next,
     from,
+    onNext,
 }: {
     slug: string;
     prev: { id: number; name: string } | null;
     next: { id: number; name: string } | null;
     from: string;
+    onNext?: (chapterId: number) => void;
 }) {
     const navigate = useNavigate();
 
@@ -177,12 +179,17 @@ function ChapterNav({
 
             <Button
                 disabled={!next}
-                onClick={() =>
-                    next &&
+                onClick={async () => {
+                    if (!next) return;
+
+                    if (onNext) {
+                        await onNext(next.id); // 🔥 MARCAR PRIMERO
+                    }
+
                     navigate(`/manga/${slug}/capitulo/${next.id}`, {
                         state: { from },
-                    })
-                }
+                    });
+                }}
                 className="min-w-0"
             >
                 <span className="truncate">
@@ -399,6 +406,7 @@ export default function ChapterReader() {
                 prev={chapter.prev}
                 next={chapter.next}
                 from={from}
+                onNext={markUntil}
             />
 
             {prefs.mode === "cascade" ? (
