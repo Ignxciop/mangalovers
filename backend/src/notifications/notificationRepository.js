@@ -5,10 +5,19 @@ import { prisma } from "../config/prisma.js";
  * Usa upsert por endpoint (único por dispositivo/browser).
  */
 export async function upsertSubscription({ userId, endpoint, p256dh, auth }) {
-    return prisma.pushSubscription.upsert({
+    const existing = await prisma.pushSubscription.findUnique({
         where: { endpoint },
-        update: { p256dh, auth, userId },
-        create: { userId, endpoint, p256dh, auth },
+    });
+
+    if (existing) {
+        return prisma.pushSubscription.update({
+            where: { endpoint },
+            data: { p256dh, auth, userId },
+        });
+    }
+
+    return prisma.pushSubscription.create({
+        data: { userId, endpoint, p256dh, auth },
     });
 }
 

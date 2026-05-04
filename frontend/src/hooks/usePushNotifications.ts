@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+import { api } from "@/api/axios";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────
 
@@ -88,13 +87,6 @@ function checkSupport(): SupportCheckResult {
 }
 
 /**
- * Obtiene el access token JWT del storage.
- */
-function getAccessToken(): string {
-    return localStorage.getItem("accessToken") ?? "";
-}
-
-/**
  * Wrapper sobre navigator.serviceWorker.ready con timeout explícito.
  * Sin esto, en iOS el Promise puede quedarse colgado para siempre
  * si el SW no terminó de instalarse, sin lanzar ningún error.
@@ -140,27 +132,13 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         subscription: PushSubscription,
     ): Promise<void> {
         const subJSON = subscription.toJSON();
-        const res = await fetch(`${API_BASE}/notifications/subscribe`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${getAccessToken()}`,
+        await api.post("/notifications/subscribe", {
+            endpoint: subJSON.endpoint,
+            keys: {
+                p256dh: subJSON.keys?.p256dh,
+                auth: subJSON.keys?.auth,
             },
-            body: JSON.stringify({
-                endpoint: subJSON.endpoint,
-                keys: {
-                    p256dh: subJSON.keys?.p256dh,
-                    auth: subJSON.keys?.auth,
-                },
-            }),
         });
-
-        if (!res.ok) {
-            const data = (await res.json().catch(() => ({}))) as {
-                error?: string;
-            };
-            throw new Error(data.error ?? "Error registrando suscripción");
-        }
     }
 
     // Al montar: verificar si ya hay suscripción activa en este dispositivo
@@ -175,20 +153,13 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
                 if (!existing) return;
 
-                const res = await fetch(
-                    `${API_BASE}/notifications/status?endpoint=${encodeURIComponent(existing.endpoint)}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${getAccessToken()}`,
-                        },
+                const res = await api.get("/notifications/status", {
+                    params: {
+                        endpoint: existing.endpoint,
                     },
-                );
+                });
 
-                if (!res.ok) return;
-
-                const { subscribed: isSubscribed } = (await res.json()) as {
-                    subscribed: boolean;
-                };
+                const isSubscribed = res.data.subscribed;
                 setSubscribed(isSubscribed);
 
                 if (!isSubscribed) {
@@ -229,16 +200,9 @@ export function usePushNotifications(): UsePushNotificationsReturn {
             const registration = await getServiceWorkerReady();
 
             // 3. Obtener clave pública VAPID del backend
-            const vapidRes = await fetch(
-                `${API_BASE}/notifications/vapid-public-key`,
-            );
-            if (!vapidRes.ok)
-                throw new Error(
-                    "No se pudo obtener la clave VAPID del servidor",
-                );
-            const { publicKey } = (await vapidRes.json()) as {
-                publicKey: string;
-            };
+            const vapidRes = await api.get("/notifications/vapid-public-key");
+
+            const { publicKey } = vapidRes.data;
 
             // 4. Suscribirse al PushManager
             const subscription = await registration.pushManager.subscribe({
@@ -276,13 +240,10 @@ export function usePushNotifications(): UsePushNotificationsReturn {
                 await registration.pushManager.getSubscription();
 
             if (subscription) {
-                await fetch(`${API_BASE}/notifications/unsubscribe`, {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${getAccessToken()}`,
+                await api.delete("/notifications/unsubscribe", {
+                    data: {
+                        endpoint: subscription.endpoint,
                     },
-                    body: JSON.stringify({ endpoint: subscription.endpoint }),
                 });
 
                 await subscription.unsubscribe();

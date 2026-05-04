@@ -18,7 +18,7 @@ export async function getVapidPublicKey(req, res) {
 export async function subscribeHandler(req, res) {
     console.log("USER:", req.user);
     const { endpoint, keys } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
         return res.status(400).json({
@@ -51,7 +51,7 @@ export async function subscribeHandler(req, res) {
  */
 export async function unsubscribeHandler(req, res) {
     const { endpoint } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     if (!endpoint) {
         return res.status(400).json({ error: "Falta el campo endpoint" });
@@ -74,7 +74,7 @@ export async function unsubscribeHandler(req, res) {
  */
 export async function getSubscriptionStatus(req, res) {
     const { endpoint } = req.query;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     if (!endpoint) {
         return res.status(400).json({ error: "Falta el parámetro endpoint" });
