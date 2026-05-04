@@ -1,10 +1,35 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
     <head>
         <meta charset="UTF-8" />
-        <link rel="icon" type="image/svg+xml" href="/manga.ico" />
+        <link rel="icon" href="/manga.ico" />
+
+        <!-- VIEWPORT -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Mangalovers</title>
+
+        <!-- SEO BÁSICO -->
+        <title>Mangalovers - Lee manga y manhwa online gratis</title>
+        <meta
+            name="description"
+            content="Mangalovers es una plataforma para leer manga y manhwa online. Explora cientos de series, sigue tu progreso y descubre nuevos capítulos cada día."
+        />
+        <meta
+            name="keywords"
+            content="manga online, manhwa, leer manga, manga gratis, manhwa español, mangalovers"
+        />
+        <meta name="author" content="Mangalovers" />
+
+        <!-- OPEN GRAPH (REDES SOCIALES) -->
+        <meta property="og:title" content="Mangalovers" />
+        <meta
+            property="og:description"
+            content="Lee manga y manhwa online gratis. Sigue tus series favoritas."
+        />
+        <meta property="og:image" content="/icon-512.png" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://mangalovers.josenunez.cl" />
+
+        <!-- PWA -->
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#09090b" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -15,7 +40,11 @@
         />
         <meta name="apple-mobile-web-app-title" content="Mangalovers" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+
+        <!-- INDEXACIÓN -->
+        <meta name="robots" content="index, follow" />
     </head>
+
     <body>
         <div id="root"></div>
         <script type="module" src="/src/main.tsx"></script>
