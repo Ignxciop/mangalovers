@@ -25,14 +25,14 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-app.get("/health", (req, res) => {
+app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "OK", message: "Server está activo" });
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/manga", mangaRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/reads", readRoutes);
-app.use("api/notifications", notificationRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use(errorHandler);
 
