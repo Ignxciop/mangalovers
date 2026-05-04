@@ -45,4 +45,7 @@ async function startServer() {
     initScraperCron();
 }
 
+console.log("VAPID PUBLIC KEY:", config.VAPID_PUBLIC_KEY);
+console.log("LENGTH:", config.VAPID_PUBLIC_KEY?.length);
+
 startServer();
