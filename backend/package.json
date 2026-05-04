@@ -27,6 +27,7 @@
         "helmet": "^8.1.0",
         "jsonwebtoken": "^9.0.3",
         "node-cron": "^4.2.1",
-        "p-limit": "^7.3.0"
+        "p-limit": "^7.3.0",
+        "web-push": "^3.6.7"
     }
 }

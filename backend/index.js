@@ -10,6 +10,7 @@ import favoriteRoutes from "./src/favorite/favoriteRoutes.js";
 import readRoutes from "./src/read/readRoutes.js";
 import { initScraperCron } from "./src/jobs/scraperCron.js";
 import { seedProviders } from "./src/scripts/seed.js";
+import notificationRoutes from "./src/notifications/notificationRoutes.js";
 
 const app = express();
 const PORT = config.PORT;
