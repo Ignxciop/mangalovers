@@ -9,12 +9,29 @@ import {
     deleteSubscriptionById,
 } from "./notificationRepository.js";
 
-// Configurar VAPID
-webpush.setVapidDetails(
-    `mailto:${config.VAPID_EMAIL}`,
-    config.VAPID_PUBLIC_KEY,
-    config.VAPID_PRIVATE_KEY,
-);
+// ── CONFIGURACIÓN SEGURA DE VAPID ─────────────────────────
+
+// FIX: evitar crash + mostrar logs reales
+try {
+    console.log("Inicializando VAPID...");
+    console.log("PUBLIC KEY:", config.VAPID_PUBLIC_KEY);
+    console.log("PUBLIC KEY LENGTH:", config.VAPID_PUBLIC_KEY?.length);
+    console.log("PRIVATE KEY LENGTH:", config.VAPID_PRIVATE_KEY?.length);
+
+    webpush.setVapidDetails(
+        `mailto:${config.VAPID_EMAIL}`,
+        config.VAPID_PUBLIC_KEY,
+        config.VAPID_PRIVATE_KEY,
+    );
+
+    console.log("VAPID configurado correctamente");
+} catch (error) {
+    console.error("Error configurando VAPID:");
+    console.error(error.message);
+
+    // IMPORTANTE: no crashear el server
+    console.warn("Push notifications DESACTIVADAS temporalmente");
+}
 
 // ── Suscripciones ─────────────────────────────────────────
 
@@ -70,10 +87,10 @@ function buildNewChapterPayload({ seriesId, seriesName, chapterName, slug }) {
         body: `Nuevo capítulo disponible: ${chapterName}`,
         icon: "/icons/icon-192x192.png",
         badge: "/icons/badge-72x72.png",
-        tag: `series-${seriesId}`, // agrupa notificaciones
+        tag: `series-${seriesId}`,
         renotify: true,
         data: {
-            url: `/manga/${slug}`, // IR A LA SERIE
+            url: `/manga/${slug}`,
             seriesId,
         },
     };
@@ -83,8 +100,14 @@ export async function notifyNewChapter({
     seriesId,
     seriesName,
     chapterName,
-    slug, // IMPORTANTE
+    slug,
 }) {
+    // Si VAPID falló, no intentar enviar
+    if (!config.VAPID_PUBLIC_KEY || !config.VAPID_PRIVATE_KEY) {
+        console.warn("⚠️ Push omitido: VAPID no configurado");
+        return;
+    }
+
     const userIds = await findFavoriteUserIdsBySeriesId(seriesId);
     if (userIds.length === 0)
         return { total: 0, sent: 0, failed: 0, expired: 0 };

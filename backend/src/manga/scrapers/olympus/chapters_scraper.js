@@ -10,7 +10,7 @@ async function fetchChapters(slug, page, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             const { data } = await axios.get(
-                `https://dashboard.olympusbiblioteca.com/api/series/${slug}/chapters`,
+                `https://olympusbiblioteca.com/api/series/${slug}/chapters`,
                 {
                     params: { page, direction: "desc", type: "comic" },
                     timeout: 30000,
@@ -33,14 +33,14 @@ async function processSeries(providerSeries, providerId) {
 
     console.log(`Revisando: ${slug}`);
 
-    // TRACK DE NUEVO CAPÍTULO
     let latestCreatedChapter = null;
+    let shouldStop = false;
 
     try {
         const firstPage = await fetchChapters(slug, 1);
         const lastPage = firstPage.meta.last_page;
 
-        for (let page = 1; page <= lastPage; page++) {
+        for (let page = 1; page <= lastPage && !shouldStop; page++) {
             const data =
                 page === 1 ? firstPage : await fetchChapters(slug, page);
 
@@ -56,39 +56,9 @@ async function processSeries(providerSeries, providerId) {
                     });
 
                 if (existingProviderChapter) {
-                    const latestChapter = await prisma.chapter.findFirst({
-                        where: { seriesId },
-                        orderBy: { publishedAt: "desc" },
-                        select: { publishedAt: true },
-                    });
-
-                    await prisma.series.update({
-                        where: { id: seriesId },
-                        data: {
-                            lastChaptersCheck: new Date(),
-                            lastChapterPublishedAt:
-                                latestChapter?.publishedAt ?? null,
-                        },
-                    });
-
                     console.log("Capítulo existente encontrado, stop.");
-
-                    // NOTIFICAR SI HUBO NUEVOS ANTES DE DETENER
-                    if (latestCreatedChapter) {
-                        const series = await prisma.series.findUnique({
-                            where: { id: seriesId },
-                            select: { name: true },
-                        });
-
-                        await notifyNewChapter({
-                            seriesId,
-                            seriesName: series?.name ?? slug,
-                            chapterName: latestCreatedChapter.name,
-                            slug,
-                        });
-                    }
-
-                    return;
+                    shouldStop = true;
+                    break;
                 }
 
                 const newChapter = await prisma.chapter.create({
@@ -99,7 +69,6 @@ async function processSeries(providerSeries, providerId) {
                     },
                 });
 
-                // ✅ GUARDAR ÚLTIMO CAPÍTULO NUEVO
                 latestCreatedChapter = newChapter;
 
                 await prisma.providerChapter.create({
@@ -116,6 +85,7 @@ async function processSeries(providerSeries, providerId) {
             await sleep(300);
         }
 
+        // ✅ actualizar metadata SIEMPRE
         const latestChapter = await prisma.chapter.findFirst({
             where: { seriesId },
             orderBy: { publishedAt: "desc" },
@@ -130,16 +100,11 @@ async function processSeries(providerSeries, providerId) {
             },
         });
 
-        // ✅ NOTIFICAR AL FINAL SI HUBO CAPÍTULOS NUEVOS
+        // ✅ NOTIFICAR SOLO UNA VEZ Y AL FINAL
         if (latestCreatedChapter) {
-            const series = await prisma.series.findUnique({
-                where: { id: seriesId },
-                select: { name: true },
-            });
-
             await notifyNewChapter({
                 seriesId,
-                seriesName: series?.name ?? slug,
+                seriesName: slug, // o name si lo tienes cacheado
                 chapterName: latestCreatedChapter.name,
                 slug,
             });

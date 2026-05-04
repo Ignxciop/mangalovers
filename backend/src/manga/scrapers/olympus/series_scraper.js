@@ -31,7 +31,7 @@ async function fetchPage(page, retries = 3) {
 async function fetchMetadata(slug) {
     try {
         const { data } = await axios.get(
-            `https://dashboard.olympusbiblioteca.com/api/series/${slug}`,
+            `https://olympusbiblioteca.com/api/series/${slug}`,
             {
                 params: { type: "comic" },
                 timeout: 30000,
@@ -47,7 +47,11 @@ async function fetchMetadata(slug) {
             cover: series.cover ?? null,
         };
     } catch (error) {
-        console.error(`Error metadata ${slug}`);
+        console.error(
+            `Error metadata ${slug}:`,
+            error.response?.status,
+            error.response?.data || error.message,
+        );
         return null;
     }
 }
