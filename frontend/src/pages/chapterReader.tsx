@@ -16,9 +16,12 @@ import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { useReadChapters } from "@/hooks/useReadChapters";
 import { Progress } from "@/components/ui/progress";
 import { useEffect, useRef, useState, useMemo } from "react";
+import { PullToRefresh } from "@/components/pullToRefresh";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 const STORAGE_KEY = "reader_prefs";
 type ReadMode = "cascade" | "pagination";
+
 interface ReaderPrefs {
     mode: ReadMode;
     zoom: number;
@@ -32,6 +35,7 @@ const ZOOM_LABELS: Record<number, string> = {
     880: "115%",
     960: "125%",
 };
+
 const DEFAULT_PREFS: ReaderPrefs = { mode: "cascade", zoom: 768 };
 
 function loadPrefs(): ReaderPrefs {
@@ -183,7 +187,7 @@ function ChapterNav({
                     if (!next) return;
 
                     if (onNext) {
-                        await onNext(next.id); // 🔥 MARCAR PRIMERO
+                        await onNext(next.id);
                     }
 
                     navigate(`/manga/${slug}/capitulo/${next.id}`, {
@@ -263,6 +267,7 @@ export default function ChapterReader() {
         slug: string;
         chapterId: string;
     }>();
+
     const navigate = useNavigate();
     const location = useLocation();
     const from = location.state?.from ?? "/mangas";
@@ -270,26 +275,29 @@ export default function ChapterReader() {
     const { chapter, loading, error } = useChapterPages(
         chapterId ? Number(chapterId) : null,
     );
+
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const { series } = useSeriesDetail(slug ?? "");
     const chapters = useMemo(() => series?.chapters ?? [], [series]);
     const { markUntil } = useReadChapters(series?.id ?? 0, chapters);
+
     const headerVisible = useHideOnScrollDown();
 
     const [prefs, setPrefs] = useState<ReaderPrefs>(loadPrefs);
+
+    const { pull, refreshing } = usePullToRefresh(() => {
+        window.location.reload();
+    });
 
     const markUntilRef = useRef(markUntil);
     useEffect(() => {
         markUntilRef.current = markUntil;
     });
 
-    const chapterId_dep = chapter?.chapterId;
-    const seriesReady = !!series;
-
     useEffect(() => {
         if (isAuthenticated || !chapter || !series) return;
         markUntilRef.current(chapter.chapterId);
-    }, [chapterId_dep, isAuthenticated, seriesReady, chapter, series]);
+    }, [chapter, isAuthenticated, series]);
 
     function updateMode(mode: ReadMode) {
         const updated = { ...prefs, mode };
@@ -367,108 +375,112 @@ export default function ChapterReader() {
     }
 
     return (
-        <div className="min-h-screen bg-background">
-            <div
-                className={`
-                    sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border
-                    transition-transform duration-300
-                    ${headerVisible ? "translate-y-0" : "-translate-y-full"}
-                `}
-            >
-                <div className="justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
-                    <SidebarTrigger />
+        <>
+            <PullToRefresh pull={pull} refreshing={refreshing} />
+
+            <div className="min-h-screen bg-background">
+                <div
+                    className={`sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border transition-transform duration-300 ${
+                        headerVisible ? "translate-y-0" : "-translate-y-full"
+                    }`}
+                >
+                    <div className="justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
+                        <SidebarTrigger />
+                        <button
+                            onClick={() =>
+                                navigate(`/manga/${slug}`, { state: { from } })
+                            }
+                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
+                        >
+                            <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+                            <span className="truncate max-w-[250px] sm:max-w-[200px]">
+                                {chapter.series.name}
+                            </span>
+                        </button>
+                        <span className="text-muted-foreground/50 shrink-0">
+                            /
+                        </span>
+                        <span className="text-sm text-foreground shrink-0">
+                            {chapter.name}
+                        </span>
+                    </div>
+                </div>
+
+                <ReaderControls
+                    prefs={prefs}
+                    onModeChange={updateMode}
+                    onZoomChange={updateZoom}
+                />
+
+                <ChapterNav
+                    slug={slug!}
+                    prev={chapter.prev}
+                    next={chapter.next}
+                    from={from}
+                    onNext={markUntil}
+                />
+
+                {prefs.mode === "cascade" ? (
+                    <div
+                        className="flex flex-col items-center gap-1 mx-auto"
+                        style={{ maxWidth: `${prefs.zoom}px`, width: "100%" }}
+                    >
+                        {chapter.pages.map((page, index) => (
+                            <img
+                                key={page.id}
+                                src={page.url}
+                                alt={`Página ${index + 1}`}
+                                className="w-full select-none block"
+                                loading="lazy"
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <PaginationReader
+                        key={chapter.pages[0]?.id ?? chapterId}
+                        pages={chapter.pages}
+                        zoom={prefs.zoom}
+                    />
+                )}
+
+                {progressPercent !== null && chaptersLeft !== null && (
+                    <div className="w-full max-w-2xl mx-auto px-4 py-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-muted-foreground">
+                                Progreso{" "}
+                                <span className="font-semibold text-foreground">
+                                    {progressPercent}%
+                                </span>
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                                {chaptersLeft === 0
+                                    ? "¡Serie completada!"
+                                    : `Faltan ${chaptersLeft} ${chaptersLeft === 1 ? "capítulo" : "capítulos"}`}
+                            </span>
+                        </div>
+                        <Progress value={progressPercent} className="h-1.5" />
+                    </div>
+                )}
+
+                <ChapterNav
+                    slug={slug!}
+                    prev={chapter.prev}
+                    next={chapter.next}
+                    from={from}
+                />
+
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                    Fin del capítulo —{" "}
                     <button
                         onClick={() =>
                             navigate(`/manga/${slug}`, { state: { from } })
                         }
-                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
+                        className="text-primary underline underline-offset-4"
                     >
-                        <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                        <span className="truncate max-w-[250px] sm:max-w-[200px]">
-                            {chapter.series.name}
-                        </span>
+                        volver a la serie
                     </button>
-                    <span className="text-muted-foreground/50 shrink-0">/</span>
-                    <span className="text-sm text-foreground shrink-0">
-                        {chapter.name}
-                    </span>
                 </div>
             </div>
-
-            <ReaderControls
-                prefs={prefs}
-                onModeChange={updateMode}
-                onZoomChange={updateZoom}
-            />
-
-            <ChapterNav
-                slug={slug!}
-                prev={chapter.prev}
-                next={chapter.next}
-                from={from}
-                onNext={markUntil}
-            />
-
-            {prefs.mode === "cascade" ? (
-                <div
-                    className="flex flex-col items-center gap-1 mx-auto"
-                    style={{ maxWidth: `${prefs.zoom}px`, width: "100%" }}
-                >
-                    {chapter.pages.map((page, index) => (
-                        <img
-                            key={page.id}
-                            src={page.url}
-                            alt={`Página ${index + 1}`}
-                            className="w-full select-none block"
-                            loading="lazy"
-                        />
-                    ))}
-                </div>
-            ) : (
-                <PaginationReader
-                    key={chapter.pages[0]?.id ?? chapterId}
-                    pages={chapter.pages}
-                    zoom={prefs.zoom}
-                />
-            )}
-
-            {progressPercent !== null && chaptersLeft !== null && (
-                <div className="w-full max-w-2xl mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground">
-                            Progreso{" "}
-                            <span className="font-semibold text-foreground">
-                                {progressPercent}%
-                            </span>
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                            {chaptersLeft === 0
-                                ? "¡Serie completada!"
-                                : `Faltan ${chaptersLeft} ${chaptersLeft === 1 ? "capítulo" : "capítulos"}`}
-                        </span>
-                    </div>
-                    <Progress value={progressPercent} className="h-1.5" />
-                </div>
-            )}
-
-            <ChapterNav
-                slug={slug!}
-                prev={chapter.prev}
-                next={chapter.next}
-                from={from}
-            />
-
-            <div className="text-center py-6 text-muted-foreground text-sm">
-                Fin del capítulo —{" "}
-                <button
-                    onClick={() =>
-                        navigate(`/manga/${slug}`, { state: { from } })
-                    }
-                    className="text-primary underline underline-offset-4"
-                >
-                    volver a la serie
-                </button>
-            </div>
-        </div>
+        </>
     );
 }
