@@ -32,6 +32,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/manga", mangaRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/reads", readRoutes);
+app.use("api/notifications");
 
 app.use(errorHandler);
 
