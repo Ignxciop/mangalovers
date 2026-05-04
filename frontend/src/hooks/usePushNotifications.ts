@@ -71,7 +71,6 @@ function checkSupport(): SupportCheckResult {
         };
     }
 
-    // iOS: Push solo funciona en modo standalone (PWA instalada)
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
@@ -90,20 +89,37 @@ function checkSupport(): SupportCheckResult {
 
 /**
  * Obtiene el access token JWT del storage.
- * Ajusta esto a donde guardas el token en tu app.
  */
 function getAccessToken(): string {
     return localStorage.getItem("accessToken") ?? "";
 }
 
+/**
+ * Wrapper sobre navigator.serviceWorker.ready con timeout explícito.
+ * Sin esto, en iOS el Promise puede quedarse colgado para siempre
+ * si el SW no terminó de instalarse, sin lanzar ningún error.
+ */
+function getServiceWorkerReady(
+    timeoutMs = 10_000,
+): Promise<ServiceWorkerRegistration> {
+    return Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<never>((_, reject) =>
+            setTimeout(
+                () =>
+                    reject(
+                        new Error(
+                            "El Service Worker tardó demasiado en activarse. Recarga la app e inténtalo de nuevo.",
+                        ),
+                    ),
+                timeoutMs,
+            ),
+        ),
+    ]);
+}
+
 // ── Hook ──────────────────────────────────────────────────────────────────
 
-/**
- * Hook principal para manejar notificaciones push.
- *
- * Uso:
- *   const { permission, subscribed, supported, subscribe, unsubscribe } = usePushNotifications();
- */
 export function usePushNotifications(): UsePushNotificationsReturn {
     const [permission, setPermission] = useState<NotificationPermission>(() =>
         typeof Notification !== "undefined"
@@ -153,12 +169,12 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
         async function checkExistingSubscription(): Promise<void> {
             try {
-                const reg = await navigator.serviceWorker.ready;
+                // Timeout también en el check inicial — iOS puede colgarse aquí también
+                const reg = await getServiceWorkerReady();
                 const existing = await reg.pushManager.getSubscription();
 
                 if (!existing) return;
 
-                // Verificar que el backend también la tiene registrada
                 const res = await fetch(
                     `${API_BASE}/notifications/status?endpoint=${encodeURIComponent(existing.endpoint)}`,
                     {
@@ -175,13 +191,11 @@ export function usePushNotifications(): UsePushNotificationsReturn {
                 };
                 setSubscribed(isSubscribed);
 
-                // Si el backend no la tiene (p.ej. se limpió la BD), re-registrar
                 if (!isSubscribed) {
                     await registerSubscriptionToBackend(existing);
                     setSubscribed(true);
                 }
             } catch (err) {
-                // Silencioso: no afecta la UX si falla el check inicial
                 console.warn("Error verificando suscripción existente:", err);
             }
         }
@@ -190,7 +204,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     }, [supported]);
 
     /**
-     * Pide permiso, registra el SW y suscribe al push manager.
+     * Pide permiso, espera el SW con timeout y suscribe al push manager.
      */
     const subscribe = useCallback(async (): Promise<void> => {
         if (!supported) return;
@@ -211,20 +225,24 @@ export function usePushNotifications(): UsePushNotificationsReturn {
                 return;
             }
 
-            // 2. Esperar a que el SW esté listo
-            const registration = await navigator.serviceWorker.ready;
+            // 2. Esperar SW con timeout — aquí se colgaba en iOS
+            const registration = await getServiceWorkerReady();
 
             // 3. Obtener clave pública VAPID del backend
             const vapidRes = await fetch(
                 `${API_BASE}/notifications/vapid-public-key`,
             );
+            if (!vapidRes.ok)
+                throw new Error(
+                    "No se pudo obtener la clave VAPID del servidor",
+                );
             const { publicKey } = (await vapidRes.json()) as {
                 publicKey: string;
             };
 
             // 4. Suscribirse al PushManager
             const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true, // Obligatorio: siempre mostrar notificación
+                userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(
                     publicKey,
                 ) as BufferSource,
@@ -253,12 +271,11 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         setError(null);
 
         try {
-            const registration = await navigator.serviceWorker.ready;
+            const registration = await getServiceWorkerReady();
             const subscription =
                 await registration.pushManager.getSubscription();
 
             if (subscription) {
-                // Eliminar del backend primero
                 await fetch(`${API_BASE}/notifications/unsubscribe`, {
                     method: "DELETE",
                     headers: {
@@ -268,7 +285,6 @@ export function usePushNotifications(): UsePushNotificationsReturn {
                     body: JSON.stringify({ endpoint: subscription.endpoint }),
                 });
 
-                // Luego cancelar en el browser
                 await subscription.unsubscribe();
             }
 
