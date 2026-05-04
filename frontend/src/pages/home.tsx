@@ -206,6 +206,20 @@ function ContinueReadingSection({
 }) {
     const navigate = useNavigate();
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 640);
+        };
+
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    const limit = isMobile ? 6 : 5;
+    const visibleItems = items.slice(0, limit);
+
     if (items.length === 0) {
         return (
             <section>
@@ -253,7 +267,7 @@ function ContinueReadingSection({
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                {items.map((item) => {
+                {visibleItems.map((item) => {
                     const progress =
                         item.lastReadChapterName &&
                         item.lastAvailableChapterName
