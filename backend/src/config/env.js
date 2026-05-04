@@ -11,8 +11,10 @@ export const config = {
         process.env.JWT_REFRESH_SECRET ||
         "your-refresh-secret-key-change-in-production",
     JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
-    VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || "your-vapid-public-key",
+    VAPID_PUBLIC_KEY:
+        process.env.VAPID_PUBLIC_KEY?.trim().replace(/=+$/, "") ||
+        "your-vapid-public-key",
     VAPID_PRIVATE_KEY:
-        process.env.VAPID_PRIVATE_KEY || "your-vapid-private-key",
+        process.env.VAPID_PRIVATE_KEY?.trim() || "your-vapid-public-key",
     VAPID_EMAIL: process.env.VAPID_EMAIL || "your-vapid-email",
 };
