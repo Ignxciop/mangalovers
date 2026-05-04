@@ -433,6 +433,7 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
     const handlePrev = () => {
         if (page > 1) setPage(page - 1);
     };
+
     const handleNext = () => {
         if (page < totalPages) setPage(page + 1);
     };
@@ -445,6 +446,7 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
         start = 2;
         end = Math.min(7, totalPages - 1);
     }
+
     if (page >= totalPages - 3) {
         start = Math.max(totalPages - 6, 2);
         end = totalPages - 1;
@@ -457,8 +459,9 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
 
     return (
         <Pagination>
-            <PaginationContent>
-                <PaginationItem>
+            <PaginationContent className="flex flex-wrap justify-center gap-1 max-w-full overflow-hidden">
+                {/* ← SOLO DESKTOP */}
+                <PaginationItem className="hidden sm:block">
                     <PaginationPrevious
                         href="#"
                         onClick={(e) => {
@@ -466,18 +469,21 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
                             handlePrev();
                         }}
                         aria-disabled={page === 1}
+                        className="px-3"
                     />
                 </PaginationItem>
+
                 {uniquePages.map((p, idx) => (
                     <React.Fragment key={p}>
                         {idx > 0 &&
                             uniquePages[idx] - uniquePages[idx - 1] > 1 && (
-                                <PaginationItem key={`ellipsis-${p}`}>
+                                <PaginationItem>
                                     <span className="px-2 text-muted-foreground">
                                         ...
                                     </span>
                                 </PaginationItem>
                             )}
+
                         <PaginationItem>
                             <PaginationLink
                                 href="#"
@@ -486,13 +492,16 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
                                     e.preventDefault();
                                     setPage(p);
                                 }}
+                                className="px-2 sm:px-3"
                             >
                                 {p}
                             </PaginationLink>
                         </PaginationItem>
                     </React.Fragment>
                 ))}
-                <PaginationItem>
+
+                {/* → SOLO DESKTOP */}
+                <PaginationItem className="hidden sm:block">
                     <PaginationNext
                         href="#"
                         onClick={(e) => {
@@ -500,6 +509,7 @@ const MangaPagination: React.FC<MangaPaginationProps> = ({
                             handleNext();
                         }}
                         aria-disabled={page === totalPages}
+                        className="px-3"
                     />
                 </PaginationItem>
             </PaginationContent>
