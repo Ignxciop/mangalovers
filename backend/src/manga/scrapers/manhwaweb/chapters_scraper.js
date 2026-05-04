@@ -1,6 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
+import { notifyNewChapter } from "../../../notifications/notificationService.js";
 
 const limit = pLimit(2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -28,6 +29,9 @@ async function processSeries(providerSeries, providerId) {
     const seriesId = providerSeries.seriesId;
 
     console.log(`Revisando capítulos: ${externalId}`);
+
+    // TRACK
+    let latestCreatedChapter = null;
 
     try {
         const data = await fetchSeriesWithChapters(externalId);
@@ -61,7 +65,6 @@ async function processSeries(providerSeries, providerId) {
                         chapterId: existingChapterInSeries.id,
                     },
                 });
-                console.log(`↷ Capítulo ya existe, vinculado: ${chapterName}`);
                 continue;
             }
 
@@ -70,6 +73,9 @@ async function processSeries(providerSeries, providerId) {
             const newChapter = await prisma.chapter.create({
                 data: { name: chapterName, publishedAt, seriesId },
             });
+
+            // GUARDAR ÚLTIMO
+            latestCreatedChapter = newChapter;
 
             await prisma.providerChapter.create({
                 data: {
@@ -95,6 +101,21 @@ async function processSeries(providerSeries, providerId) {
                 lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
             },
         });
+
+        // NOTIFICAR UNA SOLA VEZ
+        if (latestCreatedChapter) {
+            const series = await prisma.series.findUnique({
+                where: { id: seriesId },
+                select: { name: true, slug: true },
+            });
+
+            await notifyNewChapter({
+                seriesId,
+                seriesName: series?.name ?? externalId,
+                chapterName: latestCreatedChapter.name,
+                slug: series?.slug ?? externalId, // 👈 CLAVE
+            });
+        }
     } catch (error) {
         console.error(`Error capítulos ${externalId}:`, error.message);
     }

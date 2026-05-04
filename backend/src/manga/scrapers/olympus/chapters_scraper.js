@@ -1,6 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
+import { notifyNewChapter } from "../../../notifications/notificationService.js";
 
 const limit = pLimit(4);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -32,6 +33,9 @@ async function processSeries(providerSeries, providerId) {
 
     console.log(`Revisando: ${slug}`);
 
+    // TRACK DE NUEVO CAPÍTULO
+    let latestCreatedChapter = null;
+
     try {
         const firstPage = await fetchChapters(slug, 1);
         const lastPage = firstPage.meta.last_page;
@@ -52,7 +56,6 @@ async function processSeries(providerSeries, providerId) {
                     });
 
                 if (existingProviderChapter) {
-                    // ← latestChapter definido antes de usarlo
                     const latestChapter = await prisma.chapter.findFirst({
                         where: { seriesId },
                         orderBy: { publishedAt: "desc" },
@@ -67,7 +70,24 @@ async function processSeries(providerSeries, providerId) {
                                 latestChapter?.publishedAt ?? null,
                         },
                     });
+
                     console.log("Capítulo existente encontrado, stop.");
+
+                    // NOTIFICAR SI HUBO NUEVOS ANTES DE DETENER
+                    if (latestCreatedChapter) {
+                        const series = await prisma.series.findUnique({
+                            where: { id: seriesId },
+                            select: { name: true },
+                        });
+
+                        await notifyNewChapter({
+                            seriesId,
+                            seriesName: series?.name ?? slug,
+                            chapterName: latestCreatedChapter.name,
+                            slug,
+                        });
+                    }
+
                     return;
                 }
 
@@ -78,6 +98,9 @@ async function processSeries(providerSeries, providerId) {
                         seriesId,
                     },
                 });
+
+                // ✅ GUARDAR ÚLTIMO CAPÍTULO NUEVO
+                latestCreatedChapter = newChapter;
 
                 await prisma.providerChapter.create({
                     data: {
@@ -93,7 +116,6 @@ async function processSeries(providerSeries, providerId) {
             await sleep(300);
         }
 
-        // ← faltaba lastChapterPublishedAt aquí también
         const latestChapter = await prisma.chapter.findFirst({
             where: { seriesId },
             orderBy: { publishedAt: "desc" },
@@ -107,6 +129,21 @@ async function processSeries(providerSeries, providerId) {
                 lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
             },
         });
+
+        // ✅ NOTIFICAR AL FINAL SI HUBO CAPÍTULOS NUEVOS
+        if (latestCreatedChapter) {
+            const series = await prisma.series.findUnique({
+                where: { id: seriesId },
+                select: { name: true },
+            });
+
+            await notifyNewChapter({
+                seriesId,
+                seriesName: series?.name ?? slug,
+                chapterName: latestCreatedChapter.name,
+                slug,
+            });
+        }
     } catch (error) {
         console.error(`Error procesando serie ${slug}:`, error.message);
     }
