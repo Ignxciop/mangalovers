@@ -14,9 +14,6 @@ import {
 // FIX: evitar crash + mostrar logs reales
 try {
     console.log("Inicializando VAPID...");
-    console.log("PUBLIC KEY:", config.VAPID_PUBLIC_KEY);
-    console.log("PUBLIC KEY LENGTH:", config.VAPID_PUBLIC_KEY?.length);
-    console.log("PRIVATE KEY LENGTH:", config.VAPID_PRIVATE_KEY?.length);
 
     webpush.setVapidDetails(
         `mailto:${config.VAPID_EMAIL}`,
