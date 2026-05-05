@@ -101,7 +101,7 @@ export async function notifyNewChapter({
 }) {
     // Si VAPID falló, no intentar enviar
     if (!config.VAPID_PUBLIC_KEY || !config.VAPID_PRIVATE_KEY) {
-        console.warn("⚠️ Push omitido: VAPID no configurado");
+        console.warn("Push omitido: VAPID no configurado");
         return;
     }
 

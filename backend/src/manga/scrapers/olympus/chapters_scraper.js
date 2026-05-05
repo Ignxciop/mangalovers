@@ -85,7 +85,7 @@ async function processSeries(providerSeries, providerId) {
             await sleep(300);
         }
 
-        // ✅ actualizar metadata SIEMPRE
+        // actualizar metadata SIEMPRE
         const latestChapter = await prisma.chapter.findFirst({
             where: { seriesId },
             orderBy: { publishedAt: "desc" },
@@ -100,11 +100,16 @@ async function processSeries(providerSeries, providerId) {
             },
         });
 
-        // ✅ NOTIFICAR SOLO UNA VEZ Y AL FINAL
+        // NOTIFICAR SOLO UNA VEZ Y AL FINAL
         if (latestCreatedChapter) {
+            const series = await prisma.series.findUnique({
+                where: { id: seriesId },
+                select: { name: true },
+            });
+
             await notifyNewChapter({
                 seriesId,
-                seriesName: slug, // o name si lo tienes cacheado
+                seriesName: series?.name ?? slug,
                 chapterName: latestCreatedChapter.name,
                 slug,
             });

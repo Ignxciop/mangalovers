@@ -113,7 +113,7 @@ async function processSeries(providerSeries, providerId) {
                 seriesId,
                 seriesName: series?.name ?? externalId,
                 chapterName: latestCreatedChapter.name,
-                slug: series?.slug ?? externalId, // 👈 CLAVE
+                slug: series?.slug ?? externalId, // CLAVE
             });
         }
     } catch (error) {
