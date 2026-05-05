@@ -16,7 +16,6 @@ export async function getVapidPublicKey(req, res) {
  * Body: { endpoint: string, keys: { p256dh: string, auth: string } }
  */
 export async function subscribeHandler(req, res) {
-    console.log("USER:", req.user);
     const { endpoint, keys } = req.body;
     const userId = req.user.userId;
 
