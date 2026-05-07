@@ -73,6 +73,7 @@ export interface Favorite {
     seriesId: number;
     status: "Siguiendo" | "Terminado";
     createdAt: string;
+    updatedAt: string;
     lastReadChapterName: string | null;
     lastAvailableChapterName: string | null;
     series: {

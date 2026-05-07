@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
@@ -33,6 +33,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -72,7 +80,13 @@ function isUpToDate(fav: Favorite): boolean {
 
 type StatusFilter = "Todos" | "Siguiendo" | "Terminado";
 type ProgressFilter = "todos" | "al-dia" | "pendiente";
-type SortBy = "reciente" | "pendiente-asc" | "pendiente-desc" | "nombre";
+type SortBy =
+    | "reciente"
+    | "updated"
+    | "pendiente-asc"
+    | "pendiente-desc"
+    | "nombre"
+    | "za";
 
 export default function FavoritesList() {
     const navigate = useNavigate();
@@ -86,6 +100,7 @@ export default function FavoritesList() {
     const progressFilter = (searchParams.get("progress") ??
         "todos") as ProgressFilter;
     const sortBy = (searchParams.get("sort") ?? "reciente") as SortBy;
+    const page = Number(searchParams.get("page") ?? "1");
 
     const { pull, refreshing } = usePullToRefresh(() => {
         window.location.reload();
@@ -101,6 +116,9 @@ export default function FavoritesList() {
         setSearchParams((prev) => {
             if (value) prev.set("search", value);
             else prev.delete("search");
+
+            prev.set("page", "1");
+
             return prev;
         });
     }
@@ -109,6 +127,9 @@ export default function FavoritesList() {
         setSearchParams((prev) => {
             if (value === "Todos") prev.delete("status");
             else prev.set("status", value);
+
+            prev.set("page", "1");
+
             return prev;
         });
     }
@@ -117,6 +138,9 @@ export default function FavoritesList() {
         setSearchParams((prev) => {
             if (value === "todos") prev.delete("progress");
             else prev.set("progress", value);
+
+            prev.set("page", "1");
+
             return prev;
         });
     }
@@ -125,12 +149,15 @@ export default function FavoritesList() {
         setSearchParams((prev) => {
             if (value === "reciente") prev.delete("sort");
             else prev.set("sort", value);
+
+            prev.set("page", "1");
+
             return prev;
         });
     }
 
     function clearFilters() {
-        setSearchParams({});
+        setSearchParams({ page: "1" });
     }
 
     async function handleStatusChange(seriesId: number, newStatus: string) {
@@ -176,10 +203,47 @@ export default function FavoritesList() {
             result.sort((a, b) => chaptersLeft(b) - chaptersLeft(a));
         } else if (sortBy === "nombre") {
             result.sort((a, b) => a.series.name.localeCompare(b.series.name));
+        } else if (sortBy === "za") {
+            result.sort((a, b) => b.series.name.localeCompare(a.series.name));
+        } else if (sortBy === "updated") {
+            result.sort((a, b) => {
+                const aDate = a.series.lastChapterPublishedAt
+                    ? new Date(a.series.lastChapterPublishedAt).getTime()
+                    : 0;
+
+                const bDate = b.series.lastChapterPublishedAt
+                    ? new Date(b.series.lastChapterPublishedAt).getTime()
+                    : 0;
+
+                return bDate - aDate;
+            });
+        } else if (sortBy === "reciente") {
+            result.sort((a, b) => {
+                const aDate = new Date(a.updatedAt).getTime();
+                const bDate = new Date(b.updatedAt).getTime();
+
+                return bDate - aDate;
+            });
         }
 
         return result;
     }, [favorites, statusFilter, progressFilter, sortBy, searchText]);
+
+    const ITEMS_PER_PAGE = 24;
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+
+    const paginatedFavorites = filtered.slice(
+        (page - 1) * ITEMS_PER_PAGE,
+        page * ITEMS_PER_PAGE,
+    );
+
+    function setPage(newPage: number) {
+        setSearchParams((prev) => {
+            prev.set("page", String(newPage));
+            return prev;
+        });
+    }
 
     const activeFiltersCount = [
         statusFilter !== "Todos" ? statusFilter : "",
@@ -249,7 +313,7 @@ export default function FavoritesList() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="reciente">
-                                                    Más reciente
+                                                    Favorito más reciente
                                                 </SelectItem>
                                                 <SelectItem value="pendiente-asc">
                                                     Menos capítulos pendientes
@@ -257,8 +321,14 @@ export default function FavoritesList() {
                                                 <SelectItem value="pendiente-desc">
                                                     Más capítulos pendientes
                                                 </SelectItem>
+                                                <SelectItem value="updated">
+                                                    Actualización reciente
+                                                </SelectItem>
                                                 <SelectItem value="nombre">
                                                     A → Z
+                                                </SelectItem>
+                                                <SelectItem value="za">
+                                                    Z → A
                                                 </SelectItem>
                                             </SelectContent>
                                         </Select>
@@ -370,8 +440,18 @@ export default function FavoritesList() {
                 </header>
 
                 <main className="container mx-auto px-4 py-8 max-w-5xl">
+                    {!loading && filtered.length > 0 && (
+                        <div className="mb-8">
+                            <FavoritesPagination
+                                page={page}
+                                totalPages={totalPages}
+                                setPage={setPage}
+                            />
+                        </div>
+                    )}
+
                     {loading && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                             {Array.from({ length: 10 }).map((_, i) => (
                                 <div key={i} className="space-y-2">
                                     <Skeleton className="aspect-[2/3] rounded-xl" />
@@ -408,60 +488,11 @@ export default function FavoritesList() {
                     )}
 
                     {!loading && filtered.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                            {filtered.map((fav) => (
-                                <div key={fav.id} className="group">
-                                    {/* Card imagen — <a> envuelve solo la imagen */}
-                                    <a
-                                        href={`/manga/${fav.series.slug}`}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            navigate(
-                                                `/manga/${fav.series.slug}`,
-                                                {
-                                                    state: { from: fromUrl },
-                                                },
-                                            );
-                                        }}
-                                        className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-lg cursor-pointer transition-transform group-hover:scale-[1.02]"
-                                    >
-                                        {fav.series.cover ? (
-                                            <img
-                                                src={fav.series.cover}
-                                                alt={fav.series.name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full bg-muted flex items-center justify-center">
-                                                <BookOpen className="h-8 w-8 text-muted-foreground/40" />
-                                            </div>
-                                        )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                                        {isUpToDate(fav) &&
-                                            fav.lastReadChapterName && (
-                                                <div className="absolute bottom-2 left-2 bg-primary/90 text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                                                    {fav.status === "Terminado"
-                                                        ? "Finalizado"
-                                                        : "Al día"}
-                                                </div>
-                                            )}
-                                    </a>
-
-                                    {/* Botón quitar — fuera del <a> para no interferir */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleRemove(fav.seriesId);
-                                        }}
-                                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-rose-400 transition-opacity hover:bg-black/70 opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                                        title="Quitar de favoritos"
-                                        style={{ position: "absolute" }}
-                                    >
-                                        <Heart className="h-3.5 w-3.5 fill-rose-400" />
-                                    </button>
-
-                                    <div className="mt-2 space-y-1.5">
+                        <>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                                {paginatedFavorites.map((fav) => (
+                                    <div key={fav.id} className="group">
+                                        {/* Card imagen — <a> envuelve solo la imagen */}
                                         <a
                                             href={`/manga/${fav.series.slug}`}
                                             onClick={(e) => {
@@ -475,111 +506,276 @@ export default function FavoritesList() {
                                                     },
                                                 );
                                             }}
-                                            className="block text-sm font-semibold truncate hover:text-primary transition-colors"
-                                            title={fav.series.name}
+                                            className="relative block aspect-[3/4] rounded-lg overflow-hidden border border-border shadow-lg cursor-pointer transition-transform group-hover:scale-[1.02]"
                                         >
-                                            {fav.series.name}
-                                        </a>
-
-                                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                            <span className="flex items-center gap-1.5">
-                                                <Eye className="h-2.5 w-2.5" />
-                                                {fav.lastReadChapterName ?? "0"}
-                                                <span className="opacity-40">
-                                                    /
-                                                </span>
-                                                <BookOpen className="h-2.5 w-2.5" />
-                                                {fav.lastAvailableChapterName ??
-                                                    fav.series.chapterCount}
-                                            </span>
-                                            {fav.series
-                                                .lastChapterPublishedAt && (
-                                                <span className="flex items-center gap-1">
-                                                    <Clock className="h-2.5 w-2.5" />
-                                                    {timeAgo(
-                                                        fav.series
-                                                            .lastChapterPublishedAt,
-                                                    )}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {fav.lastReadChapterName &&
-                                            fav.lastAvailableChapterName && (
-                                                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-primary rounded-full transition-all"
-                                                        style={{
-                                                            width: `${Math.min(
-                                                                (parseFloat(
-                                                                    fav.lastReadChapterName,
-                                                                ) /
-                                                                    parseFloat(
-                                                                        fav.lastAvailableChapterName,
-                                                                    )) *
-                                                                    100,
-                                                                100,
-                                                            )}%`,
-                                                        }}
-                                                    />
+                                            {fav.series.cover ? (
+                                                <img
+                                                    src={fav.series.cover}
+                                                    alt={fav.series.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-muted flex items-center justify-center">
+                                                    <BookOpen className="h-8 w-8 text-muted-foreground/40" />
                                                 </div>
                                             )}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                                        {fav.status && (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="w-full text-[10px] h-7 px-2 justify-between"
-                                                    >
-                                                        {fav.status}
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent
-                                                    align="end"
-                                                    className="w-[140px]"
-                                                >
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            handleStatusChange(
-                                                                fav.seriesId,
-                                                                "Siguiendo",
-                                                            )
-                                                        }
-                                                        className="flex justify-between cursor-pointer"
-                                                    >
-                                                        Siguiendo
+                                            {isUpToDate(fav) &&
+                                                fav.lastReadChapterName && (
+                                                    <div className="absolute bottom-2 left-2 bg-primary/90 text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                                                         {fav.status ===
-                                                            "Siguiendo" && (
-                                                            <Check className="h-3 w-3" />
+                                                        "Terminado"
+                                                            ? "Finalizado"
+                                                            : "Al día"}
+                                                    </div>
+                                                )}
+                                        </a>
+
+                                        {/* Botón quitar — fuera del <a> para no interferir */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRemove(fav.seriesId);
+                                            }}
+                                            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-rose-400 transition-opacity hover:bg-black/70 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                                            title="Quitar de favoritos"
+                                            style={{ position: "absolute" }}
+                                        >
+                                            <Heart className="h-3.5 w-3.5 fill-rose-400" />
+                                        </button>
+
+                                        <div className="mt-3 space-y-2">
+                                            <a
+                                                href={`/manga/${fav.series.slug}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    navigate(
+                                                        `/manga/${fav.series.slug}`,
+                                                        {
+                                                            state: {
+                                                                from: fromUrl,
+                                                            },
+                                                        },
+                                                    );
+                                                }}
+                                                className="block text-sm font-bold truncate leading-none hover:text-primary transition-colors"
+                                                title={fav.series.name}
+                                            >
+                                                {fav.series.name}
+                                            </a>
+
+                                            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                                <span className="flex items-center gap-1.5">
+                                                    <Eye className="h-2.5 w-2.5" />
+                                                    {fav.lastReadChapterName ??
+                                                        "0"}
+                                                    <span className="opacity-40">
+                                                        /
+                                                    </span>
+                                                    <BookOpen className="h-2.5 w-2.5" />
+                                                    {fav.lastAvailableChapterName ??
+                                                        fav.series.chapterCount}
+                                                </span>
+                                                {fav.series
+                                                    .lastChapterPublishedAt && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock className="h-2.5 w-2.5" />
+                                                        {timeAgo(
+                                                            fav.series
+                                                                .lastChapterPublishedAt,
                                                         )}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            handleStatusChange(
-                                                                fav.seriesId,
-                                                                "Terminado",
-                                                            )
-                                                        }
-                                                        className="flex justify-between cursor-pointer"
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {fav.lastReadChapterName &&
+                                                fav.lastAvailableChapterName && (
+                                                    <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-primary rounded-full transition-all"
+                                                            style={{
+                                                                width: `${Math.min(
+                                                                    (parseFloat(
+                                                                        fav.lastReadChapterName,
+                                                                    ) /
+                                                                        parseFloat(
+                                                                            fav.lastAvailableChapterName,
+                                                                        )) *
+                                                                        100,
+                                                                    100,
+                                                                )}%`,
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
+
+                                            {fav.status && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        asChild
                                                     >
-                                                        Terminado
-                                                        {fav.status ===
-                                                            "Terminado" && (
-                                                            <Check className="h-3 w-3" />
-                                                        )}
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        )}
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="w-full text-[10px] h-7 px-2 justify-between"
+                                                        >
+                                                            {fav.status}
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent
+                                                        align="end"
+                                                        className="w-[140px]"
+                                                    >
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                handleStatusChange(
+                                                                    fav.seriesId,
+                                                                    "Siguiendo",
+                                                                )
+                                                            }
+                                                            className="flex justify-between cursor-pointer"
+                                                        >
+                                                            Siguiendo
+                                                            {fav.status ===
+                                                                "Siguiendo" && (
+                                                                <Check className="h-3 w-3" />
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                handleStatusChange(
+                                                                    fav.seriesId,
+                                                                    "Terminado",
+                                                                )
+                                                            }
+                                                            className="flex justify-between cursor-pointer"
+                                                        >
+                                                            Terminado
+                                                            {fav.status ===
+                                                                "Terminado" && (
+                                                                <Check className="h-3 w-3" />
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+
+                            <div className="mt-12 mb-8 pt-8">
+                                <FavoritesPagination
+                                    page={page}
+                                    totalPages={totalPages}
+                                    setPage={setPage}
+                                />
+                            </div>
+                        </>
                     )}
                 </main>
             </div>
         </>
     );
 }
+
+interface FavoritesPaginationProps {
+    page: number;
+    totalPages: number;
+    setPage: (page: number) => void;
+}
+
+const FavoritesPagination: React.FC<FavoritesPaginationProps> = ({
+    page,
+    totalPages,
+    setPage,
+}) => {
+    const handlePrev = () => {
+        if (page > 1) setPage(page - 1);
+    };
+
+    const handleNext = () => {
+        if (page < totalPages) setPage(page + 1);
+    };
+
+    const pageNumbers: number[] = [1];
+
+    let start = Math.max(page - 3, 2);
+    let end = Math.min(page + 3, totalPages - 1);
+
+    if (page <= 4) {
+        start = 2;
+        end = Math.min(7, totalPages - 1);
+    }
+
+    if (page >= totalPages - 3) {
+        start = Math.max(totalPages - 6, 2);
+        end = totalPages - 1;
+    }
+
+    for (let i = start; i <= end; i++) pageNumbers.push(i);
+
+    if (totalPages > 1) pageNumbers.push(totalPages);
+
+    const uniquePages = [...new Set(pageNumbers)];
+
+    return (
+        <Pagination>
+            <PaginationContent className="flex flex-wrap justify-center gap-1 max-w-full overflow-hidden">
+                {/* ← SOLO DESKTOP */}
+                <PaginationItem className="hidden sm:block">
+                    <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            handlePrev();
+                        }}
+                        aria-disabled={page === 1}
+                        className="px-3"
+                    />
+                </PaginationItem>
+
+                {uniquePages.map((p, idx) => (
+                    <React.Fragment key={p}>
+                        {idx > 0 &&
+                            uniquePages[idx] - uniquePages[idx - 1] > 1 && (
+                                <PaginationItem>
+                                    <span className="px-2 text-muted-foreground">
+                                        ...
+                                    </span>
+                                </PaginationItem>
+                            )}
+
+                        <PaginationItem>
+                            <PaginationLink
+                                href="#"
+                                isActive={p === page}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setPage(p);
+                                }}
+                                className="px-2 sm:px-3"
+                            >
+                                {p}
+                            </PaginationLink>
+                        </PaginationItem>
+                    </React.Fragment>
+                ))}
+
+                {/* → SOLO DESKTOP */}
+                <PaginationItem className="hidden sm:block">
+                    <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            handleNext();
+                        }}
+                        aria-disabled={page === totalPages}
+                        className="px-3"
+                    />
+                </PaginationItem>
+            </PaginationContent>
+        </Pagination>
+    );
+};
