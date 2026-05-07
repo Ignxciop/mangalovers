@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PullToRefresh } from "@/components/pullToRefresh";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 function timeAgo(dateStr: string): string {
     const now = new Date();
@@ -452,6 +454,10 @@ export default function Home() {
     const [loadingStats, setLoadingStats] = useState(false);
     const [error, setError] = useState(false);
 
+    const { pull, refreshing } = usePullToRefresh(() => {
+        window.location.reload();
+    });
+
     useEffect(() => {
         fetchLatestManga(24)
             .then(setMangas)
@@ -476,79 +482,82 @@ export default function Home() {
     }, [isAuthenticated]);
 
     return (
-        <div className="min-h-screen bg-background">
-            <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur border-b border-border">
-                <div className="container mx-auto flex h-16 items-center px-4 gap-3 max-w-7xl">
-                    <SidebarTrigger />
-                    <div className="flex items-center gap-2">
-                        <Flame className="h-4 w-4 text-orange-400" />
-                        <span className="text-sm font-semibold text-foreground tracking-wide">
-                            Inicio
-                        </span>
+        <>
+            <PullToRefresh pull={pull} refreshing={refreshing} />
+            <div className="min-h-screen bg-background">
+                <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur border-b border-border">
+                    <div className="container mx-auto flex h-16 items-center px-4 gap-3 max-w-7xl">
+                        <SidebarTrigger />
+                        <div className="flex items-center gap-2">
+                            <Flame className="h-4 w-4 text-orange-400" />
+                            <span className="text-sm font-semibold text-foreground tracking-wide">
+                                Inicio
+                            </span>
+                        </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            <main className="container mx-auto px-4 py-8 max-w-7xl space-y-10">
-                {isAuthenticated && (
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
-                        {loadingStats ? (
-                            <ContinueSkeleton />
-                        ) : (
-                            stats && (
-                                <ContinueReadingSection
-                                    items={stats.continueReading}
-                                />
-                            )
-                        )}
-                        {loadingStats ? (
-                            <StatsSkeleton />
-                        ) : (
-                            stats && <StatsSection stats={stats} />
-                        )}
-                    </div>
-                )}
-
-                <section>
-                    <div className="flex items-center gap-2 mb-4">
-                        <Flame className="h-4 w-4 text-orange-400" />
-                        <h2 className="text-sm font-semibold tracking-wide">
-                            Últimas actualizaciones
-                        </h2>
-                    </div>
-
-                    {error && (
-                        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                            <p className="text-muted-foreground text-sm">
-                                No se pudieron cargar las actualizaciones
-                            </p>
+                <main className="container mx-auto px-4 py-8 max-w-7xl space-y-10">
+                    {isAuthenticated && (
+                        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+                            {loadingStats ? (
+                                <ContinueSkeleton />
+                            ) : (
+                                stats && (
+                                    <ContinueReadingSection
+                                        items={stats.continueReading}
+                                    />
+                                )
+                            )}
+                            {loadingStats ? (
+                                <StatsSkeleton />
+                            ) : (
+                                stats && <StatsSection stats={stats} />
+                            )}
                         </div>
                     )}
 
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-                        {loadingLatest
-                            ? Array.from({ length: 24 }).map((_, i) => (
-                                  <MangaCardSkeleton key={i} />
-                              ))
-                            : mangas.map((manga, i) => (
-                                  <MangaCard
-                                      key={manga.id}
-                                      manga={manga}
-                                      index={i}
-                                  />
-                              ))}
-                    </div>
-
-                    {!loadingLatest && mangas.length === 0 && !error && (
-                        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                            <BookOpen className="h-10 w-10 text-muted-foreground/30" />
-                            <p className="text-muted-foreground text-sm">
-                                No hay actualizaciones recientes
-                            </p>
+                    <section>
+                        <div className="flex items-center gap-2 mb-4">
+                            <Flame className="h-4 w-4 text-orange-400" />
+                            <h2 className="text-sm font-semibold tracking-wide">
+                                Últimas actualizaciones
+                            </h2>
                         </div>
-                    )}
-                </section>
-            </main>
-        </div>
+
+                        {error && (
+                            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                                <p className="text-muted-foreground text-sm">
+                                    No se pudieron cargar las actualizaciones
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                            {loadingLatest
+                                ? Array.from({ length: 24 }).map((_, i) => (
+                                      <MangaCardSkeleton key={i} />
+                                  ))
+                                : mangas.map((manga, i) => (
+                                      <MangaCard
+                                          key={manga.id}
+                                          manga={manga}
+                                          index={i}
+                                      />
+                                  ))}
+                        </div>
+
+                        {!loadingLatest && mangas.length === 0 && !error && (
+                            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                                <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+                                <p className="text-muted-foreground text-sm">
+                                    No hay actualizaciones recientes
+                                </p>
+                            </div>
+                        )}
+                    </section>
+                </main>
+            </div>
+        </>
     );
 }
