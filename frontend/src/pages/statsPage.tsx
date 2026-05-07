@@ -452,7 +452,7 @@ export default function StatsPage() {
     return (
         <div className="min-h-screen bg-background">
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto flex h-16 items-center px-4 gap-4 max-w-5xl">
+                <div className="container mx-auto flex h-16 items-center px-4 gap-4">
                     <SidebarTrigger />
                     <button
                         onClick={() => navigate(-1)}
@@ -470,7 +470,7 @@ export default function StatsPage() {
                 </div>
             </header>
 
-            <main className="container mx-auto px-4 py-8 max-w-5xl">
+            <main className="container mx-auto px-4 py-8">
                 {loading && <StatsSkeleton />}
                 {!loading && (!stats || stats.totalChaptersRead === 0) && (
                     <EmptyStats />

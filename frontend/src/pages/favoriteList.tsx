@@ -259,7 +259,7 @@ export default function FavoritesList() {
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                    <div className="container mx-auto flex h-16 items-center px-4 gap-4 max-w-5xl">
+                    <div className="container mx-auto flex h-16 items-center px-4 gap-4">
                         <SidebarTrigger />
                         <h1 className="text-lg font-bold shrink-0">
                             Mis favoritos
@@ -439,7 +439,7 @@ export default function FavoritesList() {
                     </div>
                 </header>
 
-                <main className="container mx-auto px-4 py-8 max-w-5xl">
+                <main className="container mx-auto px-4 py-8">
                     {!loading && filtered.length > 0 && (
                         <div className="mb-8">
                             <FavoritesPagination

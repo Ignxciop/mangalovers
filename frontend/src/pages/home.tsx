@@ -486,7 +486,7 @@ export default function Home() {
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur border-b border-border">
-                    <div className="container mx-auto flex h-16 items-center px-4 gap-3 max-w-7xl">
+                    <div className="container mx-auto flex h-16 items-center px-4 gap-3">
                         <SidebarTrigger />
                         <div className="flex items-center gap-2">
                             <Flame className="h-4 w-4 text-orange-400" />
@@ -497,7 +497,7 @@ export default function Home() {
                     </div>
                 </header>
 
-                <main className="container mx-auto px-4 py-8 max-w-7xl space-y-10">
+                <main className="container mx-auto px-4 py-8 space-y-10">
                     {isAuthenticated && (
                         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
                             {loadingStats ? (

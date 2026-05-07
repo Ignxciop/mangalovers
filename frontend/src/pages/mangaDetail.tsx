@@ -36,7 +36,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 function MangaDetailSkeleton() {
     return (
         <div className="min-h-screen bg-background">
-            <div className="container mx-auto px-4 py-10 max-w-6xl">
+            <div className="container mx-auto px-4 py-10">
                 <Skeleton className="h-5 w-24 mb-10" />
                 <div className="flex gap-10">
                     <Skeleton className="w-64 shrink-0 aspect-[2/3] rounded-xl" />
@@ -265,7 +265,7 @@ export default function MangaDetail() {
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                    <div className="container mx-auto flex h-16 items-center px-4 gap-4 max-w-6xl">
+                    <div className="container mx-auto flex h-16 items-center px-4 gap-4">
                         <SidebarTrigger />
                         <button
                             onClick={() => navigate(backUrl)}
@@ -280,7 +280,7 @@ export default function MangaDetail() {
                     </div>
                 </header>
 
-                <div className="container mx-auto px-4 pt-8 pb-8 max-w-6xl">
+                <div className="container mx-auto px-4 pt-8 pb-8">
                     <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
                         {/* Columna izquierda */}
                         <div className="md:w-56 lg:w-64 shrink-0">
