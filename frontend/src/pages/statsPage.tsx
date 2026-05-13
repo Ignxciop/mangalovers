@@ -430,7 +430,6 @@ function EmptyStats() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function StatsPage() {
-    const navigate = useNavigate();
     const [stats, setStats] = useState<FullStats | null>(null);
     const [loading, setLoading] = useState(true);
 
