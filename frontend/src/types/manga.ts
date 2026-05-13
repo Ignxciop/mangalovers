@@ -82,6 +82,7 @@ export interface Favorite {
         slug: string;
         cover: string | null;
         status: string | null;
+        type: string | null;
         chapterCount: number;
         lastChapterPublishedAt: string | null;
     };

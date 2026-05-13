@@ -32,6 +32,7 @@ export function useMangaList(params: Record<string, string | number>) {
         params.page,
         params.search,
         params.status,
+        params.type,
         params.provider,
         params.sort,
         params.order,

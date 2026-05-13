@@ -79,6 +79,7 @@ function isUpToDate(fav: Favorite): boolean {
 }
 
 type StatusFilter = "Todos" | "Siguiendo" | "Terminado";
+type TypeFilter = "" | "manga" | "manhwa" | "manhua";
 type ProgressFilter = "todos" | "al-dia" | "pendiente";
 type SortBy =
     | "reciente"
@@ -97,6 +98,7 @@ export default function FavoritesList() {
     const searchText = searchParams.get("search") ?? "";
     const statusFilter = (searchParams.get("status") ??
         "Todos") as StatusFilter;
+    const typeFilter = (searchParams.get("type") ?? "") as TypeFilter;
     const progressFilter = (searchParams.get("progress") ??
         "todos") as ProgressFilter;
     const sortBy = (searchParams.get("sort") ?? "reciente") as SortBy;
@@ -138,6 +140,17 @@ export default function FavoritesList() {
         setSearchParams((prev) => {
             if (value === "todos") prev.delete("progress");
             else prev.set("progress", value);
+
+            prev.set("page", "1");
+
+            return prev;
+        });
+    }
+
+    function setTypeFilter(value: TypeFilter) {
+        setSearchParams((prev) => {
+            if (!value) prev.delete("type");
+            else prev.set("type", value);
 
             prev.set("page", "1");
 
@@ -191,6 +204,10 @@ export default function FavoritesList() {
             result = result.filter((f) => f.status === statusFilter);
         }
 
+        if (typeFilter) {
+            result = result.filter((f) => f.series.type === typeFilter);
+        }
+
         if (progressFilter === "al-dia") {
             result = result.filter(isUpToDate);
         } else if (progressFilter === "pendiente") {
@@ -227,7 +244,7 @@ export default function FavoritesList() {
         }
 
         return result;
-    }, [favorites, statusFilter, progressFilter, sortBy, searchText]);
+    }, [favorites, statusFilter, typeFilter, progressFilter, sortBy, searchText]);
 
     const ITEMS_PER_PAGE = 24;
 
@@ -247,6 +264,7 @@ export default function FavoritesList() {
 
     const activeFiltersCount = [
         statusFilter !== "Todos" ? statusFilter : "",
+        typeFilter,
         progressFilter !== "todos" ? progressFilter : "",
         sortBy !== "reciente" ? sortBy : "",
         searchText.trim(),
@@ -359,6 +377,39 @@ export default function FavoritesList() {
                                                     }
                                                 >
                                                     {f}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="px-6 py-5 border-b border-border">
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                            Tipo
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {[
+                                                { label: "Todos", value: "" },
+                                                { label: "Manga", value: "manga" },
+                                                { label: "Manhwa", value: "manhwa" },
+                                                { label: "Manhua", value: "manhua" },
+                                            ].map(({ label, value }) => (
+                                                <Badge
+                                                    key={value}
+                                                    variant={
+                                                        typeFilter === value
+                                                            ? "default"
+                                                            : "outline"
+                                                    }
+                                                    className="cursor-pointer px-3 py-1 text-xs"
+                                                    onClick={() =>
+                                                        setTypeFilter(
+                                                            typeFilter === value
+                                                                ? ""
+                                                                : (value as TypeFilter),
+                                                        )
+                                                    }
+                                                >
+                                                    {label}
                                                 </Badge>
                                             ))}
                                         </div>

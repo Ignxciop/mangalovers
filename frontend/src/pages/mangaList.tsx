@@ -40,6 +40,7 @@ export default function MangaList() {
     const page = Number(searchParams.get("page") ?? "1");
     const search = searchParams.get("search") ?? "";
     const status = searchParams.get("status") ?? "";
+    const type = searchParams.get("type") ?? "";
     const sort = searchParams.get("sort") ?? "updated";
     const order = searchParams.get("order") ?? "desc";
     const genres = searchParams.get("genres") ?? "";
@@ -75,6 +76,15 @@ export default function MangaList() {
         });
     }
 
+    function setType(value: string) {
+        setSearchParams((prev) => {
+            if (value) prev.set("type", value);
+            else prev.delete("type");
+            prev.set("page", "1");
+            return prev;
+        });
+    }
+
     function setSort(value: string) {
         setSearchParams((prev) => {
             prev.set("sort", value);
@@ -101,6 +111,7 @@ export default function MangaList() {
         page,
         search,
         status,
+        type,
         provider,
         sort,
         order,
@@ -112,6 +123,7 @@ export default function MangaList() {
 
     const activeFiltersCount = [
         status,
+        type,
         genres,
         sort !== "updated" ? sort : "",
     ].filter(Boolean).length;
@@ -227,6 +239,37 @@ export default function MangaList() {
                                     </div>
                                 </div>
 
+                                <div className="px-6 py-5 border-b border-border">
+                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                        Tipo
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[
+                                            { label: "Todos", value: "" },
+                                            { label: "Manga", value: "manga" },
+                                            { label: "Manhwa", value: "manhwa" },
+                                            { label: "Manhua", value: "manhua" },
+                                        ].map(({ label, value }) => (
+                                            <Badge
+                                                key={value}
+                                                variant={
+                                                    type === value
+                                                        ? "default"
+                                                        : "outline"
+                                                }
+                                                className="cursor-pointer px-3 py-1 text-xs"
+                                                onClick={() =>
+                                                    setType(
+                                                        type === value ? "" : value,
+                                                    )
+                                                }
+                                            >
+                                                {label}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <div className="px-6 py-5">
                                     <div className="flex items-center justify-between mb-3">
                                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -292,6 +335,7 @@ export default function MangaList() {
                                         onClick={() => {
                                             setSearchParams((prev) => {
                                                 prev.delete("status");
+                                                prev.delete("type");
                                                 prev.delete("genres");
                                                 prev.delete("sort");
                                                 prev.set("page", "1");

@@ -26,7 +26,7 @@ export function useChapterPages(
             setError(null);
 
             try {
-                const data = await fetchChapterPages(slug, chapterId!);
+                const data = await fetchChapterPages(slug!, chapterId!);
                 if (!cancelled) setChapter(data);
             } catch (err: unknown) {
                 if (!cancelled) {
