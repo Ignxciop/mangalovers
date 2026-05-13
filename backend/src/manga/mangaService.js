@@ -11,6 +11,7 @@ export async function getAllManga(query) {
         sort = "updated",
         order = "desc",
         genres,
+        type,
     } = query;
 
     const skip = (page - 1) * limit;
@@ -28,6 +29,10 @@ export async function getAllManga(query) {
         where.providerSeries = {
             some: { provider: { name: provider } },
         };
+    }
+
+    if (type) {
+        where.type = type;
     }
 
     if (genres) {

@@ -11,6 +11,7 @@ export async function getUserFavorites(userId) {
                     slug: true,
                     cover: true,
                     status: true,
+                    type: true,
                     chapterCount: true,
                     lastChapterPublishedAt: true,
                 },

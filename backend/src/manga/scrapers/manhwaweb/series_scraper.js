@@ -225,6 +225,7 @@ export async function scrapeSeries() {
     await Promise.all([
         scrapeByTipo("manga", provider.id),
         scrapeByTipo("manhwa", provider.id),
+        scrapeByTipo("manhua", provider.id),
     ]);
 
     console.log("ManhwaWeb - Todas las series listas");
