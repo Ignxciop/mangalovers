@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchLatestManga, fetchReadingStats } from "@/api/manga";
+import { fetchLatestManga, fetchMangaList, fetchReadingStats } from "@/api/manga";
 import type { Manga } from "@/types/manga";
 import { useAuthStore } from "@/store/authStore";
 import {
@@ -18,9 +18,12 @@ import {
     TrendingUp,
     ChevronRight,
     Trophy,
+    Search,
+    X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
@@ -446,6 +449,131 @@ function ContinueSkeleton() {
     );
 }
 
+function SearchBar() {
+    const navigate = useNavigate();
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState<Manga[]>([]);
+    const [open, setOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!query.trim()) {
+            setResults([]);
+            setOpen(false);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setLoading(true);
+            try {
+                const res = await fetchMangaList({ search: query.trim(), limit: 8, sort: "az" });
+                setResults(res.data);
+                setOpen(true);
+            } catch {
+                setResults([]);
+            } finally {
+                setLoading(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [query]);
+
+    useEffect(() => {
+        function handleClick(e: MouseEvent) {
+            if (ref.current && !ref.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClick);
+        return () => document.removeEventListener("mousedown", handleClick);
+    }, []);
+
+    const select = useCallback(
+        (slug: string) => {
+            setOpen(false);
+            setQuery("");
+            navigate(`/manga/${slug}`);
+        },
+        [navigate],
+    );
+
+    return (
+        <div ref={ref} className="relative flex-1 max-w-md">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+                ref={inputRef}
+                placeholder="Buscar series..."
+                className="pl-9 pr-9 w-full bg-secondary/50"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => results.length > 0 && setOpen(true)}
+            />
+            {query && (
+                <button
+                    onClick={() => {
+                        setQuery("");
+                        setResults([]);
+                        setOpen(false);
+                        inputRef.current?.focus();
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                    <X className="h-4 w-4" />
+                </button>
+            )}
+            {open && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg overflow-hidden">
+                    {loading ? (
+                        <div className="p-3 text-xs text-muted-foreground text-center">
+                            Buscando...
+                        </div>
+                    ) : results.length === 0 ? (
+                        <div className="p-3 text-xs text-muted-foreground text-center">
+                            Sin resultados
+                        </div>
+                    ) : (
+                        <ul className="max-h-72 overflow-y-auto">
+                            {results.map((m) => (
+                                <li key={m.id}>
+                                    <button
+                                        onClick={() => select(m.slug)}
+                                        className="flex items-center gap-3 w-full px-3 py-2.5 text-left hover:bg-muted transition-colors"
+                                    >
+                                        <div className="size-8 rounded overflow-hidden bg-muted shrink-0">
+                                            {m.cover ? (
+                                                <img
+                                                    src={m.cover}
+                                                    alt=""
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <BookOpen className="h-3.5 w-3.5 text-muted-foreground/40" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-medium truncate">
+                                                {m.name}
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {m.type ?? "Serie"}
+                                            </p>
+                                        </div>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function Home() {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const [mangas, setMangas] = useState<Manga[]>([]);
@@ -488,12 +616,13 @@ export default function Home() {
                 <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur border-b border-border">
                     <div className="container mx-auto flex h-16 items-center px-4 gap-3">
                         <SidebarTrigger />
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                             <Flame className="h-4 w-4 text-orange-400" />
-                            <span className="text-sm font-semibold text-foreground tracking-wide">
+                            <span className="text-sm font-semibold text-foreground tracking-wide hidden sm:inline">
                                 Inicio
                             </span>
                         </div>
+                        <SearchBar />
                     </div>
                 </header>
 
