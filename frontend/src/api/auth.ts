@@ -48,7 +48,25 @@ export const logout = async (refreshToken: string): Promise<void> => {
     await api.post("/auth/logout", { refreshToken });
 };
 
+export const googleLogin = async (
+    idToken: string,
+): Promise<AuthData> => {
+    const { data: response } = await api.post<AuthResponse>(
+        "/auth/google",
+        { idToken },
+    );
+    return response.data;
+};
+
 export const refresh = async (): Promise<AuthData> => {
     const { data: response } = await api.post<AuthResponse>("/auth/refresh");
     return response.data;
+};
+
+export const fetchGoogleClientId = async (): Promise<string> => {
+    const { data: response } = await api.get<{
+        success: boolean;
+        data: { clientId: string };
+    }>("/auth/google-client-id");
+    return response.data.clientId;
 };

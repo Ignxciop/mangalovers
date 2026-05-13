@@ -17,4 +17,5 @@ export const config = {
     VAPID_PRIVATE_KEY:
         process.env.VAPID_PRIVATE_KEY?.trim() || "your-vapid-public-key",
     VAPID_EMAIL: process.env.VAPID_EMAIL || "your-vapid-email",
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
 };

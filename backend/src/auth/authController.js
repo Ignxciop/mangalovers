@@ -1,4 +1,5 @@
 import { AuthService } from "./authService.js";
+import { config } from "../config/env.js";
 
 export class AuthController {
     static async register(req, res, next) {
@@ -28,6 +29,30 @@ export class AuthController {
             res.status(200).json({
                 success: true,
                 message: "Inicio de sesión exitoso",
+                data: { user, accessToken, refreshToken },
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async googleLogin(req, res, next) {
+        try {
+            const { idToken } = req.body;
+
+            if (!idToken) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Token de Google requerido",
+                });
+            }
+
+            const { user, accessToken, refreshToken } =
+                await AuthService.googleLogin(idToken);
+
+            res.status(200).json({
+                success: true,
+                message: "Inicio de sesión con Google exitoso",
                 data: { user, accessToken, refreshToken },
             });
         } catch (error) {
@@ -148,5 +173,12 @@ export class AuthController {
         } catch (error) {
             next(error);
         }
+    }
+
+    static async getGoogleClientId(req, res) {
+        res.json({
+            success: true,
+            data: { clientId: config.GOOGLE_CLIENT_ID || "" },
+        });
     }
 }

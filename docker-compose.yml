@@ -20,6 +20,7 @@ services:
             VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
             VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
             VAPID_EMAIL: ${VAPID_EMAIL}
+            GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         networks:
             - mangalovers-network
             - default

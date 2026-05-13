@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
 import { RefreshTokenService } from "./refreshTokenService.js";
@@ -103,6 +104,62 @@ export class AuthService {
 
         return {
             user: userWithoutPassword,
+            accessToken,
+            refreshToken: refreshToken.token,
+        };
+    }
+
+    static async googleLogin(idToken) {
+        const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
+
+        const ticket = await client.verifyIdToken({
+            idToken,
+            audience: config.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        const { email, given_name, family_name } = payload;
+
+        if (!email) {
+            const error = new Error("Email requerido de Google");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        let user = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (!user) {
+            user = await prisma.user.create({
+                data: {
+                    email,
+                    name: given_name || "Usuario",
+                    lastname: family_name || "",
+                    password: "",
+                },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    lastname: true,
+                    createdAt: true,
+                },
+            });
+        }
+
+        const accessToken = this.generateAccessToken(user.id);
+        const refreshToken = await RefreshTokenService.createRefreshToken(
+            user.id,
+        );
+
+        return {
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                lastname: user.lastname,
+            },
             accessToken,
             refreshToken: refreshToken.token,
         };

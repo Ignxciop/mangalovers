@@ -30,6 +30,20 @@ export function useAuth() {
         }
     };
 
+    const loginWithGoogle = async (idToken: string) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const data = await authApi.googleLogin(idToken);
+            setAuth(data.accessToken, data.refreshToken, data.user);
+            navigate("/");
+        } catch (err: unknown) {
+            setError(getErrorMessage(err));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const register = async (payload: RegisterPayload) => {
         setIsLoading(true);
         setError(null);
@@ -58,7 +72,7 @@ export function useAuth() {
         }
     };
 
-    return { login, register, logout, isLoading, error, isAuthenticated, user };
+    return { login, loginWithGoogle, register, logout, isLoading, error, isAuthenticated, user };
 }
 
 function getErrorMessage(err: unknown): string {

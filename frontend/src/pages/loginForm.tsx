@@ -8,13 +8,90 @@ import {
     FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchGoogleClientId } from "@/api/auth";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircleIcon, ChevronLeft } from "lucide-react";
 
+declare global {
+    interface Window {
+        google?: {
+            accounts: {
+                id: {
+                    initialize: (config: {
+                        client_id: string;
+                        callback: (response: {
+                            credential: string;
+                        }) => void;
+                    }) => void;
+                    renderButton: (
+                        element: HTMLElement,
+                        options: Record<string, unknown>,
+                    ) => void;
+                    prompt: () => void;
+                };
+            };
+        };
+    }
+}
+
 export function Login({ className, ...props }: React.ComponentProps<"div">) {
-    const { login, isLoading, error } = useAuth();
+    const { login, loginWithGoogle, isLoading, error } = useAuth();
+    const googleButtonRef = useRef<HTMLDivElement>(null);
+    const [googleLoaded, setGoogleLoaded] = useState(false);
+    const [clientId, setClientId] = useState("");
+    const loginWithGoogleRef = useRef(loginWithGoogle);
+    loginWithGoogleRef.current = loginWithGoogle;
+
+    useEffect(() => {
+        fetchGoogleClientId()
+            .then(setClientId)
+            .catch(() => setClientId(""));
+    }, []);
+
+    useEffect(() => {
+        if (document.getElementById("google-gis-script")) {
+            if (window.google) setGoogleLoaded(true);
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.id = "google-gis-script";
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = () => setGoogleLoaded(true);
+        document.body.appendChild(script);
+
+        return () => {
+            const el = document.getElementById("google-gis-script");
+            if (el) el.remove();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!googleLoaded || !googleButtonRef.current || !window.google) return;
+        if (!clientId) return;
+
+        window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (response) => {
+                if (response.credential) {
+                    loginWithGoogleRef.current(response.credential);
+                }
+            },
+        });
+
+        window.google.accounts.id.renderButton(googleButtonRef.current, {
+            type: "standard",
+            shape: "rectangular",
+            theme: "outline",
+            size: "large",
+            text: "signin_with",
+            logo_alignment: "center",
+        });
+    }, [googleLoaded, clientId]);
 
     const [form, setForm] = useState({
         email: "",
@@ -88,6 +165,26 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
                                         : "Iniciar Sesión"}
                                 </Button>
                             </Field>
+                            {clientId && (
+                                <>
+                                    <div className="relative">
+                                        <div className="absolute inset-0 flex items-center">
+                                            <span className="w-full border-t" />
+                                        </div>
+                                        <div className="relative flex justify-center text-xs uppercase">
+                                            <span className="bg-card px-2 text-muted-foreground">
+                                                o
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <Field>
+                                        <div
+                                            ref={googleButtonRef}
+                                            className="flex justify-center"
+                                        />
+                                    </Field>
+                                </>
+                            )}
                             <FieldDescription className="text-center">
                                 ¿No tienes una cuenta?{" "}
                                 <a href="/registro">Registrate</a>

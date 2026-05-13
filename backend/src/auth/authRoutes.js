@@ -9,8 +9,10 @@ import { authenticate } from "../middlewares/auth.js";
 
 const router = Router();
 
+router.get("/google-client-id", AuthController.getGoogleClientId);
 router.post("/register", registerValidator, validate, AuthController.register);
 router.post("/login", loginValidator, validate, AuthController.login);
+router.post("/google", AuthController.googleLogin);
 router.post("/refresh", AuthController.refresh);
 router.post("/logout", AuthController.logout);
 router.post("/logout-all", authenticate, AuthController.logoutAll);
