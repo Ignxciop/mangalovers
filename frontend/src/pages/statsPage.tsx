@@ -18,7 +18,6 @@ import {
     BarChart3,
     Activity,
     Star,
-    ChevronLeft,
     Zap,
 } from "lucide-react";
 
@@ -451,24 +450,19 @@ export default function StatsPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto flex h-16 items-center px-4 gap-4">
-                    <SidebarTrigger />
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                    >
-                        <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                        Volver
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-semibold">
-                            Mis estadísticas
-                        </span>
+                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
+                    <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
+                        <SidebarTrigger />
+                        <div className="flex justify-center min-w-0">
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-semibold">
+                                    Mis estadísticas
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
             <main className="container mx-auto px-4 py-8">
                 {loading && <StatsSkeleton />}

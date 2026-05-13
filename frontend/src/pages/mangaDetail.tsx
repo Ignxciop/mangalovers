@@ -265,18 +265,20 @@ export default function MangaDetail() {
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                    <div className="container mx-auto flex h-16 items-center px-4 gap-4">
+                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
                         <SidebarTrigger />
+                        <div className="flex justify-center min-w-0">
+                            <span className="text-sm font-semibold truncate">
+                                {series.name}
+                            </span>
+                        </div>
                         <button
                             onClick={() => navigate(backUrl)}
-                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
                         >
                             <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                             Volver
                         </button>
-                        <span className="text-sm font-semibold truncate">
-                            {series.name}
-                        </span>
                     </div>
                 </header>
 

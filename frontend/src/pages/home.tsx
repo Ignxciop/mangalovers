@@ -501,7 +501,7 @@ function SearchBar() {
     );
 
     return (
-        <div ref={ref} className="relative flex-1 max-w-md">
+        <div ref={ref} className="relative w-full max-w-md">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
                 ref={inputRef}
@@ -613,16 +613,22 @@ export default function Home() {
         <>
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur border-b border-border">
-                    <div className="container mx-auto flex h-16 items-center px-4 gap-3">
+                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
+                    <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
                         <SidebarTrigger />
-                        <div className="flex items-center gap-2 shrink-0">
-                            <Flame className="h-4 w-4 text-orange-400" />
-                            <span className="text-sm font-semibold text-foreground tracking-wide hidden sm:inline">
-                                Inicio
-                            </span>
+                        <div className="flex justify-center min-w-0">
+                            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                                <div className="hidden sm:flex items-center gap-2 shrink-0">
+                                    <Flame className="h-4 w-4 text-orange-400" />
+                                    <span className="text-sm font-semibold text-foreground tracking-wide">
+                                        Inicio
+                                    </span>
+                                </div>
+                                <div className="w-full max-w-md">
+                                    <SearchBar />
+                                </div>
+                            </div>
                         </div>
-                        <SearchBar />
                     </div>
                 </header>
 

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +23,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-    ChevronLeft,
     User,
     Lock,
     Trash2,
@@ -591,22 +589,19 @@ export function NotificationSection() {
 }
 
 export default function ProfilePage() {
-    const navigate = useNavigate();
     const { user } = useAuth();
 
     return (
         <div className="min-h-screen bg-background">
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto flex h-16 items-center px-4 gap-4 max-w-2xl">
+                <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
                     <SidebarTrigger />
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                    >
-                        <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                        Volver
-                    </button>
-                    <h1 className="text-sm font-semibold">Mi perfil</h1>
+                    <div className="flex justify-center min-w-0">
+                        <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold">Mi perfil</span>
+                        </div>
+                    </div>
                 </div>
             </header>
 

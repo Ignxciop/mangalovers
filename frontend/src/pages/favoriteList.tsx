@@ -277,19 +277,28 @@ export default function FavoritesList() {
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                    <div className="container mx-auto flex h-16 items-center px-4 gap-4">
+                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
                         <SidebarTrigger />
-                        <h1 className="text-lg font-bold shrink-0">
-                            Mis favoritos
-                        </h1>
-                        <div className="flex-1 flex items-center relative">
-                            <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Buscar favorito..."
-                                className="pl-9 w-full bg-secondary/50"
-                                value={searchText}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
+                        <div className="flex justify-center min-w-0">
+                            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                                <div className="hidden sm:flex items-center gap-2 shrink-0">
+                                    <Heart className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm font-semibold">
+                                        Mis favoritos
+                                    </span>
+                                </div>
+                                <div className="w-full max-w-md">
+                                    <div className="relative">
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                        <Input
+                                            placeholder="Buscar favorito..."
+                                            className="pl-9 w-full bg-secondary/50"
+                                            value={searchText}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <Sheet>
                             <SheetTrigger asChild>

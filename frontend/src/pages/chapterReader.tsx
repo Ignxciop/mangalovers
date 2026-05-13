@@ -385,7 +385,8 @@ export default function ChapterReader() {
                         headerVisible ? "translate-y-0" : "-translate-y-full"
                     }`}
                 >
-                    <div className="justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
+                    {/* Mobile layout */}
+                    <div className="md:hidden justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
                         <SidebarTrigger />
                         <button
                             onClick={() =>
@@ -403,6 +404,18 @@ export default function ChapterReader() {
                         </span>
                         <span className="text-sm text-foreground shrink-0">
                             {chapter.name}
+                        </span>
+                    </div>
+                    {/* Desktop layout */}
+                    <div className="hidden md:grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4 container mx-auto">
+                        <SidebarTrigger />
+                        <div className="flex justify-center min-w-0">
+                            <span className="text-sm font-semibold truncate">
+                                {chapter.series.name}
+                            </span>
+                        </div>
+                        <span className="text-sm text-muted-foreground shrink-0">
+                            Cap. {chapter.name}
                         </span>
                     </div>
                 </div>
