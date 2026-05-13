@@ -14,7 +14,7 @@ const router = Router();
 router.get("/", optionalAuthenticate, handleGetAllManga);
 router.get("/latest", optionalAuthenticate, handleGetLatestManga);
 router.get(
-    "/capitulo/:chapterId/pages",
+    "/capitulo/:slug/:chapterId/pages",
     optionalAuthenticate,
     handleGetChapterPages,
 );

@@ -30,10 +30,11 @@ export async function fetchSeriesDetail(slug: string): Promise<SeriesDetail> {
 }
 
 export async function fetchChapterPages(
+    slug: string,
     chapterId: number,
 ): Promise<ChapterPages> {
     const { data } = await api.get<ChapterPages>(
-        `/manga/capitulo/${chapterId}/pages`,
+        `/manga/capitulo/${slug}/${chapterId}/pages`,
     );
     return data;
 }

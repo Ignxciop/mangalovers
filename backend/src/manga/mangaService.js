@@ -253,9 +253,16 @@ export async function getSeriesDetailBySlug(slug) {
     };
 }
 
-export async function getChapterPages(chapterId, userId = null) {
-    const chapter = await prisma.chapter.findUnique({
-        where: { id: Number(chapterId) },
+export async function getChapterPages(slug, chapterId, userId = null) {
+    const series = await prisma.series.findUnique({
+        where: { slug },
+        select: { id: true },
+    });
+
+    if (!series) return null;
+
+    const chapter = await prisma.chapter.findFirst({
+        where: { id: Number(chapterId), seriesId: series.id },
         include: {
             pages: {
                 orderBy: { id: "asc" },

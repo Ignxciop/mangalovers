@@ -273,6 +273,7 @@ export default function ChapterReader() {
     const from = location.state?.from ?? "/mangas";
 
     const { chapter, loading, error } = useChapterPages(
+        slug ?? null,
         chapterId ? Number(chapterId) : null,
     );
 

@@ -61,12 +61,16 @@ export async function getSeriesDetail(req, res) {
 
 export async function handleGetChapterPages(req, res) {
     try {
-        const { chapterId } = req.params;
+        const { slug, chapterId } = req.params;
         if (isNaN(Number(chapterId))) {
             return res.status(400).json({ message: "ID de capítulo inválido" });
         }
+        if (!slug) {
+            return res.status(400).json({ message: "Slug de serie requerido" });
+        }
 
         const chapter = await getChapterPages(
+            slug,
             chapterId,
             req.user?.userId ?? null,
         );

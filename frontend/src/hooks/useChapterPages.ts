@@ -9,6 +9,7 @@ interface UseChapterPagesResult {
 }
 
 export function useChapterPages(
+    slug: string | null,
     chapterId: number | null,
 ): UseChapterPagesResult {
     const [chapter, setChapter] = useState<ChapterPages | null>(null);
@@ -16,7 +17,7 @@ export function useChapterPages(
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!chapterId) return;
+        if (!chapterId || !slug) return;
 
         let cancelled = false;
 
@@ -25,7 +26,7 @@ export function useChapterPages(
             setError(null);
 
             try {
-                const data = await fetchChapterPages(chapterId!);
+                const data = await fetchChapterPages(slug, chapterId!);
                 if (!cancelled) setChapter(data);
             } catch (err: unknown) {
                 if (!cancelled) {
@@ -42,7 +43,7 @@ export function useChapterPages(
         return () => {
             cancelled = true;
         };
-    }, [chapterId]);
+    }, [slug, chapterId]);
 
     return { chapter, loading, error };
 }
