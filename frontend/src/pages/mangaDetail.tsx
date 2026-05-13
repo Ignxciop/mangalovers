@@ -342,6 +342,14 @@ export default function MangaDetail() {
                                     {series.name}
                                 </h1>
                                 <StatusBadge status={series.status} />
+                                {series.type && (
+                                    <Badge
+                                        variant="secondary"
+                                        className="text-[11px] px-2.5 py-0.5 font-medium capitalize"
+                                    >
+                                        {series.type}
+                                    </Badge>
+                                )}
                             </div>
 
                             {series.genres.length > 0 && (

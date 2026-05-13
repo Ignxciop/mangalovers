@@ -43,6 +43,7 @@ export interface SeriesDetail {
     slug: string;
     cover: string | null;
     status: string | null;
+    type: string | null;
     summary: string | null;
     chapterCount: number;
     genres: string[];

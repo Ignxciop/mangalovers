@@ -242,6 +242,7 @@ export async function getSeriesDetailBySlug(slug) {
         slug: series.slug,
         cover: series.cover,
         status: series.status,
+        type: series.type,
         summary: series.summary,
         chapterCount: series.chapterCount,
 
