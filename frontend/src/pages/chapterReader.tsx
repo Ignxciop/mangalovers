@@ -418,9 +418,15 @@ export default function ChapterReader() {
                     <div className="hidden md:grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4 container mx-auto">
                         <SidebarTrigger />
                         <div className="flex justify-center min-w-0">
-                            <span className="text-sm font-semibold truncate">
-                                {chapter.series.name}
-                            </span>
+                            <button
+                                onClick={() =>
+                                    navigate(`/manga/${slug}`, { state: { from } })
+                                }
+                                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                            >
+                                <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+                                <span className="truncate">{chapter.series.name}</span>
+                            </button>
                         </div>
                         <span className="text-sm text-muted-foreground shrink-0">
                             Cap. {chapter.name}
