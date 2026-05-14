@@ -549,7 +549,7 @@ function SearchBar() {
                             Sin resultados
                         </div>
                     ) : (
-                        <ul className="max-h-72 overflow-y-auto">
+                        <ul className="max-h-72 overflow-y-auto overscroll-behavior-contain">
                             {results.map((m) => (
                                 <li key={m.id}>
                                     <button
