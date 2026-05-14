@@ -459,6 +459,20 @@ function SearchBar() {
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const handler = (e: TouchEvent) => e.stopPropagation();
+        el.addEventListener("touchstart", handler, { passive: true });
+        el.addEventListener("touchmove", handler, { passive: true });
+        el.addEventListener("touchend", handler);
+        return () => {
+            el.removeEventListener("touchstart", handler);
+            el.removeEventListener("touchmove", handler);
+            el.removeEventListener("touchend", handler);
+        };
+    }, []);
+
+    useEffect(() => {
         if (!query.trim()) {
             setResults([]);
             setOpen(false);
