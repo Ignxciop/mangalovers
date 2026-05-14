@@ -280,7 +280,15 @@ export default function ChapterReader() {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const { series } = useSeriesDetail(slug ?? "");
     const chapters = useMemo(() => series?.chapters ?? [], [series]);
-    const { markUntil } = useReadChapters(series?.id ?? 0, chapters);
+    const { markUntil, refetch } = useReadChapters(series?.id ?? 0, chapters);
+    const prevChapterIdRef = useRef(chapterId);
+
+    useEffect(() => {
+        if (chapterId && chapterId !== prevChapterIdRef.current) {
+            prevChapterIdRef.current = chapterId;
+            refetch();
+        }
+    }, [chapterId, refetch]);
 
     const headerVisible = useHideOnScrollDown();
 
@@ -481,6 +489,7 @@ export default function ChapterReader() {
                     prev={chapter.prev}
                     next={chapter.next}
                     from={from}
+                    onNext={markUntil}
                 />
 
                 <div className="text-center py-6 text-muted-foreground text-sm">
