@@ -591,7 +591,7 @@ export default function Home() {
             .then(setMangas)
             .catch(() => setError(true))
             .finally(() => setLoadingLatest(false));
-    }, []);
+    }, [isAuthenticated]);
 
     useEffect(() => {
         if (!isAuthenticated) return;
