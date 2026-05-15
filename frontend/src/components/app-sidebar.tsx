@@ -52,8 +52,8 @@ function NavItem({
     label: string;
     disabled?: boolean;
 }) {
-    const { state } = useSidebar();
-    const collapsed = state === "collapsed";
+    const { state, isMobile } = useSidebar();
+    const collapsed = !isMobile && state === "collapsed";
     const location = useLocation();
     const isActive = location.pathname === href;
 
@@ -103,8 +103,8 @@ function NavItem({
 export function AppSidebar() {
     const { logout, user, isAuthenticated } = useAuth();
     const { theme, setTheme } = useTheme();
-    const { state } = useSidebar();
-    const collapsed = state === "collapsed";
+    const { state, isMobile } = useSidebar();
+    const collapsed = !isMobile && state === "collapsed";
 
     return (
         <Sidebar collapsible="icon">
