@@ -434,11 +434,19 @@ function StatsSkeleton() {
 }
 
 function ContinueSkeleton() {
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
     return (
         <section>
             <Skeleton className="h-4 w-40 mb-4" />
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
+                {Array.from({ length: isMobile ? 6 : 5 }).map((_, i) => (
                     <div key={i} className="space-y-2">
                         <Skeleton className="aspect-[2/3] rounded-xl" />
                         <Skeleton className="h-3 w-3/4" />
