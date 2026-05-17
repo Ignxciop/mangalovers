@@ -92,12 +92,12 @@ function ReaderControls({
 
     return (
         <div className="flex items-center justify-center gap-6 w-full max-w-2xl mx-auto px-4 py-3">
-            <div className="flex items-center gap-1 border border-border rounded-lg p-1">
+            <div className="flex items-center gap-1 border border-white/10 rounded-lg p-1 bg-white/5">
                 <button
                     onClick={() => onModeChange("cascade")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                         prefs.mode === "cascade"
-                            ? "bg-primary text-primary-foreground"
+                            ? "bg-brand text-white shadow-[0_0_12px_-4px] shadow-brand/50"
                             : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
@@ -106,9 +106,9 @@ function ReaderControls({
                 </button>
                 <button
                     onClick={() => onModeChange("pagination")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                         prefs.mode === "pagination"
-                            ? "bg-primary text-primary-foreground"
+                            ? "bg-brand text-white shadow-[0_0_12px_-4px] shadow-brand/50"
                             : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
@@ -117,7 +117,7 @@ function ReaderControls({
                 </button>
             </div>
 
-            <div className="hidden md:flex items-center gap-2 border border-border rounded-lg px-3 py-1.5">
+            <div className="hidden md:flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5">
                 <button
                     onClick={() =>
                         onZoomChange(ZOOM_STEPS[Math.max(0, zoomIndex - 1)])
@@ -238,7 +238,7 @@ function PaginationReader({
                         window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     disabled={currentPage === 0}
-                    className="p-2 rounded-lg border border-border hover:bg-muted transition-colors disabled:opacity-30"
+                    className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-30"
                 >
                     <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -253,7 +253,7 @@ function PaginationReader({
                         window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     disabled={currentPage === pages.length - 1}
-                    className="p-2 rounded-lg border border-border hover:bg-muted transition-colors disabled:opacity-30"
+                    className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-30"
                 >
                     <ChevronRight className="h-4 w-4" />
                 </button>
@@ -355,7 +355,7 @@ export default function ChapterReader() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex flex-col items-center py-10 gap-4 px-4">
+            <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b] flex flex-col items-center py-10 gap-4 px-4">
                 <Skeleton className="h-5 w-40 mb-6" />
                 {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton
@@ -387,9 +387,9 @@ export default function ChapterReader() {
         <>
             <PullToRefresh pull={pull} refreshing={refreshing} />
 
-            <div className="min-h-screen bg-background">
+            <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b]">
                 <div
-                    className={`sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border transition-transform duration-300 ${
+                    className={`sticky top-0 z-40 bg-[#0a0a0f]/80 dark:bg-[#06060b]/80 backdrop-blur border-b border-white/5 transition-transform duration-300 ${
                         headerVisible ? "translate-y-0" : "-translate-y-full"
                     }`}
                 >
@@ -486,7 +486,7 @@ export default function ChapterReader() {
                                     : `Faltan ${chaptersLeft} ${chaptersLeft === 1 ? "capítulo" : "capítulos"}`}
                             </span>
                         </div>
-                        <Progress value={progressPercent} className="h-1.5" />
+                        <Progress value={progressPercent} className="h-1.5 [&>div]:bg-gradient-to-r [&>div]:from-brand [&>div]:to-brand-cyan" />
                     </div>
                 )}
 
