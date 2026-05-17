@@ -167,6 +167,11 @@
     100% { background-position: 200% 0; }
 }
 
+@keyframes logo-glow {
+    0%, 100% { box-shadow: 0 0 8px -2px var(--brand); }
+    50% { box-shadow: 0 0 20px -2px var(--brand), 0 0 40px -8px var(--brand); }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;

@@ -67,7 +67,7 @@ function NavItem({
                 title={collapsed ? label : undefined}
                 aria-disabled="true"
             >
-                <Icon className="size-4 shrink-0" aria-hidden="true" />
+                <Icon className="size-4 shrink-0 transition-transform group-hover:scale-110" aria-hidden="true" />
                 {!collapsed && (
                     <span className="text-sm font-medium">{label}</span>
                 )}
@@ -79,17 +79,20 @@ function NavItem({
         <a
             href={href}
             className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-[background-color,color,box-shadow] duration-150 group relative",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative",
                 isActive
-                    ? "bg-gradient-to-r from-primary/90 to-primary text-primary-foreground shadow-sm"
+                    ? "bg-gradient-to-r from-primary/90 to-primary text-primary-foreground shadow-sm shadow-brand/20"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
                 collapsed && "justify-center px-2",
             )}
             title={collapsed ? label : undefined}
         >
+            {!collapsed && isActive && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-primary-foreground/70" />
+            )}
             <Icon
                 className={cn(
-                    "size-4 shrink-0 transition-transform group-hover:scale-110",
+                    "size-4 shrink-0 transition-all duration-200 group-hover:scale-110 group-hover:rotate-[8deg]",
                     isActive && "text-primary-foreground",
                 )}
             />
@@ -120,7 +123,7 @@ export function AppSidebar() {
                         collapsed && "justify-center",
                     )}
                 >
-                    <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-orange-500 to-rose-600 text-white shrink-0 shadow-sm">
+                    <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-orange-500 to-rose-600 text-white shrink-0 shadow-sm animate-[logo-glow_3s_ease-in-out_infinite]">
                         <BookHeart className="size-4" />
                     </div>
                     {!collapsed && (
