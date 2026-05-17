@@ -191,7 +191,7 @@ const MangaCard = memo(function MangaCard({
                     e.preventDefault();
                     navigate(`/manga/${manga.slug}`, { state: { from: "/" } });
                 }}
-                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20 active:scale-[0.98]"
+                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20 active:scale-[0.98] active:shadow-[0_0_25px_-3px] active:shadow-brand/50"
             >
                 {!imgLoaded && (
                     <div className="absolute inset-0 bg-muted animate-pulse" />
