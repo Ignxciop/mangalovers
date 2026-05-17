@@ -98,6 +98,15 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
         password: "",
     });
 
+    const hasUnsaved = form.email !== "" || form.password !== "";
+
+    useEffect(() => {
+        if (!hasUnsaved) return;
+        const handler = (e: BeforeUnloadEvent) => e.preventDefault();
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, [hasUnsaved]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     };
@@ -136,6 +145,7 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
                                     id="email"
                                     type="email"
                                     name="email"
+                                    autoComplete="email"
                                     placeholder="correo@ejemplo.com"
                                     value={form.email}
                                     onChange={handleChange}
@@ -152,6 +162,7 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
                                     id="password"
                                     type="password"
                                     name="password"
+                                    autoComplete="current-password"
                                     placeholder="••••••"
                                     value={form.password}
                                     onChange={handleChange}

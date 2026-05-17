@@ -8,10 +8,10 @@ import {
     FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, Eye, EyeOff } from "lucide-react";
 
 export function Register({ className, ...props }: React.ComponentProps<"div">) {
     const { register, isLoading, error } = useAuth();
@@ -25,6 +25,22 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
     });
 
     const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+
+    const hasUnsaved =
+        form.name !== "" ||
+        form.lastname !== "" ||
+        form.email !== "" ||
+        form.password !== "" ||
+        form.repeatpassword !== "";
+
+    useEffect(() => {
+        if (!hasUnsaved) return;
+        const handler = (e: BeforeUnloadEvent) => e.preventDefault();
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, [hasUnsaved]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm((prev) => ({
@@ -78,6 +94,7 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
                                         id="name"
                                         type="text"
                                         name="name"
+                                        autoComplete="given-name"
                                         placeholder="José"
                                         value={form.name}
                                         onChange={handleChange}
@@ -92,6 +109,7 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
                                         id="lastname"
                                         type="text"
                                         name="lastname"
+                                        autoComplete="family-name"
                                         placeholder="Núñez"
                                         value={form.lastname}
                                         onChange={handleChange}
@@ -105,6 +123,7 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
                                     id="email"
                                     type="email"
                                     name="email"
+                                    autoComplete="email"
                                     placeholder="correo@ejemplo.com"
                                     value={form.email}
                                     onChange={handleChange}
@@ -122,29 +141,63 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
                                         <FieldLabel htmlFor="password">
                                             Contraseña
                                         </FieldLabel>
-                                        <Input
-                                            id="password"
-                                            type="password"
-                                            name="password"
-                                            placeholder="••••••"
-                                            value={form.password}
-                                            onChange={handleChange}
-                                            required
-                                        />
+                                        <div className="relative">
+                                            <Input
+                                                id="password"
+                                                type={showPassword ? "text" : "password"}
+                                                name="password"
+                                                autoComplete="new-password"
+                                                placeholder="••••••"
+                                                value={form.password}
+                                                onChange={handleChange}
+                                                required
+                                                className="pr-9"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword((v) => !v)}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                                tabIndex={-1}
+                                            >
+                                                {showPassword ? (
+                                                    <EyeOff className="h-4 w-4" />
+                                                ) : (
+                                                    <Eye className="h-4 w-4" />
+                                                )}
+                                            </button>
+                                        </div>
                                     </Field>
                                     <Field>
                                         <FieldLabel htmlFor="confirm-password">
                                             Confirmar Contraseña
                                         </FieldLabel>
-                                        <Input
-                                            id="confirm-password"
-                                            type="password"
-                                            name="repeatpassword"
-                                            placeholder="••••••"
-                                            value={form.repeatpassword}
-                                            onChange={handleChange}
-                                            required
-                                        />
+                                        <div className="relative">
+                                            <Input
+                                                id="confirm-password"
+                                                type={showConfirm ? "text" : "password"}
+                                                name="repeatpassword"
+                                                autoComplete="new-password"
+                                                placeholder="••••••"
+                                                value={form.repeatpassword}
+                                                onChange={handleChange}
+                                                required
+                                                className="pr-9"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowConfirm((v) => !v)}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                aria-label={showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                                tabIndex={-1}
+                                            >
+                                                {showConfirm ? (
+                                                    <EyeOff className="h-4 w-4" />
+                                                ) : (
+                                                    <Eye className="h-4 w-4" />
+                                                )}
+                                            </button>
+                                        </div>
                                     </Field>
                                 </Field>
                                 <FieldDescription>
@@ -154,7 +207,7 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
                             <Field>
                                 <Button type="submit" disabled={isLoading}>
                                     {isLoading
-                                        ? "Creando cuenta..."
+                                        ? "Creando cuenta…"
                                         : "Crear Cuenta"}
                                 </Button>
                             </Field>
