@@ -531,7 +531,7 @@ export default function FavoritesList() {
                         <>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                                 {paginatedFavorites.map((fav) => (
-                                    <div key={fav.id} className="group">
+                                    <div key={fav.id} className="group animate-fade-in-up">
                                         {/* Card imagen — <a> envuelve solo la imagen */}
                                         <a
                                             href={`/manga/${fav.series.slug}`}
@@ -633,7 +633,7 @@ export default function FavoritesList() {
                                                 fav.lastAvailableChapterName && (
                                                     <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
                                                         <div
-                                                            className="h-full bg-primary rounded-full transition-all"
+                                                            className="h-full bg-primary rounded-full transition-[width]"
                                                             style={{
                                                                 width: `${Math.min(
                                                                     (parseFloat(

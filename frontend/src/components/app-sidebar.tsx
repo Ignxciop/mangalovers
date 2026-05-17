@@ -61,7 +61,7 @@ function NavItem({
         return (
             <span
                 className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg opacity-30 cursor-not-allowed select-none transition-all",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg opacity-30 cursor-not-allowed select-none transition-[opacity,background-color]",
                     collapsed && "justify-center px-2",
                 )}
                 title={collapsed ? label : undefined}
@@ -79,7 +79,7 @@ function NavItem({
         <a
             href={href}
             className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-[background-color,color,box-shadow] duration-150 group relative",
                 isActive
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
@@ -116,7 +116,7 @@ export function AppSidebar() {
                 <a
                     href="/"
                     className={cn(
-                        "flex items-center gap-2.5 transition-all",
+                        "flex items-center gap-2.5 transition-[gap,opacity]",
                         collapsed && "justify-center",
                     )}
                 >
@@ -182,7 +182,7 @@ export function AppSidebar() {
                                 <SidebarMenuButton
                                     size="lg"
                                     className={cn(
-                                        "rounded-xl border border-border bg-muted/50 hover:bg-muted transition-all duration-150 data-[state=open]:bg-muted data-[state=open]:border-primary/30",
+                                        "rounded-xl border border-border bg-muted/50 hover:bg-muted transition-[background-color,border-color] duration-150 data-[state=open]:bg-muted data-[state=open]:border-primary/30",
                                         collapsed && "justify-center px-2",
                                     )}
                                 >

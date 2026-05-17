@@ -184,14 +184,14 @@ const MangaCard = memo(function MangaCard({
     const [imgLoaded, setImgLoaded] = useState(false);
 
     return (
-        <div className="group" style={{ animationDelay: `${index * 30}ms` }}>
+        <div className="group animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
             <a
                 href={`/manga/${manga.slug}`}
                 onClick={(e) => {
                     e.preventDefault();
                     navigate(`/manga/${manga.slug}`, { state: { from: "/" } });
                 }}
-                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-lg"
+                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-[transform,box-shadow] duration-200 group-hover:scale-[1.03] group-hover:shadow-lg active:scale-[0.98]"
             >
                 {!imgLoaded && (
                     <div className="absolute inset-0 bg-muted animate-pulse" />

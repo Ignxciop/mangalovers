@@ -124,7 +124,7 @@ function ChapterRow({
     return (
         <div
             onClick={onClick}
-            className={`group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-all duration-150 border ${
+            className={`group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-[background-color,border-color,opacity] duration-150 border ${
                 isRead
                     ? "border-transparent hover:bg-muted hover:border-border opacity-50 hover:opacity-100"
                     : "border-transparent hover:bg-muted hover:border-border"

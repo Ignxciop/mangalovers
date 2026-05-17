@@ -51,14 +51,14 @@ const ContinueItem = memo(function ContinueItem({
             : 0;
 
     return (
-        <div className="group">
+        <div className="group animate-fade-in-up">
             <a
                 href={`/manga/${item.slug}`}
                 onClick={(e) => {
                     e.preventDefault();
                     navigate(`/manga/${item.slug}`);
                 }}
-                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-lg"
+                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-[transform,box-shadow] duration-200 group-hover:scale-[1.03] group-hover:shadow-lg active:scale-[0.98]"
             >
                 {item.cover ? (
                     <img

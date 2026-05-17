@@ -386,7 +386,7 @@ export default function MangaList() {
                         </div>
                     )}
                     {mangas.map((manga) => (
-                        <div key={manga.id} className="group">
+                        <div key={manga.id} className="group animate-fade-in-up">
                             <div className="relative aspect-[3/4] rounded-lg overflow-hidden border bg-muted shadow-sm transition-transform group-hover:scale-[1.03]">
                                 {/* Enlace principal — cubre todo el card */}
                                 <a

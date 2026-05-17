@@ -9,7 +9,7 @@ export function PullToRefresh({
 }) {
     return (
         <div
-            className="fixed top-0 left-0 w-full flex justify-center z-50 pointer-events-none transition-all"
+            className="fixed top-0 left-0 w-full flex justify-center z-50 pointer-events-none transition-[transform,opacity]"
             style={{
                 transform: `translateY(${pull}px)`,
                 opacity: pull > 10 ? 1 : 0,
