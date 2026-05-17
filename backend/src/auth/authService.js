@@ -249,6 +249,12 @@ export class AuthService {
     static async updatePassword(userId, { currentPassword, newPassword }) {
         const user = await prisma.user.findUnique({ where: { id: userId } });
 
+        if (!user.password) {
+            const error = new Error("Las cuentas vinculadas a Google no pueden cambiar contraseña");
+            error.statusCode = 400;
+            throw error;
+        }
+
         const isValid = await bcrypt.compare(currentPassword, user.password);
         if (!isValid) {
             const error = new Error("Contraseña actual incorrecta");
@@ -267,6 +273,12 @@ export class AuthService {
 
     static async deleteAccount(userId, { password }) {
         const user = await prisma.user.findUnique({ where: { id: userId } });
+
+        if (!user.password) {
+            const error = new Error("Las cuentas vinculadas a Google no pueden eliminarse con contraseña");
+            error.statusCode = 400;
+            throw error;
+        }
 
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) {

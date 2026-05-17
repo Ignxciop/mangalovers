@@ -5,6 +5,7 @@ import {
     getChapterPages,
     getAllGenres,
 } from "./mangaService.js";
+import { markChaptersUntil } from "../read/readService.js";
 
 export async function handleGetAllManga(req, res, next) {
     try {
@@ -72,10 +73,11 @@ export async function handleGetChapterPages(req, res, next) {
             });
         }
 
+        const userId = req.user?.userId ?? null;
         const chapter = await getChapterPages(
             slug,
             chapterId,
-            req.user?.userId ?? null,
+            userId,
         );
 
         if (!chapter) {
@@ -83,6 +85,10 @@ export async function handleGetChapterPages(req, res, next) {
                 success: false,
                 message: "Capítulo no encontrado",
             });
+        }
+
+        if (userId) {
+            await markChaptersUntil(userId, chapterId).catch(() => {});
         }
 
         return res.json(chapter);

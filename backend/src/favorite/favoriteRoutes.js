@@ -6,12 +6,17 @@ import {
     handleDeleteFavorite,
 } from "./favoriteController.js";
 import { authenticate } from "../middlewares/auth.js";
+import {
+    seriesIdParamValidator,
+    upsertFavoriteValidator,
+    validate,
+} from "./favoriteValidator.js";
 
 const router = Router();
 
 router.get("/", authenticate, handleGetFavorites);
-router.get("/:seriesId", authenticate, handleGetFavorite);
-router.post("/", authenticate, handleUpsertFavorite);
-router.delete("/:seriesId", authenticate, handleDeleteFavorite);
+router.get("/:seriesId", authenticate, seriesIdParamValidator, validate, handleGetFavorite);
+router.post("/", authenticate, upsertFavoriteValidator, validate, handleUpsertFavorite);
+router.delete("/:seriesId", authenticate, seriesIdParamValidator, validate, handleDeleteFavorite);
 
 export default router;

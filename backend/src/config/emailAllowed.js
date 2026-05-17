@@ -1,21 +1,5 @@
-const ALLOWED_DOMAINS = [
-    "gmail.com",
-    "googlemail.com",
-    "hotmail.com",
-    "outlook.com",
-    "live.com",
-    "msn.com",
-    "yahoo.com",
-    "yahoo.es",
-    "yahoo.com.mx",
-    "yahoo.com.ar",
-    "icloud.com",
-    "me.com",
-    "mac.com",
-    "hotmail.es",
-    "outlook.es",
-    "mail.com",
-];
+// Bloqueamos solo dominios temporales/desechables, el resto se permite
+const ALLOWED_DOMAINS = null;
 
 const TEMPORARY_DOMAINS = [
     "10minutemail.com",
@@ -64,13 +48,6 @@ export const validateEmailDomain = (email) => {
         return {
             valid: false,
             reason: "No se permiten correos temporales o desechables",
-        };
-    }
-
-    if (!ALLOWED_DOMAINS.includes(domain)) {
-        return {
-            valid: false,
-            reason: `El dominio ${domain} no está en la lista de proveedores permitidos. Usa Gmail, Hotmail, Yahoo, iCloud u otro proveedor reconocido.`,
         };
     }
 

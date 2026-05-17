@@ -2,6 +2,7 @@ import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import { notifyNewChapter } from "../../../notifications/notificationService.js";
+import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
 
 const limit = pLimit(4);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -85,20 +86,7 @@ async function processSeries(providerSeries, providerId) {
             await sleep(300);
         }
 
-        // actualizar metadata SIEMPRE
-        const latestChapter = await prisma.chapter.findFirst({
-            where: { seriesId },
-            orderBy: { publishedAt: "desc" },
-            select: { publishedAt: true },
-        });
-
-        await prisma.series.update({
-            where: { id: seriesId },
-            data: {
-                lastChaptersCheck: new Date(),
-                lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
-            },
-        });
+        await updateSeriesMetadata(seriesId);
 
         // NOTIFICAR SOLO UNA VEZ Y AL FINAL
         if (latestCreatedChapter) {

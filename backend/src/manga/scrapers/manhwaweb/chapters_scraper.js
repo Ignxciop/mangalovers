@@ -2,6 +2,7 @@ import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import { notifyNewChapter } from "../../../notifications/notificationService.js";
+import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
 
 const limit = pLimit(2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -88,19 +89,7 @@ async function processSeries(providerSeries, providerId) {
             console.log(`Capítulo nuevo: ${chapterName}`);
         }
 
-        const latestChapter = await prisma.chapter.findFirst({
-            where: { seriesId },
-            orderBy: { publishedAt: "desc" },
-            select: { publishedAt: true },
-        });
-
-        await prisma.series.update({
-            where: { id: seriesId },
-            data: {
-                lastChaptersCheck: new Date(),
-                lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
-            },
-        });
+        await updateSeriesMetadata(seriesId);
 
         // NOTIFICAR UNA SOLA VEZ
         if (latestCreatedChapter) {

@@ -514,20 +514,28 @@ export async function getFullStats(userId) {
         }
     }
 
-    const allChaptersForTop = await prisma.chapter.findMany({
-        where: {
-            seriesId: {
-                in: [...new Set(allReads.map((r) => r.chapter.seriesId))],
-            },
-        },
-        select: { seriesId: true, name: true },
-    });
-
     const lastChapterNameMap = new Map();
-    for (const c of allChaptersForTop) {
-        const current = lastChapterNameMap.get(c.seriesId);
-        if (!current || parseFloat(c.name) > parseFloat(current)) {
-            lastChapterNameMap.set(c.seriesId, c.name);
+    for (const fav of favorites) {
+        const chapters = fav.series.chapters;
+        if (chapters.length > 0) {
+            const last = chapters.reduce((a, b) =>
+                parseFloat(a.name) > parseFloat(b.name) ? a : b,
+            );
+            lastChapterNameMap.set(fav.seriesId, last.name);
+        }
+    }
+    const missingSeriesIds = [...new Set(allReads.map((r) => r.chapter.seriesId))]
+        .filter((id) => !lastChapterNameMap.has(id));
+    if (missingSeriesIds.length > 0) {
+        const chapters = await prisma.chapter.findMany({
+            where: { seriesId: { in: missingSeriesIds } },
+            select: { seriesId: true, name: true },
+        });
+        for (const c of chapters) {
+            const current = lastChapterNameMap.get(c.seriesId);
+            if (!current || parseFloat(c.name) > parseFloat(current)) {
+                lastChapterNameMap.set(c.seriesId, c.name);
+            }
         }
     }
 
