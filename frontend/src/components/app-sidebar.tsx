@@ -59,18 +59,19 @@ function NavItem({
 
     if (disabled) {
         return (
-            <div
+            <span
                 className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg opacity-30 cursor-not-allowed select-none transition-all",
                     collapsed && "justify-center px-2",
                 )}
                 title={collapsed ? label : undefined}
+                aria-disabled="true"
             >
-                <Icon className="size-4 shrink-0" />
+                <Icon className="size-4 shrink-0" aria-hidden="true" />
                 {!collapsed && (
                     <span className="text-sm font-medium">{label}</span>
                 )}
-            </div>
+            </span>
         );
     }
 

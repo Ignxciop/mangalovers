@@ -15,7 +15,7 @@ export default function MainLayout() {
     return (
         <SidebarProvider defaultOpen={defaultOpen}>
             <AppSidebar />
-            <div className="items-center w-full">
+            <div id="main-content" className="items-center w-full">
                 <Outlet />
             </div>
         </SidebarProvider>
