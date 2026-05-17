@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
     fetchReadChapterIds,
     toggleChapterRead,
@@ -30,6 +30,8 @@ export function useReadChapters(seriesId: number, chapters: Chapter[] = []) {
     const [readIds, setReadIds] = useState<Set<number>>(new Set());
     const [loading, setLoading] = useState(false);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    const readIdsRef = useRef(readIds);
+    readIdsRef.current = readIds;
 
     const load = useCallback(async () => {
         if (!seriesId) return;
@@ -80,11 +82,11 @@ export function useReadChapters(seriesId: number, chapters: Chapter[] = []) {
                 return;
             }
 
-            const isRead = readIds.has(chapterId);
+            const wasRead = readIdsRef.current.has(chapterId);
 
             setReadIds((prev) => {
                 const next = new Set(prev);
-                if (isRead) next.delete(chapterId);
+                if (wasRead) next.delete(chapterId);
                 else next.add(chapterId);
                 return next;
             });
@@ -96,13 +98,13 @@ export function useReadChapters(seriesId: number, chapters: Chapter[] = []) {
             } catch {
                 setReadIds((prev) => {
                     const next = new Set(prev);
-                    if (isRead) next.add(chapterId);
+                    if (wasRead) next.add(chapterId);
                     else next.delete(chapterId);
                     return next;
                 });
             }
         },
-        [isAuthenticated, seriesId, chapters, readIds],
+        [isAuthenticated, seriesId, chapters],
     );
 
     const markUntil = useCallback(
