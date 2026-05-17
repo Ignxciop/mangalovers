@@ -73,14 +73,43 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 
 | Método | Endpoint | Auth | Descripción |
 |---|---|---|---|
-| GET | `/api/manga` | Optional | Listado paginado con filtros (search, status, genre, sort) |
+| GET | `/api/health` | No | Health check del servidor |
+| **Auth** | | | |
+| POST | `/api/auth/register` | No | Registro de usuario |
+| POST | `/api/auth/login` | No | Inicio de sesión |
+| POST | `/api/auth/google` | No | Inicio de sesión con Google |
+| POST | `/api/auth/refresh` | No | Renovar token JWT |
+| POST | `/api/auth/logout` | Sí | Cerrar sesión |
+| POST | `/api/auth/logout-all` | Sí | Cerrar todas las sesiones activas |
+| GET | `/api/auth/me` | Sí | Perfil del usuario autenticado |
+| GET | `/api/auth/sessions` | Sí | Sesiones activas |
+| PATCH | `/api/auth/profile` | Sí | Actualizar perfil |
+| PATCH | `/api/auth/password` | Sí | Cambiar contraseña |
+| DELETE | `/api/auth/account` | Sí | Eliminar cuenta |
+| GET | `/api/auth/google-client-id` | No | Obtener client ID de Google OAuth |
+| **Manga** | | | |
+| GET | `/api/manga` | Optional | Listado paginado con filtros (search, status, genre, sort, type) |
 | GET | `/api/manga/latest` | Optional | Últimas series actualizadas |
 | GET | `/api/manga/genres` | No | Todos los géneros disponibles |
+| GET | `/api/manga/recommended` | Sí | Recomendaciones basadas en géneros más leídos |
 | GET | `/api/manga/:slug` | Optional | Detalle de serie con sus capítulos |
-| GET | `/api/manga/capitulo/:slug/:chapterId/pages` | Optional | Páginas de un capítulo (valida pertenencia a la serie) |
+| GET | `/api/manga/capitulo/:slug/:chapterId/pages` | Optional | Páginas de un capítulo con navegación prev/next |
+| **Favoritos** | | | |
 | GET | `/api/favorites` | Sí | Favoritos del usuario con progreso |
+| GET | `/api/favorites/:seriesId` | Sí | Verificar si una serie está en favoritos |
+| POST | `/api/favorites` | Sí | Agregar o actualizar favorito (status: Siguiendo/Terminado) |
+| DELETE | `/api/favorites/:seriesId` | Sí | Eliminar favorito |
+| **Lectura** | | | |
+| GET | `/api/reads/series/:seriesId` | Sí | IDs de capítulos leídos de una serie |
+| POST | `/api/reads/chapter/:chapterId/toggle` | Sí | Marcar/desmarcar capítulo como leído |
 | POST | `/api/reads/chapter/:chapterId/mark-until` | Sí | Marcar todos los capítulos hasta este como leídos |
-| GET | `/api/reads/full-stats` | Sí | Estadísticas detalladas de lectura |
+| GET | `/api/reads/stats` | Sí | Estadísticas de lectura |
+| GET | `/api/reads/full-stats` | Sí | Estadísticas detalladas con heatmap, rachas, géneros |
+| **Notificaciones** | | | |
+| GET | `/api/notifications/vapid-public-key` | No | Clave pública VAPID para Web Push |
+| POST | `/api/notifications/subscribe` | Sí | Suscribirse a notificaciones push |
+| DELETE | `/api/notifications/unsubscribe` | Sí | Cancelar suscripción push |
+| GET | `/api/notifications/status` | Sí | Estado de la suscripción push |
 
 ### Ejecutar localmente
 
@@ -111,15 +140,17 @@ docker compose up -d
 
 ```
 backend/
-├── prisma/schema.prisma       # Modelo de datos
+├── prisma/
+│   └── schema.prisma           # Modelo de datos
 ├── src/
-│   ├── auth/                   # Registro, login, JWT, refresh tokens
+│   ├── auth/                   # Registro, login, JWT, refresh tokens, Google OAuth
 │   ├── manga/                  # Series, capítulos, scraping, scrapers
 │   ├── favorite/               # Favoritos del usuario
 │   ├── read/                   # Tracking de lectura y estadísticas
 │   ├── notifications/          # Push notifications (web-push)
 │   ├── middlewares/            # Auth middleware, error handler
-│   ├── jobs/scraperCron.js     # Cron de scraping automático
+│   ├── jobs/                   # Cron de scraping automático
+│   ├── scripts/                # Utilidades: seed, dedup, fixes, scraper runners
 │   └── config/                 # Prisma client, env, email validation
 
 frontend/
