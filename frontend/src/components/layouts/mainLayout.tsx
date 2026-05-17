@@ -15,7 +15,11 @@ export default function MainLayout() {
     return (
         <SidebarProvider defaultOpen={defaultOpen}>
             <AppSidebar />
-            <div id="main-content" className="items-center w-full">
+            <div
+                id="main-content"
+                className="items-center w-full"
+                style={{ padding: "env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)" }}
+            >
                 <Outlet />
             </div>
         </SidebarProvider>

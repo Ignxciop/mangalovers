@@ -35,18 +35,21 @@ export function ThemeProvider({
 
         root.classList.remove("light", "dark");
 
-        if (theme === "system") {
-            const systemTheme = window.matchMedia(
-                "(prefers-color-scheme: dark)",
-            ).matches
+        const resolvedTheme = theme === "system"
+            ? window.matchMedia("(prefers-color-scheme: dark)").matches
                 ? "dark"
-                : "light";
+                : "light"
+            : theme;
 
-            root.classList.add(systemTheme);
-            return;
+        root.classList.add(resolvedTheme);
+
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+            meta.setAttribute(
+                "content",
+                resolvedTheme === "dark" ? "#09090b" : "#ffffff",
+            );
         }
-
-        root.classList.add(theme);
     }, [theme]);
 
     const value = {
