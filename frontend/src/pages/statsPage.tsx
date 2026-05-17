@@ -83,20 +83,20 @@ function StatCard({
     accent?: "primary" | "emerald" | "amber" | "sky" | "rose" | "violet";
 }) {
     const accentMap = {
-        primary: "bg-primary/10 text-primary border-primary/20",
-        emerald: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-        amber: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-        sky: "bg-sky-500/10 text-sky-500 border-sky-500/20",
-        rose: "bg-rose-500/10 text-rose-500 border-rose-500/20",
-        violet: "bg-violet-500/10 text-violet-500 border-violet-500/20",
+        primary: "border-brand/30",
+        emerald: "border-brand-green/30",
+        amber: "border-brand-amber/30",
+        sky: "border-brand-cyan/30",
+        rose: "border-brand/30",
+        violet: "border-brand-purple/30",
     };
     const iconMap = {
-        primary: "bg-primary/10 text-primary",
-        emerald: "bg-emerald-500/10 text-emerald-500",
-        amber: "bg-amber-500/10 text-amber-500",
-        sky: "bg-sky-500/10 text-sky-500",
-        rose: "bg-rose-500/10 text-rose-500",
-        violet: "bg-violet-500/10 text-violet-500",
+        primary: "bg-brand/15 text-brand shadow-[0_0_12px_-4px] shadow-brand/30",
+        emerald: "bg-brand-green/15 text-brand-green shadow-[0_0_12px_-4px] shadow-brand-green/30",
+        amber: "bg-brand-amber/15 text-brand-amber shadow-[0_0_12px_-4px] shadow-brand-amber/30",
+        sky: "bg-brand-cyan/15 text-brand-cyan shadow-[0_0_12px_-4px] shadow-brand-cyan/30",
+        rose: "bg-brand/15 text-brand shadow-[0_0_12px_-4px] shadow-brand/30",
+        violet: "bg-brand-purple/15 text-brand-purple shadow-[0_0_12px_-4px] shadow-brand-purple/30",
     };
 
     return (
@@ -130,13 +130,24 @@ function StatCard({
 function SectionHeader({
     icon: Icon,
     title,
+    color = "brand",
 }: {
     icon: React.ElementType;
     title: string;
+    color?: "brand" | "cyan" | "amber" | "green" | "purple";
 }) {
+    const colorClass = {
+        brand: "bg-brand/15 text-brand",
+        cyan: "bg-brand-cyan/15 text-brand-cyan",
+        amber: "bg-brand-amber/15 text-brand-amber",
+        green: "bg-brand-green/15 text-brand-green",
+        purple: "bg-brand-purple/15 text-brand-purple",
+    };
     return (
         <div className="flex items-center gap-2 mb-4">
-            <Icon className="h-4 w-4 text-muted-foreground" />
+            <span className={`flex items-center justify-center size-6 rounded-md shrink-0 ${colorClass[color]}`}>
+                <Icon className="h-3.5 w-3.5" />
+            </span>
             <h2 className="text-sm font-semibold tracking-wide">{title}</h2>
         </div>
     );
@@ -154,21 +165,21 @@ function ActivityHeatmap({
     function getIntensity(count: number) {
         if (count === 0) return "bg-muted";
         const pct = count / max;
-        if (pct < 0.25) return "bg-primary/20";
-        if (pct < 0.5) return "bg-primary/40";
-        if (pct < 0.75) return "bg-primary/70";
-        return "bg-primary";
+        if (pct < 0.25) return "bg-brand/20";
+        if (pct < 0.5) return "bg-brand/40";
+        if (pct < 0.75) return "bg-brand/60";
+        return "bg-brand shadow-[0_0_6px_-2px] shadow-brand/60";
     }
 
     return (
-        <div className="rounded-xl border border-border bg-card p-5">
-            <SectionHeader icon={Activity} title="Actividad últimos 30 días" />
+        <div className="rounded-xl border border-white/10 dark:border-white/[0.05] bg-card p-5">
+            <SectionHeader icon={Activity} title="Actividad últimos 30 días" color="brand" />
             <div className="flex gap-1 flex-wrap">
                 {data.map((d) => (
                     <div
                         key={d.date}
                         title={`${d.date}: ${d.count} capítulos`}
-                        className={`size-6 rounded-sm transition-colors ${getIntensity(d.count)}`}
+                        className={`size-6 rounded-sm transition-all duration-150 ${getIntensity(d.count)}`}
                     />
                 ))}
             </div>
@@ -176,10 +187,10 @@ function ActivityHeatmap({
                 <span className="text-[10px] text-muted-foreground">Menos</span>
                 {[
                     "bg-muted",
-                    "bg-primary/20",
-                    "bg-primary/40",
-                    "bg-primary/70",
-                    "bg-primary",
+                    "bg-brand/20",
+                    "bg-brand/40",
+                    "bg-brand/60",
+                    "bg-brand",
                 ].map((c) => (
                     <div key={c} className={`size-3 rounded-sm ${c}`} />
                 ))}
@@ -195,8 +206,8 @@ function MonthlyBar({ data }: { data: { label: string; count: number }[] }) {
     const max = Math.max(...data.map((d) => d.count), 1);
 
     return (
-        <div className="rounded-xl border border-border bg-card p-5">
-            <SectionHeader icon={BarChart3} title="Capítulos por mes" />
+        <div className="rounded-xl border border-white/10 dark:border-white/[0.05] bg-card p-5">
+            <SectionHeader icon={BarChart3} title="Capítulos por mes" color="cyan" />
             <div className="flex items-end gap-2 h-28">
                 {data.map((d) => (
                     <div
@@ -211,7 +222,7 @@ function MonthlyBar({ data }: { data: { label: string; count: number }[] }) {
                             style={{ height: "80px" }}
                         >
                             <div
-                                className="w-full rounded-t-md bg-primary/70 transition-all duration-500"
+                                className="w-full rounded-t-md bg-gradient-to-t from-brand to-brand-cyan transition-all duration-500 shadow-[0_0_8px_-3px] shadow-brand/30"
                                 style={{
                                     height: `${(d.count / max) * 80}px`,
                                     minHeight: d.count > 0 ? "4px" : "0",
@@ -240,10 +251,11 @@ function WeekdayChart({
     const max = Math.max(...data.map((d) => d.count), 1);
 
     return (
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-white/10 dark:border-white/[0.05] bg-card p-5">
             <SectionHeader
                 icon={Calendar}
                 title="Actividad por día de la semana"
+                color="amber"
             />
             <div className="space-y-2">
                 {data.map((d) => {
@@ -251,13 +263,13 @@ function WeekdayChart({
                     return (
                         <div key={d.name} className="flex items-center gap-3">
                             <span
-                                className={`text-xs w-8 shrink-0 ${isActive ? "text-primary font-semibold" : "text-muted-foreground"}`}
+                                className={`text-xs w-8 shrink-0 ${isActive ? "text-brand font-semibold" : "text-muted-foreground"}`}
                             >
                                 {d.name}
                             </span>
                             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                                 <div
-                                    className={`h-full rounded-full transition-all duration-500 ${isActive ? "bg-primary" : "bg-primary/40"}`}
+                                    className={`h-full rounded-full transition-all duration-500 ${isActive ? "bg-gradient-to-r from-brand to-brand-cyan" : "bg-brand/30"}`}
                                     style={{
                                         width: `${(d.count / max) * 100}%`,
                                     }}
@@ -280,8 +292,8 @@ function TopGenres({ genres }: { genres: { name: string; count: number }[] }) {
     const max = genres[0]?.count ?? 1;
 
     return (
-        <div className="rounded-xl border border-border bg-card p-5">
-            <SectionHeader icon={Tag} title="Géneros más leídos" />
+        <div className="rounded-xl border border-white/10 dark:border-white/[0.05] bg-card p-5">
+            <SectionHeader icon={Tag} title="Géneros más leídos" color="purple" />
             <div className="space-y-3">
                 {genres.map((g, i) => (
                     <div key={g.name} className="flex items-center gap-3">
@@ -299,7 +311,7 @@ function TopGenres({ genres }: { genres: { name: string; count: number }[] }) {
                             </div>
                             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                                 <div
-                                    className="h-full rounded-full bg-primary transition-all duration-500"
+                                    className="h-full rounded-full bg-gradient-to-r from-brand-purple to-brand transition-all duration-500"
                                     style={{
                                         width: `${(g.count / max) * 100}%`,
                                     }}
@@ -319,8 +331,8 @@ function TopSeriesSection({ series }: { series: FullStats["topSeries"] }) {
     const navigate = useNavigate();
 
     return (
-        <div className="rounded-xl border border-border bg-card p-5">
-            <SectionHeader icon={Star} title="Series más leídas" />
+        <div className="rounded-xl border border-white/10 dark:border-white/[0.05] bg-card p-5">
+            <SectionHeader icon={Star} title="Series más leídas" color="green" />
             <div className="space-y-3">
                 {series.map((s, i) => {
                     const pct =
@@ -362,7 +374,7 @@ function TopSeriesSection({ series }: { series: FullStats["topSeries"] }) {
                                 <div className="flex items-center gap-2 mt-1">
                                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                                         <div
-                                            className="h-full rounded-full bg-primary"
+                                            className="h-full rounded-full bg-gradient-to-r from-brand-green to-brand-cyan"
                                             style={{ width: `${pct}%` }}
                                         />
                                     </div>
@@ -449,7 +461,7 @@ export default function StatsPage() {
 
     return (
         <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
+                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
                     <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
                         <SidebarTrigger />
                         <div className="flex justify-center min-w-0">
@@ -549,8 +561,8 @@ export default function StatsPage() {
 
                         {/* Rachas + género + día activo */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div className="rounded-xl border border-orange-500/20 bg-card p-5 flex items-center gap-4">
-                                <div className="flex items-center justify-center size-10 rounded-lg bg-orange-500/10 text-orange-500 shrink-0">
+                            <div className="rounded-xl border border-brand-amber/30 bg-card p-5 flex items-center gap-4 shadow-[0_0_20px_-10px] shadow-brand-amber/20">
+                                <div className="flex items-center justify-center size-10 rounded-lg bg-brand-amber/15 text-brand-amber shadow-[0_0_12px_-4px] shadow-brand-amber/30 shrink-0">
                                     <Flame className="size-5" />
                                 </div>
                                 <div>
@@ -567,8 +579,8 @@ export default function StatsPage() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="rounded-xl border border-amber-500/20 bg-card p-5 flex items-center gap-4">
-                                <div className="flex items-center justify-center size-10 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                            <div className="rounded-xl border border-brand-amber/30 bg-card p-5 flex items-center gap-4 shadow-[0_0_20px_-10px] shadow-brand-amber/20">
+                                <div className="flex items-center justify-center size-10 rounded-lg bg-brand-amber/15 text-brand-amber shadow-[0_0_12px_-4px] shadow-brand-amber/30 shrink-0">
                                     <Trophy className="size-5" />
                                 </div>
                                 <div>
@@ -585,8 +597,8 @@ export default function StatsPage() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="rounded-xl border border-border bg-card p-5 flex items-center gap-4">
-                                <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10 text-primary shrink-0">
+                            <div className="rounded-xl border border-white/10 dark:border-white/[0.05] bg-card p-5 flex items-center gap-4">
+                                <div className="flex items-center justify-center size-10 rounded-lg bg-brand/15 text-brand shadow-[0_0_12px_-4px] shadow-brand/30 shrink-0">
                                     <Calendar className="size-5" />
                                 </div>
                                 <div>
@@ -631,10 +643,11 @@ export default function StatsPage() {
                         </div>
 
                         {/* Tasa de finalización visual */}
-                        <div className="rounded-xl border border-border bg-card p-5">
+                        <div className="rounded-xl border border-white/10 dark:border-white/[0.05] bg-card p-5">
                             <SectionHeader
                                 icon={CheckCircle2}
                                 title="Progreso de colección"
+                                color="green"
                             />
                             <div className="space-y-3">
                                 <div>
@@ -648,7 +661,7 @@ export default function StatsPage() {
                                     </div>
                                     <Progress
                                         value={stats.completionRate}
-                                        className="h-2"
+                                        className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-brand-green [&>div]:to-brand"
                                     />
                                     <p className="text-[11px] text-muted-foreground mt-1.5">
                                         {stats.completedSeries} de{" "}
