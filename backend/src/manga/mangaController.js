@@ -6,67 +6,70 @@ import {
     getAllGenres,
 } from "./mangaService.js";
 
-export async function handleGetAllManga(req, res) {
+export async function handleGetAllManga(req, res, next) {
     try {
         const result = await getAllManga(req.query);
         res.json(result);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Error interno del servidor" });
+        next(error);
     }
 }
 
-export async function handleGetAllGenres(req, res) {
+export async function handleGetAllGenres(req, res, next) {
     try {
         const genres = await getAllGenres();
         res.json(genres);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Error obteniendo géneros" });
+        next(error);
     }
 }
 
-export async function handleGetLatestManga(req, res) {
+export async function handleGetLatestManga(req, res, next) {
     try {
         const limit = Number(req.query.limit) || 16;
         const userId = req.user?.userId ?? null;
         const manga = await getLatestManga(userId, limit);
         res.json(manga);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Error obteniendo últimos mangas" });
+        next(error);
     }
 }
 
-export async function getSeriesDetail(req, res) {
+export async function getSeriesDetail(req, res, next) {
     try {
         const { slug } = req.params;
 
-        const series = await getSeriesDetailBySlug(slug);
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 100;
+        const series = await getSeriesDetailBySlug(slug, page, Math.min(limit, 200));
 
         if (!series) {
             return res.status(404).json({
+                success: false,
                 message: "Serie no encontrada",
             });
         }
 
         return res.json(series);
     } catch (error) {
-        console.error("Error obteniendo detalle de serie:", error);
-        return res.status(500).json({
-            message: "Error interno del servidor",
-        });
+        next(error);
     }
 }
 
-export async function handleGetChapterPages(req, res) {
+export async function handleGetChapterPages(req, res, next) {
     try {
         const { slug, chapterId } = req.params;
         if (isNaN(Number(chapterId))) {
-            return res.status(400).json({ message: "ID de capítulo inválido" });
+            return res.status(400).json({
+                success: false,
+                message: "ID de capítulo inválido",
+            });
         }
         if (!slug) {
-            return res.status(400).json({ message: "Slug de serie requerido" });
+            return res.status(400).json({
+                success: false,
+                message: "Slug de serie requerido",
+            });
         }
 
         const chapter = await getChapterPages(
@@ -76,23 +79,24 @@ export async function handleGetChapterPages(req, res) {
         );
 
         if (!chapter) {
-            return res.status(404).json({ message: "Capítulo no encontrado" });
+            return res.status(404).json({
+                success: false,
+                message: "Capítulo no encontrado",
+            });
         }
 
         return res.json(chapter);
     } catch (error) {
-        console.error("Error obteniendo páginas del capítulo:", error);
-        return res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 }
 
-export async function handleGetRecommended(req, res) {
+export async function handleGetRecommended(req, res, next) {
     try {
         if (!req.user?.userId) return res.json({ series: [], basedOn: [] });
         const result = await getRecommendedSeries(req.user.userId);
         res.json(result);
     } catch (error) {
-        console.error("Error recomendaciones:", error);
-        res.status(500).json({ message: "Error interno" });
+        next(error);
     }
 }

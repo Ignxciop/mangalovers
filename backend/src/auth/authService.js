@@ -28,17 +28,6 @@ export class AuthService {
         });
 
         if (existingUser) {
-            if (!existingUser) {
-                return {
-                    user: {
-                        id: existingUser.id,
-                        email: existingUser.email,
-                        name: existingUser.name,
-                        lastname: existingUser.lastname,
-                    },
-                };
-            }
-
             const error = new Error("El usuario ya existe.");
             error.statusCode = 409;
             throw error;

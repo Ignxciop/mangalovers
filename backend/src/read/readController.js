@@ -7,18 +7,17 @@ import {
     getFullStats,
 } from "./readService.js";
 
-export async function handleGetReadChapters(req, res) {
+export async function handleGetReadChapters(req, res, next) {
     try {
         const { seriesId } = req.params;
         const ids = await getReadChapterIds(req.user.userId, seriesId);
         res.json(ids);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 }
 
-export const handleToggleChapterRead = async (req, res) => {
+export const handleToggleChapterRead = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const chapterId = Number(req.params.chapterId);
@@ -27,12 +26,11 @@ export const handleToggleChapterRead = async (req, res) => {
 
         return res.json(result);
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Error toggling chapter read" });
+        next(error);
     }
 };
 
-export async function handleMarkChaptersUntil(req, res) {
+export async function handleMarkChaptersUntil(req, res, next) {
     try {
         const { chapterId } = req.params;
 
@@ -40,27 +38,24 @@ export async function handleMarkChaptersUntil(req, res) {
 
         res.json(result);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 }
 
-export async function handleGetReadingStats(req, res) {
+export async function handleGetReadingStats(req, res, next) {
     try {
         const stats = await getUserReadingStats(req.user.userId);
         res.json(stats);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 }
 
-export async function handleGetFullStats(req, res) {
+export async function handleGetFullStats(req, res, next) {
     try {
         const stats = await getFullStats(req.user.userId);
         res.json(stats);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error interno del servidor" });
+        next(error);
     }
 }

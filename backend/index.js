@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
 import { errorHandler } from "./src/middlewares/errorHandle.js";
 import authRoutes from "./src/auth/authRoutes.js";
 import mangaRoutes from "./src/manga/mangaRoutes.js";
@@ -24,6 +25,25 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" },
+});
+
+const generalLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" },
+});
+
+app.use("/api/auth", authLimiter);
+app.use("/api", generalLimiter);
 
 app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "OK", message: "Server está activo" });

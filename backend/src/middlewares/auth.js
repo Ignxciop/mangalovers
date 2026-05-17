@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { config } from "../config/env.js";
 
 export const authenticate = async (req, res, next) => {
     try {
@@ -12,7 +13,7 @@ export const authenticate = async (req, res, next) => {
             });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, config.JWT_SECRET);
         req.user = { userId: decoded.userId };
         next();
     } catch (error) {
@@ -42,7 +43,7 @@ export const optionalAuthenticate = async (req, res, next) => {
             return next();
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, config.JWT_SECRET);
         req.user = { userId: decoded.userId };
         next();
     } catch {

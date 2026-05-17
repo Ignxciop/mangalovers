@@ -1,3 +1,6 @@
 import { deduplicateSeries } from "../manga/scrapers/duplicateSeries.js";
 
-await deduplicateSeries();
+deduplicateSeries().catch((e) => {
+    console.error("Error ejecutando deduplicación:", e);
+    process.exit(1);
+});

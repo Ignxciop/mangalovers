@@ -15,13 +15,14 @@ export async function getVapidPublicKey(req, res) {
  *
  * Body: { endpoint: string, keys: { p256dh: string, auth: string } }
  */
-export async function subscribeHandler(req, res) {
+export async function subscribeHandler(req, res, next) {
     const { endpoint, keys } = req.body;
     const userId = req.user.userId;
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
         return res.status(400).json({
-            error: "Faltan campos requeridos: endpoint, keys.p256dh, keys.auth",
+            success: false,
+            message: "Faltan campos requeridos: endpoint, keys.p256dh, keys.auth",
         });
     }
 
@@ -35,55 +36,44 @@ export async function subscribeHandler(req, res) {
 
         return res.status(201).json({ ok: true, id: subscription.id });
     } catch (error) {
-        console.error("Error en subscribeHandler:", error);
-        return res
-            .status(500)
-            .json({ error: "No se pudo guardar la suscripción" });
+        next(error);
     }
 }
 
-/**
- * DELETE /notifications/unsubscribe
- * Elimina la suscripción push del dispositivo actual.
- *
- * Body: { endpoint: string }
- */
-export async function unsubscribeHandler(req, res) {
+export async function unsubscribeHandler(req, res, next) {
     const { endpoint } = req.body;
     const userId = req.user.userId;
 
     if (!endpoint) {
-        return res.status(400).json({ error: "Falta el campo endpoint" });
+        return res.status(400).json({
+            success: false,
+            message: "Falta el campo endpoint",
+        });
     }
 
     try {
         await unsubscribe({ userId, endpoint });
         return res.json({ ok: true });
     } catch (error) {
-        console.error("Error en unsubscribeHandler:", error);
-        return res
-            .status(500)
-            .json({ error: "No se pudo eliminar la suscripción" });
+        next(error);
     }
 }
 
-/**
- * GET /notifications/status?endpoint=<url>
- * Verifica si el usuario tiene suscripción activa para el endpoint dado.
- */
-export async function getSubscriptionStatus(req, res) {
+export async function getSubscriptionStatus(req, res, next) {
     const { endpoint } = req.query;
     const userId = req.user.userId;
 
     if (!endpoint) {
-        return res.status(400).json({ error: "Falta el parámetro endpoint" });
+        return res.status(400).json({
+            success: false,
+            message: "Falta el parámetro endpoint",
+        });
     }
 
     try {
         const subscribed = await isSubscribed({ userId, endpoint });
         return res.json({ subscribed });
     } catch (error) {
-        console.error("Error en getSubscriptionStatus:", error);
-        return res.status(500).json({ error: "Error verificando suscripción" });
+        next(error);
     }
 }

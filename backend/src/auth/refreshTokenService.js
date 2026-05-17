@@ -28,6 +28,7 @@ export class RefreshTokenService {
     }
 
     static async validateRefreshToken(token) {
+        await this.cleanExpiredTokens();
         const refreshToken = await prisma.refreshToken.findUnique({
             where: { token },
             include: { user: true },

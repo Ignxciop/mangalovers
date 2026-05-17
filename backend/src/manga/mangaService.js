@@ -59,61 +59,64 @@ export async function getAllManga(query) {
         where.lastChapterPublishedAt = { not: null };
     }
 
-    const [seriesList, total] = await Promise.all([
-        prisma.series.findMany({
-            where,
-            skip,
-            take: Number(limit),
-            orderBy,
-            select: {
-                id: true,
-                name: true,
-                slug: true,
-                cover: true,
-                status: true,
-                chapterCount: true, // se mantiene pero ya no se usa como último
-                updatedAt: true,
-                lastChapterPublishedAt: true,
-                type: true,
-                providerSeries: {
-                    select: { provider: { select: { name: true } } },
-                },
-                chapters: {
-                    select: { name: true },
-                },
+    const seriesList = await prisma.series.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        orderBy,
+        select: {
+            id: true,
+            name: true,
+            slug: true,
+            cover: true,
+            status: true,
+            chapterCount: true,
+            updatedAt: true,
+            lastChapterPublishedAt: true,
+            type: true,
+            providerSeries: {
+                select: { provider: { select: { name: true } } },
             },
-        }),
-        prisma.series.count({ where }),
-    ]);
+        },
+    });
+
+    const seriesIds = seriesList.map((s) => s.id);
+
+    let chapterNames = [];
+    if (seriesIds.length > 0) {
+        chapterNames = await prisma.chapter.findMany({
+            where: { seriesId: { in: seriesIds } },
+            select: { seriesId: true, name: true },
+        });
+    }
+
+    const lastChapterMap = new Map();
+    for (const c of chapterNames) {
+        const num = parseFloat(c.name);
+        if (!isNaN(num)) {
+            const current = lastChapterMap.get(c.seriesId);
+            if (current === undefined || num > current) {
+                lastChapterMap.set(c.seriesId, num);
+            }
+        }
+    }
+
+    const total = await prisma.series.count({ where });
 
     return {
-        data: seriesList.map((s) => {
-            let lastChapter = null;
-
-            for (const ch of s.chapters) {
-                const num = parseFloat(ch.name);
-
-                if (!isNaN(num)) {
-                    if (lastChapter === null || num > lastChapter) {
-                        lastChapter = num;
-                    }
-                }
-            }
-
-            return {
-                id: s.id,
-                name: s.name,
-                slug: s.slug,
-                cover: s.cover,
-                status: s.status,
-                chapterCount: s.chapterCount,
-                lastChapterNumber: lastChapter,
-                updatedAt: s.updatedAt,
-                lastChapterPublishedAt: s.lastChapterPublishedAt,
-                type: s.type,
-                providers: s.providerSeries.map((ps) => ps.provider.name),
-            };
-        }),
+        data: seriesList.map((s) => ({
+            id: s.id,
+            name: s.name,
+            slug: s.slug,
+            cover: s.cover,
+            status: s.status,
+            chapterCount: s.chapterCount,
+            lastChapterNumber: lastChapterMap.get(s.id) ?? null,
+            updatedAt: s.updatedAt,
+            lastChapterPublishedAt: s.lastChapterPublishedAt,
+            type: s.type,
+            providers: s.providerSeries.map((ps) => ps.provider.name),
+        })),
         meta: {
             total,
             page: Number(page),
@@ -191,7 +194,7 @@ export async function getLatestManga(userId, limit = 16) {
     }));
 }
 
-export async function getSeriesDetailBySlug(slug) {
+export async function getSeriesDetailBySlug(slug, page = 1, limit = 100) {
     const series = await prisma.series.findUnique({
         where: { slug },
         include: {
@@ -199,9 +202,6 @@ export async function getSeriesDetailBySlug(slug) {
                 include: {
                     genre: true,
                 },
-            },
-            chapters: {
-                orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
             },
             providerSeries: {
                 include: {
@@ -213,28 +213,22 @@ export async function getSeriesDetailBySlug(slug) {
 
     if (!series) return null;
 
+    const totalChapters = await prisma.chapter.count({
+        where: { seriesId: series.id },
+    });
+
+    const chapters = await prisma.chapter.findMany({
+        where: { seriesId: series.id },
+        orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
+        skip: (page - 1) * limit,
+        take: limit,
+    });
+
     const extractChapterNumber = (name) => {
         if (!name) return 0;
         const match = String(name).match(/(\d+(\.\d+)?)/);
         return match ? parseFloat(match[1]) : 0;
     };
-
-    const chapters = [...series.chapters]
-        .map((c) => {
-            const chapterNumber = extractChapterNumber(c.name);
-
-            return {
-                id: c.id,
-                name: c.name,
-                publishedAt: c.publishedAt,
-                createdAt: c.createdAt,
-
-                // ✅ ESTE ES EL FIX REAL
-                chapterNumber,
-            };
-        })
-        // ✅ ORDEN REAL (NO POR FECHA, NO POR POSITION)
-        .sort((a, b) => b.chapterNumber - a.chapterNumber);
 
     return {
         id: series.id,
@@ -254,8 +248,20 @@ export async function getSeriesDetailBySlug(slug) {
             externalUrl: p.url,
         })),
 
-        // ✅ YA CORRECTO
-        chapters,
+        chapters: chapters.map((c) => ({
+            id: c.id,
+            name: c.name,
+            publishedAt: c.publishedAt,
+            createdAt: c.createdAt,
+            chapterNumber: extractChapterNumber(c.name),
+        })),
+
+        chaptersMeta: {
+            total: totalChapters,
+            page,
+            limit,
+            totalPages: Math.ceil(totalChapters / limit),
+        },
     };
 }
 

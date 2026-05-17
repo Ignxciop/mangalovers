@@ -1,7 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
-import { normalizeGenre } from "../normalizeGenre.js";
+import { syncGenres } from "../syncGenres.js";
 import { MANUAL_ALIASES } from "../manualAliases.js";
 import {
     syncManualAliases,
@@ -64,25 +64,6 @@ async function fetchMetadata(externalId, retries = 3) {
             if (i === retries - 1) return null;
             await sleep(2000 * (i + 1));
         }
-    }
-}
-
-async function syncGenres(seriesId, genreNames, tx = prisma) {
-    for (const rawName of genreNames) {
-        const name = normalizeGenre(rawName);
-        if (!name) continue;
-
-        const genre = await tx.genre.upsert({
-            where: { name },
-            create: { name },
-            update: {},
-        });
-
-        await tx.seriesGenre.upsert({
-            where: { seriesId_genreId: { seriesId, genreId: genre.id } },
-            create: { seriesId, genreId: genre.id },
-            update: {},
-        });
     }
 }
 
