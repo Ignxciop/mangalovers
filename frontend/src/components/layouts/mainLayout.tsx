@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { PageTransition } from "@/components/page-transition";
 
 function getSidebarInitialState(): boolean {
     if (typeof document === "undefined") return true;
@@ -20,7 +21,9 @@ export default function MainLayout() {
                 className="items-center w-full"
                 style={{ padding: "env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)" }}
             >
-                <Outlet />
+                <PageTransition>
+                    <Outlet />
+                </PageTransition>
             </div>
         </SidebarProvider>
     );
