@@ -8,25 +8,25 @@ export function useMangaList(params: Record<string, string | number>) {
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
-        let isMounted = true;
+        const abortController = new AbortController();
 
         async function load() {
             setLoading(true);
             setError(null);
             try {
-                const result = await fetchMangaList(params);
-                if (isMounted) setData(result);
+                const result = await fetchMangaList(params, abortController.signal);
+                if (!abortController.signal.aborted) setData(result);
             } catch (err) {
-                if (isMounted) setError(err as Error);
+                if (!abortController.signal.aborted) setError(err as Error);
             } finally {
-                if (isMounted) setLoading(false);
+                if (!abortController.signal.aborted) setLoading(false);
             }
         }
 
         load();
 
         return () => {
-            isMounted = false;
+            abortController.abort();
         };
     }, [
         params.page,

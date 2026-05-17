@@ -16,9 +16,11 @@ export async function fetchLatestManga(limit = 16): Promise<Manga[]> {
 
 export async function fetchMangaList(
     params: Record<string, string | number>,
+    signal?: AbortSignal,
 ): Promise<MangaListResponse> {
     const { data } = await api.get<MangaListResponse>("/manga", {
         params,
+        signal,
     });
 
     return data;

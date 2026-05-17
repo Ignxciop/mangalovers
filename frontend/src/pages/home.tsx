@@ -1,56 +1,33 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchLatestManga, fetchMangaList, fetchReadingStats } from "@/api/manga";
+import { fetchLatestManga, fetchReadingStats } from "@/api/manga";
 import type { Manga } from "@/types/manga";
 import { useAuthStore } from "@/store/authStore";
+import { timeAgo } from "@/lib/date";
 import {
     Clock,
     Flame,
     BookOpen,
     Eye,
-    PlayCircle,
-    BookMarked,
     BarChart3,
     CheckCircle2,
     Timer,
     TrendingUp,
     ChevronRight,
     Trophy,
-    Search,
-    X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-
-function timeAgo(dateStr: string): string {
-    const now = new Date();
-    const date = new Date(dateStr);
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-    const minutes = Math.floor(diff / 60);
-    const hours = Math.floor(diff / 3600);
-    const days = Math.floor(diff / 86400);
-    const weeks = Math.floor(days / 7);
-    const months = Math.floor(days / 30);
-    const years = Math.floor(days / 365);
-
-    if (diff < 60) return "Justo ahora";
-    if (minutes < 60) return `${minutes} min`;
-    if (hours === 1) return "1 hora";
-    if (hours < 24) return `${hours} horas`;
-    if (days === 1) return "Ayer";
-    if (days <= 7) return `${days} días`;
-    if (weeks === 1) return "1 semana";
-    if (weeks <= 4) return `${weeks} semanas`;
-    if (months === 1) return "1 mes";
-    if (months <= 11) return `${months} meses`;
-    if (years === 1) return "1 año";
-    return `${years} años`;
-}
+import { SearchBar } from "@/components/search-bar";
+import {
+    ContinueReadingSection,
+    ContinueSkeleton,
+    type ContinueReadingItem,
+} from "@/components/continue-reading";
 
 interface ReadingStats {
     totalChaptersRead: number;
@@ -62,18 +39,10 @@ interface ReadingStats {
     bestStreak: number;
     chaptersThisMonth: number;
     estimatedHoursThisMonth: number;
-    continueReading: {
-        id: number;
-        name: string;
-        slug: string;
-        cover: string | null;
-        lastReadChapterName: string | null;
-        lastAvailableChapterName: string | null;
-        chaptersLeft: number | null;
-    }[];
+    continueReading: ContinueReadingItem[];
 }
 
-function StatCard({
+const StatCard = memo(function StatCard({
     icon: Icon,
     label,
     value,
@@ -113,7 +82,7 @@ function StatCard({
             </div>
         </div>
     );
-}
+});
 
 function StatsSection({ stats }: { stats: ReadingStats }) {
     const navigate = useNavigate();
@@ -204,158 +173,13 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
     );
 }
 
-function ContinueReadingSection({
-    items,
+const MangaCard = memo(function MangaCard({
+    manga,
+    index,
 }: {
-    items: ReadingStats["continueReading"];
+    manga: Manga;
+    index: number;
 }) {
-    const navigate = useNavigate();
-
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 640);
-        };
-
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
-
-    const limit = isMobile ? 6 : 5;
-    const visibleItems = items.slice(0, limit);
-
-    if (items.length === 0) {
-        return (
-            <section>
-                <div className="flex items-center gap-2 mb-4">
-                    <PlayCircle className="h-4 w-4 text-muted-foreground" />
-                    <h2 className="text-sm font-semibold tracking-wide">
-                        Continuar leyendo
-                    </h2>
-                </div>
-                <div className="flex flex-col items-center justify-center py-10 gap-3 rounded-xl border border-dashed border-border text-center">
-                    <BookMarked className="h-8 w-8 text-muted-foreground/30" />
-                    <p className="text-sm text-muted-foreground">
-                        Aún no has empezado a leer ninguna serie
-                    </p>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate("/mangas")}
-                    >
-                        Explorar catálogo
-                    </Button>
-                </div>
-            </section>
-        );
-    }
-
-    return (
-        <section className="h-full flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <PlayCircle className="h-4 w-4 text-muted-foreground" />
-                    <h2 className="text-sm font-semibold tracking-wide">
-                        Continuar leyendo
-                    </h2>
-                </div>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-muted-foreground h-7 px-2 hover:text-foreground"
-                    onClick={() => navigate("/favoritos")}
-                >
-                    Ver todos
-                    <ChevronRight className="h-3 w-3 ml-1" />
-                </Button>
-            </div>
-
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                {visibleItems.map((item) => {
-                    const progress =
-                        item.lastReadChapterName &&
-                        item.lastAvailableChapterName
-                            ? Math.min(
-                                  (parseFloat(item.lastReadChapterName) /
-                                      parseFloat(
-                                          item.lastAvailableChapterName,
-                                      )) *
-                                      100,
-                                  100,
-                              )
-                            : 0;
-
-                    return (
-                        <div key={item.id} className="group">
-                            <a
-                                href={`/manga/${item.slug}`}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    navigate(`/manga/${item.slug}`);
-                                }}
-                                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-lg"
-                            >
-                                {item.cover ? (
-                                    <img
-                                        src={item.cover}
-                                        alt={item.name}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                                        <BookOpen className="h-8 w-8 text-muted-foreground/30" />
-                                    </div>
-                                )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                                <div className="absolute bottom-0 left-0 right-0 px-2 pb-2">
-                                    <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-primary rounded-full"
-                                            style={{ width: `${progress}%` }}
-                                        />
-                                    </div>
-                                </div>
-                                {item.lastReadChapterName && (
-                                    <div className="absolute top-2 right-2">
-                                        <Badge
-                                            variant="secondary"
-                                            className="text-[9px] px-1.5 py-0 h-4 gap-1"
-                                        >
-                                            <Eye className="h-2 w-2" />
-                                            {item.lastReadChapterName}
-                                        </Badge>
-                                    </div>
-                                )}
-                            </a>
-                            <div className="mt-2 space-y-0.5">
-                                <h3
-                                    className="text-[11px] font-semibold truncate leading-tight"
-                                    title={item.name}
-                                >
-                                    {item.name}
-                                </h3>
-                                {item.chaptersLeft !== null &&
-                                    item.chaptersLeft > 0 && (
-                                        <p className="text-[10px] text-muted-foreground">
-                                            {item.chaptersLeft} cap. pendientes
-                                        </p>
-                                    )}
-                                {item.chaptersLeft === 0 && (
-                                    <p className="text-[10px] text-emerald-500 font-medium">
-                                        Al día
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </section>
-    );
-}
-
-function MangaCard({ manga, index }: { manga: Manga; index: number }) {
     const navigate = useNavigate();
     const [imgLoaded, setImgLoaded] = useState(false);
 
@@ -375,6 +199,8 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
                 <img
                     src={manga.cover || ""}
                     alt={manga.name}
+                    width={300}
+                    height={450}
                     onLoad={() => setImgLoaded(true)}
                     className={`w-full h-full object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
                 />
@@ -408,7 +234,7 @@ function MangaCard({ manga, index }: { manga: Manga; index: number }) {
             </div>
         </div>
     );
-}
+});
 
 function MangaCardSkeleton() {
     return (
@@ -419,7 +245,7 @@ function MangaCardSkeleton() {
     );
 }
 
-function StatsSkeleton() {
+const StatsSkeleton = memo(function StatsSkeleton() {
     return (
         <section>
             <Skeleton className="h-4 w-32 mb-4" />
@@ -431,170 +257,7 @@ function StatsSkeleton() {
             <Skeleton className="h-16 rounded-xl" />
         </section>
     );
-}
-
-function ContinueSkeleton() {
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
-
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 640);
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
-
-    return (
-        <section>
-            <Skeleton className="h-4 w-40 mb-4" />
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                {Array.from({ length: isMobile ? 6 : 5 }).map((_, i) => (
-                    <div key={i} className="space-y-2">
-                        <Skeleton className="aspect-[2/3] rounded-xl" />
-                        <Skeleton className="h-3 w-3/4" />
-                    </div>
-                ))}
-            </div>
-        </section>
-    );
-}
-
-function SearchBar() {
-    const navigate = useNavigate();
-    const [query, setQuery] = useState("");
-    const [results, setResults] = useState<Manga[]>([]);
-    const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const handler = (e: TouchEvent) => e.stopPropagation();
-        el.addEventListener("touchstart", handler, { passive: true });
-        el.addEventListener("touchmove", handler, { passive: true });
-        el.addEventListener("touchend", handler);
-        return () => {
-            el.removeEventListener("touchstart", handler);
-            el.removeEventListener("touchmove", handler);
-            el.removeEventListener("touchend", handler);
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!query.trim()) {
-            setResults([]);
-            setOpen(false);
-            return;
-        }
-
-        const timer = setTimeout(async () => {
-            setLoading(true);
-            try {
-                const res = await fetchMangaList({ search: query.trim(), limit: 8, sort: "az" });
-                setResults(res.data);
-                setOpen(true);
-            } catch {
-                setResults([]);
-            } finally {
-                setLoading(false);
-            }
-        }, 300);
-
-        return () => clearTimeout(timer);
-    }, [query]);
-
-    useEffect(() => {
-        function handleClick(e: MouseEvent) {
-            if (ref.current && !ref.current.contains(e.target as Node)) {
-                setOpen(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClick);
-        return () => document.removeEventListener("mousedown", handleClick);
-    }, []);
-
-    const select = useCallback(
-        (slug: string) => {
-            setOpen(false);
-            setQuery("");
-            navigate(`/manga/${slug}`);
-        },
-        [navigate],
-    );
-
-    return (
-        <div ref={ref} className="relative w-full max-w-md">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-                ref={inputRef}
-                placeholder="Buscar series..."
-                className="pl-9 pr-9 w-full bg-secondary/50"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => results.length > 0 && setOpen(true)}
-            />
-            {query && (
-                <button
-                    onClick={() => {
-                        setQuery("");
-                        setResults([]);
-                        setOpen(false);
-                        inputRef.current?.focus();
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                    <X className="h-4 w-4" />
-                </button>
-            )}
-            {open && (
-                <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg overflow-hidden">
-                    {loading ? (
-                        <div className="p-3 text-xs text-muted-foreground text-center">
-                            Buscando...
-                        </div>
-                    ) : results.length === 0 ? (
-                        <div className="p-3 text-xs text-muted-foreground text-center">
-                            Sin resultados
-                        </div>
-                    ) : (
-                        <ul className="max-h-72 overflow-y-auto overscroll-behavior-contain">
-                            {results.map((m) => (
-                                <li key={m.id}>
-                                    <button
-                                        onClick={() => select(m.slug)}
-                                        className="flex items-center gap-3 w-full px-3 py-2.5 text-left hover:bg-muted transition-colors"
-                                    >
-                                        <div className="size-8 rounded overflow-hidden bg-muted shrink-0">
-                                            {m.cover ? (
-                                                <img
-                                                    src={m.cover}
-                                                    alt=""
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <BookOpen className="h-3.5 w-3.5 text-muted-foreground/40" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-medium truncate">
-                                                {m.name}
-                                            </p>
-                                            <p className="text-[11px] text-muted-foreground">
-                                                {m.type ?? "Serie"}
-                                            </p>
-                                        </div>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-}
+});
 
 export default function Home() {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -674,23 +337,28 @@ export default function Home() {
                         </div>
                     )}
 
-                    <section>
+                    <section aria-labelledby="latest-updates-heading">
                         <div className="flex items-center gap-2 mb-4">
-                            <Flame className="h-4 w-4 text-orange-400" />
-                            <h2 className="text-sm font-semibold tracking-wide">
+                            <Flame className="h-4 w-4 text-orange-400" aria-hidden="true" />
+                            <h2 id="latest-updates-heading" className="text-sm font-semibold tracking-wide">
                                 Últimas actualizaciones
                             </h2>
                         </div>
 
                         {error && (
-                            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center" role="alert">
                                 <p className="text-muted-foreground text-sm">
                                     No se pudieron cargar las actualizaciones
                                 </p>
                             </div>
                         )}
 
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                        <div
+                            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"
+                            style={{ contentVisibility: "auto" }}
+                            aria-live="polite"
+                            aria-atomic="true"
+                        >
                             {loadingLatest
                                 ? Array.from({ length: 24 }).map((_, i) => (
                                       <MangaCardSkeleton key={i} />

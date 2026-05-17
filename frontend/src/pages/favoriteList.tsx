@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Fragment } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
 import { Skeleton } from "@/components/ui/skeleton";
+import { timeAgo } from "@/lib/date";
 import {
     BookOpen,
     Heart,
@@ -46,27 +47,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-
-function timeAgo(dateStr: string): string {
-    const now = new Date();
-    const date = new Date(dateStr);
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    const days = Math.floor(diff / 86400);
-    const weeks = Math.floor(days / 7);
-    const months = Math.floor(days / 30);
-    const years = Math.floor(days / 365);
-
-    if (diff < 86400) return "Hoy";
-    if (days === 1) return "Ayer";
-    if (days <= 7) return `${days} días`;
-    if (weeks === 1) return "1 semana";
-    if (weeks <= 4) return `${weeks} semanas`;
-    if (months === 1) return "1 mes";
-    if (months <= 11) return `${months} meses`;
-    if (years === 1) return "1 año";
-    return `${years} años`;
-}
 
 function chaptersLeft(fav: Favorite): number {
     const read = parseFloat(fav.lastReadChapterName ?? "0");
@@ -797,7 +777,7 @@ const FavoritesPagination: React.FC<FavoritesPaginationProps> = ({
                 </PaginationItem>
 
                 {uniquePages.map((p, idx) => (
-                    <React.Fragment key={p}>
+                    <Fragment key={p}>
                         {idx > 0 &&
                             uniquePages[idx] - uniquePages[idx - 1] > 1 && (
                                 <PaginationItem>
@@ -820,7 +800,7 @@ const FavoritesPagination: React.FC<FavoritesPaginationProps> = ({
                                 {p}
                             </PaginationLink>
                         </PaginationItem>
-                    </React.Fragment>
+                    </Fragment>
                 ))}
 
                 {/* → SOLO DESKTOP */}
