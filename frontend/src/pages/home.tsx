@@ -191,7 +191,7 @@ const MangaCard = memo(function MangaCard({
                     e.preventDefault();
                     navigate(`/manga/${manga.slug}`, { state: { from: "/" } });
                 }}
-                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-md transition-[transform,box-shadow] duration-200 group-hover:scale-[1.03] group-hover:shadow-lg active:scale-[0.98]"
+                className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20 active:scale-[0.98]"
             >
                 {!imgLoaded && (
                     <div className="absolute inset-0 bg-muted animate-pulse" />
@@ -204,7 +204,8 @@ const MangaCard = memo(function MangaCard({
                     onLoad={() => setImgLoaded(true)}
                     className={`w-full h-full object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/20 via-transparent to-transparent" />
                 <Badge
                     variant="secondary"
                     className="absolute top-2 right-2 flex items-center gap-1 text-[9px] px-1.5 py-0 h-4"

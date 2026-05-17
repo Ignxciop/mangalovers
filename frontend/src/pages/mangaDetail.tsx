@@ -287,7 +287,7 @@ export default function MangaDetail() {
                         {/* Columna izquierda */}
                         <div className="md:w-56 lg:w-64 shrink-0">
                             <div className="sticky top-8">
-                                <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-border shadow-xl">
+                                <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-xl ring-1 ring-white/5">
                                     {series.cover ? (
                                         <img
                                             src={series.cover}

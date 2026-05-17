@@ -546,7 +546,7 @@ export default function FavoritesList() {
                                                     },
                                                 );
                                             }}
-                                            className="relative block aspect-[3/4] rounded-lg overflow-hidden border border-border shadow-lg cursor-pointer transition-transform group-hover:scale-[1.02]"
+                                            className="relative block aspect-[3/4] rounded-lg overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-lg cursor-pointer transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20"
                                         >
                                             {fav.series.cover ? (
                                                 <img
@@ -559,7 +559,8 @@ export default function FavoritesList() {
                                                     <BookOpen className="h-8 w-8 text-muted-foreground/40" />
                                                 </div>
                                             )}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/15 via-transparent to-transparent" />
 
                                             {isUpToDate(fav) &&
                                                 fav.lastReadChapterName && (
