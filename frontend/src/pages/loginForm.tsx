@@ -161,7 +161,7 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
                             <Field>
                                 <Button type="submit" disabled={isLoading}>
                                     {isLoading
-                                        ? "Iniciando sesión..."
+                                        ? "Iniciando sesión…"
                                         : "Iniciar Sesión"}
                                 </Button>
                             </Field>

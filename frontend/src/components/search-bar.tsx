@@ -119,7 +119,7 @@ export function SearchBar() {
                 <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg overflow-hidden">
                     {loading ? (
                         <div className="p-3 text-xs text-muted-foreground text-center" role="status">
-                            Buscando...
+                            Buscando…
                         </div>
                     ) : results.length === 0 ? (
                         <div className="p-3 text-xs text-muted-foreground text-center" role="status">

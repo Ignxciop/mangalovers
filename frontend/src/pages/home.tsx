@@ -73,7 +73,7 @@ const StatCard = memo(function StatCard({
                 <p className="text-xs text-muted-foreground leading-none mb-1">
                     {label}
                 </p>
-                <p className="text-xl font-bold leading-none">{value}</p>
+                <p className="text-xl font-bold leading-none tabular-nums">{value}</p>
                 {sub && (
                     <p className="text-[11px] text-muted-foreground mt-1">
                         {sub}
@@ -146,7 +146,7 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
                             <p className="text-xs text-muted-foreground leading-none mb-0.5">
                                 Racha actual
                             </p>
-                            <p className="text-sm font-bold leading-none">
+                            <p className="text-sm font-bold leading-none tabular-nums">
                                 {stats.currentStreak}{" "}
                                 {stats.currentStreak === 1 ? "día" : "días"}
                             </p>
@@ -161,7 +161,7 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
                             <p className="text-xs text-muted-foreground leading-none mb-0.5">
                                 Mejor racha
                             </p>
-                            <p className="text-sm font-bold leading-none">
+                            <p className="text-sm font-bold leading-none tabular-nums">
                                 {stats.bestStreak}{" "}
                                 {stats.bestStreak === 1 ? "día" : "días"}
                             </p>

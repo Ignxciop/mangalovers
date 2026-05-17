@@ -112,7 +112,7 @@ function StatCard({
                 <p className="text-xs text-muted-foreground mb-1 leading-none">
                     {label}
                 </p>
-                <p className="text-2xl font-bold leading-none tracking-tight">
+                <p className="text-2xl font-bold leading-none tracking-tight tabular-nums">
                     {value}
                 </p>
                 {sub && (
@@ -557,7 +557,7 @@ export default function StatsPage() {
                                     <p className="text-xs text-muted-foreground mb-1">
                                         Racha actual
                                     </p>
-                                    <p className="text-2xl font-bold leading-none">
+                                    <p className="text-2xl font-bold leading-none tabular-nums">
                                         {stats.currentStreak}
                                         <span className="text-sm font-normal text-muted-foreground ml-1">
                                             {stats.currentStreak === 1
@@ -575,7 +575,7 @@ export default function StatsPage() {
                                     <p className="text-xs text-muted-foreground mb-1">
                                         Mejor racha
                                     </p>
-                                    <p className="text-2xl font-bold leading-none">
+                                    <p className="text-2xl font-bold leading-none tabular-nums">
                                         {stats.bestStreak}
                                         <span className="text-sm font-normal text-muted-foreground ml-1">
                                             {stats.bestStreak === 1

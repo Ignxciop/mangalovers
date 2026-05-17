@@ -24,7 +24,7 @@ export function PullToRefresh({
                     aria-hidden="true"
                 />
                 <span className="text-xs text-muted-foreground">
-                    {refreshing ? "Recargando..." : "Desliza para recargar"}
+                    {refreshing ? "Recargando…" : "Desliza para recargar"}
                 </span>
             </div>
         </div>

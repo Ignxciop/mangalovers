@@ -163,7 +163,7 @@ function ProfileSection() {
 
                     <div className="flex justify-end">
                         <Button type="submit" disabled={loading} size="sm">
-                            {loading ? "Guardando..." : "Guardar cambios"}
+                            {loading ? "Guardando…" : "Guardar cambios"}
                         </Button>
                     </div>
                 </form>
@@ -204,7 +204,7 @@ function PasswordSection() {
                 currentPassword: form.currentPassword,
                 newPassword: form.newPassword,
             });
-            setSuccess("Contraseña actualizada. Cerrando sesión...");
+            setSuccess("Contraseña actualizada. Cerrando sesión…");
             setTimeout(() => logout(), 2000);
         } catch (err: any) {
             setError(
@@ -290,7 +290,7 @@ function PasswordSection() {
 
                     <div className="flex justify-end">
                         <Button type="submit" disabled={loading} size="sm">
-                            {loading ? "Actualizando..." : "Cambiar contraseña"}
+                            {loading ? "Actualizando…" : "Cambiar contraseña"}
                         </Button>
                     </div>
                 </form>
@@ -396,7 +396,7 @@ function DeleteAccountSection() {
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                                 {loading
-                                    ? "Eliminando..."
+                                    ? "Eliminando…"
                                     : "Sí, eliminar mi cuenta"}
                             </AlertDialogAction>
                         </AlertDialogFooter>
@@ -567,7 +567,7 @@ export function NotificationSection() {
                         >
                             <BellOff className="h-4 w-4 mr-2" />
                             {loading
-                                ? "Desactivando..."
+                                ? "Desactivando…"
                                 : "Desactivar notificaciones"}
                         </Button>
                     ) : (
@@ -578,7 +578,7 @@ export function NotificationSection() {
                         >
                             <Bell className="h-4 w-4 mr-2" />
                             {loading
-                                ? "Activando..."
+                                ? "Activando…"
                                 : "Activar notificaciones"}
                         </Button>
                     )}

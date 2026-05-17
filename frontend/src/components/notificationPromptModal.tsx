@@ -82,7 +82,7 @@ export function NotificationPromptModal() {
                     >
                         <Bell className="h-4 w-4 mr-2" />
                         {loading
-                            ? "Activando..."
+                            ? "Activando…"
                             : "Sí, activar notificaciones"}
                     </Button>
                     <Button
