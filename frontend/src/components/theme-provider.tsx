@@ -47,7 +47,7 @@ export function ThemeProvider({
         if (meta) {
             meta.setAttribute(
                 "content",
-                resolvedTheme === "dark" ? "#09090b" : "#ffffff",
+                resolvedTheme === "dark" ? "#0d0b1a" : "#ffffff",
             );
         }
     }, [theme]);
