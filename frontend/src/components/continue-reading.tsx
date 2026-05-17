@@ -132,7 +132,9 @@ export function ContinueReadingSection({
         return (
             <section>
                 <div className="flex items-center gap-2 mb-4">
-                    <PlayCircle className="h-4 w-4 text-muted-foreground" />
+                    <span className="relative flex items-center justify-center size-6 rounded-md bg-brand-cyan/15 text-brand-cyan">
+                        <PlayCircle className="h-3.5 w-3.5" />
+                    </span>
                     <h2 className="text-sm font-semibold tracking-wide">
                         Continuar leyendo
                     </h2>

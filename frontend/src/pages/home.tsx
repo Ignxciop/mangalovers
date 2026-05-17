@@ -56,14 +56,14 @@ const StatCard = memo(function StatCard({
     color?: "primary" | "emerald" | "amber" | "sky";
 }) {
     const colorMap = {
-        primary: "bg-primary/10 text-primary",
-        emerald: "bg-emerald-500/10 text-emerald-500",
-        amber: "bg-amber-500/10 text-amber-500",
-        sky: "bg-sky-500/10 text-sky-500",
+        primary: "bg-brand/15 text-brand shadow-[0_0_12px_-4px] shadow-brand/30",
+        emerald: "bg-brand-green/15 text-brand-green shadow-[0_0_12px_-4px] shadow-brand-green/30",
+        amber: "bg-brand-amber/15 text-brand-amber shadow-[0_0_12px_-4px] shadow-brand-amber/30",
+        sky: "bg-brand-cyan/15 text-brand-cyan shadow-[0_0_12px_-4px] shadow-brand-cyan/30",
     };
 
     return (
-        <div className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-3 p-4 rounded-xl border border-white/10 dark:border-white/[0.05] bg-card transition-all duration-200 hover:border-brand/20 hover:shadow-[0_0_20px_-8px] hover:shadow-brand/20">
             <div
                 className={`flex items-center justify-center size-10 rounded-lg shrink-0 ${colorMap[color]}`}
             >
@@ -299,7 +299,7 @@ export default function Home() {
         <>
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
+                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
                     <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
                         <SidebarTrigger />
                         <div className="flex justify-center min-w-0">
@@ -339,8 +339,10 @@ export default function Home() {
                     )}
 
                     <section aria-labelledby="latest-updates-heading">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Flame className="h-4 w-4 text-orange-400" aria-hidden="true" />
+                    <div className="flex items-center gap-2 mb-4">
+                            <span className="relative flex items-center justify-center size-6 rounded-md bg-brand-amber/15 text-brand-amber">
+                                <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+                            </span>
                             <h2 id="latest-updates-heading" className="text-sm font-semibold tracking-wide">
                                 Últimas actualizaciones
                             </h2>
