@@ -81,7 +81,7 @@ function NavItem({
             className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-[background-color,color,box-shadow] duration-150 group relative",
                 isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "bg-gradient-to-r from-primary/90 to-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
                 collapsed && "justify-center px-2",
             )}
@@ -120,11 +120,11 @@ export function AppSidebar() {
                         collapsed && "justify-center",
                     )}
                 >
-                    <div className="flex items-center justify-center size-8 rounded-lg bg-primary text-primary-foreground shrink-0">
+                    <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-orange-500 to-rose-600 text-white shrink-0 shadow-sm">
                         <BookHeart className="size-4" />
                     </div>
                     {!collapsed && (
-                        <span className="font-bold text-[17px] tracking-tight">
+                        <span className="font-extrabold text-[18px] tracking-tight">
                             Mangalovers
                         </span>
                     )}
