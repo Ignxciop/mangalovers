@@ -77,18 +77,12 @@ export class AuthService {
             where: { email },
         });
 
-        const dummyHash = "$2b$10$0000000000000000000000000000000000000000000";
+        const dummyHash = bcrypt.hashSync("dummy_timing_attack", 10);
 
-        if (!user) {
-            await bcrypt.compare(password, dummyHash);
-            const error = new Error("Credenciales inválidas");
-            error.statusCode = 401;
-            throw error;
-        }
+        const passwordToCheck = user ? user.password : dummyHash;
+        const isValidPassword = await bcrypt.compare(password, passwordToCheck);
 
-        const isValidPassword = await bcrypt.compare(password, user.password);
-
-        if (!isValidPassword) {
+        if (!user || !isValidPassword) {
             const error = new Error("Credenciales inválidas");
             error.statusCode = 401;
             throw error;
