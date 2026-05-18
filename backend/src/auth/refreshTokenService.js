@@ -31,7 +31,19 @@ export class RefreshTokenService {
         await this.cleanExpiredTokens();
         const refreshToken = await prisma.refreshToken.findUnique({
             where: { token },
-            include: { user: true },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        email: true,
+                        name: true,
+                        lastname: true,
+                        password: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+            },
         });
 
         if (!refreshToken) {
@@ -48,21 +60,6 @@ export class RefreshTokenService {
         }
 
         if (refreshToken.isRevoked) {
-            if (refreshToken.replacedBy) {
-                const replacementToken = await prisma.refreshToken.findUnique({
-                    where: { token: refreshToken.replacedBy },
-                    include: { user: true },
-                });
-
-                if (
-                    replacementToken &&
-                    !replacementToken.isRevoked &&
-                    new Date() <= replacementToken.expiresAt
-                ) {
-                    return replacementToken;
-                }
-            }
-
             await this.revokeTokenFamily(token);
             const error = new Error(
                 "Refresh token revocado. Por seguridad, se han revocado todos tus tokens.",
