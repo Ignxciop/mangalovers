@@ -77,7 +77,7 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
                     <form className="p-6 md:p-8" onSubmit={handleSubmit}>
                         <FieldGroup>
                             <div className="flex flex-col items-center gap-2 text-center">
-                                <div className="flex items-center justify-center size-10 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 text-white shadow-sm mb-1">
+                                <div className="flex items-center justify-center size-10 rounded-xl bg-gradient-to-br from-brand to-brand-cyan text-white shadow-sm mb-1">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-heart"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/><path d="M16 8.2C16 7 15 6 13.8 6c-.8 0-1.4.3-1.8.9-.4-.6-1-.9-1.8-.9C9 6 8 7 8 8.2c0 .6.3 1.2.8 1.7.8.8 3.2 2.8 3.2 2.8s2.4-2 3.2-2.8c.5-.5.8-1.1.8-1.7Z"/></svg>
                                 </div>
                                 <h1 className="text-2xl font-bold">

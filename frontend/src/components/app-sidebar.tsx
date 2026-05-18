@@ -123,7 +123,7 @@ export function AppSidebar() {
                         collapsed && "justify-center",
                     )}
                 >
-                    <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-orange-500 to-rose-600 text-white shrink-0 shadow-sm animate-[logo-glow_3s_ease-in-out_infinite]">
+                    <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-brand to-brand-cyan text-white shrink-0 shadow-sm animate-[logo-glow_3s_ease-in-out_infinite]">
                         <BookHeart className="size-4" />
                     </div>
                     {!collapsed && (
