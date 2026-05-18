@@ -8,19 +8,19 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  password      String
-  name          String
-  lastname      String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
-  favorites     UserFavorite[]
-  chapterReads  UserChapterRead[]
+  id                String             @id @default(uuid())
+  email             String             @unique
+  password          String
+  name              String
+  lastname          String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  refreshTokens     RefreshToken[]
+  favorites         UserFavorite[]
+  chapterReads      UserChapterRead[]
+  pushSubscriptions PushSubscription[]
 
   @@map("users")
-  pushSubscriptions  PushSubscription[]
 }
 
 model RefreshToken {
@@ -94,6 +94,7 @@ model Chapter {
 
   @@index([seriesId])
   @@index([publishedAt])
+  @@index([seriesId, publishedAt])
 }
 
 model Page {
@@ -128,8 +129,8 @@ model ProviderSeries {
   status      String?
   cover       String?
 
-  provider    Provider @relation(fields: [providerId], references: [id])
-  series      Series   @relation(fields: [seriesId], references: [id])
+  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  series      Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime? @updatedAt
@@ -151,6 +152,7 @@ model ProviderChapter {
 
   @@unique([providerId, externalId])
   @@index([chapterId])
+  @@index([providerId])
 }
 
 model Genre {

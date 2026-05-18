@@ -1,17 +1,7 @@
 import webpush from "web-push";
 import { config } from "../config/env.js";
-import {
-    upsertSubscription,
-    deleteSubscription,
-    findSubscription,
-    findSubscriptionsByUserIds,
-    findFavoriteUserIdsBySeriesId,
-    deleteSubscriptionById,
-} from "./notificationRepository.js";
+import { prisma } from "../config/prisma.js";
 
-// ── CONFIGURACIÓN SEGURA DE VAPID ─────────────────────────
-
-// FIX: evitar crash + mostrar logs reales
 try {
     console.log("Inicializando VAPID...");
 
@@ -26,26 +16,39 @@ try {
     console.error("Error configurando VAPID:");
     console.error(error.message);
 
-    // IMPORTANTE: no crashear el server
     console.warn("Push notifications DESACTIVADAS temporalmente");
 }
 
-// ── Suscripciones ─────────────────────────────────────────
-
 export async function subscribe({ userId, endpoint, p256dh, auth }) {
-    return upsertSubscription({ userId, endpoint, p256dh, auth });
+    const existing = await prisma.pushSubscription.findUnique({
+        where: { endpoint },
+    });
+
+    if (existing) {
+        return prisma.pushSubscription.update({
+            where: { endpoint },
+            data: { p256dh, auth, userId },
+        });
+    }
+
+    return prisma.pushSubscription.create({
+        data: { userId, endpoint, p256dh, auth },
+    });
 }
 
 export async function unsubscribe({ userId, endpoint }) {
-    return deleteSubscription({ userId, endpoint });
+    return prisma.pushSubscription.deleteMany({
+        where: { userId, endpoint },
+    });
 }
 
 export async function isSubscribed({ userId, endpoint }) {
-    const subscription = await findSubscription({ userId, endpoint });
+    const subscription = await prisma.pushSubscription.findFirst({
+        where: { userId, endpoint },
+        select: { id: true },
+    });
     return !!subscription;
 }
-
-// ── Envío ─────────────────────────────────────────────────
 
 async function sendToSubscription(subscription, payload) {
     try {
@@ -65,7 +68,9 @@ async function sendToSubscription(subscription, payload) {
             console.warn(
                 `Suscripción inválida (${error.statusCode}), eliminando id=${subscription.id}`,
             );
-            await deleteSubscriptionById(subscription.id);
+            await prisma.pushSubscription.delete({
+                where: { id: subscription.id },
+            }).catch(() => {});
             return { success: false, expired: true };
         }
 
@@ -77,7 +82,6 @@ async function sendToSubscription(subscription, payload) {
     }
 }
 
-// CAMBIO CLAVE: ahora usa slug
 function buildNewChapterPayload({ seriesId, seriesName, chapterName, slug }) {
     return {
         title: seriesName,
@@ -99,17 +103,24 @@ export async function notifyNewChapter({
     chapterName,
     slug,
 }) {
-    // Si VAPID falló, no intentar enviar
     if (!config.VAPID_PUBLIC_KEY || !config.VAPID_PRIVATE_KEY) {
         console.warn("Push omitido: VAPID no configurado");
         return;
     }
 
-    const userIds = await findFavoriteUserIdsBySeriesId(seriesId);
+    const favorites = await prisma.userFavorite.findMany({
+        where: { seriesId },
+        select: { userId: true },
+    });
+    const userIds = favorites.map((f) => f.userId);
+
     if (userIds.length === 0)
         return { total: 0, sent: 0, failed: 0, expired: 0 };
 
-    const subscriptions = await findSubscriptionsByUserIds(userIds);
+    const subscriptions = await prisma.pushSubscription.findMany({
+        where: { userId: { in: userIds } },
+    });
+
     if (subscriptions.length === 0)
         return { total: 0, sent: 0, failed: 0, expired: 0 };
 

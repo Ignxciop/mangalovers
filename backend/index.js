@@ -4,7 +4,8 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
-import { errorHandler } from "./src/middlewares/errorHandle.js";
+import { errorHandler } from "./src/middlewares/errorHandler.js";
+import morgan from "morgan";
 import authRoutes from "./src/auth/authRoutes.js";
 import mangaRoutes from "./src/manga/mangaRoutes.js";
 import favoriteRoutes from "./src/favorite/favoriteRoutes.js";
@@ -16,6 +17,10 @@ import notificationRoutes from "./src/notifications/notificationRoutes.js";
 const app = express();
 const PORT = config.PORT;
 
+if (!process.env.FRONTEND_URL) {
+    console.warn("⚠ FRONTEND_URL no configurado, usando http://localhost:5173 como fallback");
+}
+
 app.use(helmet());
 app.use(
     cors({
@@ -25,6 +30,7 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+app.use(morgan("dev"));
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
