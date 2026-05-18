@@ -60,7 +60,11 @@ export const useAuthStore = create<AuthState>()(
                         const { accessToken, user } = data.data;
                         set({ accessToken, user, isAuthenticated: true });
                     } catch {
-                        set({ accessToken: null, isAuthenticated: false });
+                        set({
+                            accessToken: null,
+                            user: null,
+                            isAuthenticated: false,
+                        });
                     } finally {
                         set({ bootstrapping: false });
                         bootstrappingPromise = null;
@@ -74,7 +78,6 @@ export const useAuthStore = create<AuthState>()(
             name: "mangalovers-auth",
             partialize: (state) => ({
                 user: state.user,
-                isAuthenticated: state.isAuthenticated,
             }),
         },
     ),
