@@ -1,26 +1,14 @@
-// Bloqueamos solo dominios temporales/desechables, el resto se permite
-const ALLOWED_DOMAINS = null;
-
-const TEMPORARY_DOMAINS = [
-    "10minutemail.com",
-    "guerrillamail.com",
-    "mailinator.com",
-    "tempmail.com",
-    "throwaway.email",
-    "temp-mail.org",
-    "yopmail.com",
-    "maildrop.cc",
-    "trashmail.com",
-    "dispostable.com",
-    "fakeinbox.com",
-    "getnada.com",
-    "mintemail.com",
-    "mytrashmail.com",
-    "sharklasers.com",
-    "spam4.me",
-    "tempinbox.com",
-    "tempr.email",
-    "throwam.com",
+// Solo se permiten estos proveedores de correo
+const ALLOWED_DOMAINS = [
+    "gmail.com",
+    "outlook.com",
+    "hotmail.com",
+    "yahoo.com",
+    "yahoo.com.ar",
+    "yahoo.com.mx",
+    "yahoo.com.co",
+    "yahoo.es",
+    "yahoo.com.br",
 ];
 
 export const extractDomain = (email) => {
@@ -29,7 +17,7 @@ export const extractDomain = (email) => {
 };
 
 /**
- * Valida que el email sea de un proveedor legítimo
+ * Valida que el email sea de un proveedor permitido
  * @param {string} email - Email a validar
  * @returns {object} { valid: boolean, reason?: string }
  */
@@ -44,10 +32,10 @@ export const validateEmailDomain = (email) => {
         return { valid: false, reason: "Formato de email inválido" };
     }
 
-    if (TEMPORARY_DOMAINS.includes(domain)) {
+    if (!ALLOWED_DOMAINS.includes(domain)) {
         return {
             valid: false,
-            reason: "No se permiten correos temporales o desechables",
+            reason: "Solo se permiten correos de Gmail, Outlook, Hotmail o Yahoo",
         };
     }
 

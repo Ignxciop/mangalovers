@@ -44,7 +44,7 @@ app.use(morgan("dev"));
 
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 500,
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" },
@@ -52,7 +52,7 @@ const generalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 20,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" },
@@ -60,7 +60,7 @@ const authLimiter = rateLimit({
 
 const heavyLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 10,
+    max: 30,
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" },
@@ -68,7 +68,7 @@ const heavyLimiter = rateLimit({
 
 const favoriteLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 50,
+    max: 200,
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, message: "Demasiados cambios en favoritos" },
