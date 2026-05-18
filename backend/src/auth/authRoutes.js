@@ -14,7 +14,7 @@ router.post("/register", registerValidator, validate, AuthController.register);
 router.post("/login", loginValidator, validate, AuthController.login);
 router.post("/google", AuthController.googleLogin);
 router.post("/refresh", AuthController.refresh);
-router.post("/logout", AuthController.logout);
+router.post("/logout", authenticate, AuthController.logout);
 router.post("/logout-all", authenticate, AuthController.logoutAll);
 router.get("/me", authenticate, AuthController.getMe);
 router.get("/sessions", authenticate, AuthController.getActiveSessions);
