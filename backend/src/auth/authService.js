@@ -56,6 +56,13 @@ export class AuthService {
             user.id,
         );
 
+        console.log({
+            event: "REGISTER",
+            userId: user.id,
+            email: user.email,
+            timestamp: new Date().toISOString(),
+        });
+
         return {
             user,
             accessToken,
@@ -63,14 +70,17 @@ export class AuthService {
         };
     }
 
-    static async login(credentials, deviceInfo = null, ipAddress = null) {
+    static async login(credentials) {
         const { email, password } = credentials;
 
         const user = await prisma.user.findUnique({
             where: { email },
         });
 
+        const dummyHash = "$2b$10$0000000000000000000000000000000000000000000";
+
         if (!user) {
+            await bcrypt.compare(password, dummyHash);
             const error = new Error("Credenciales inválidas");
             error.statusCode = 401;
             throw error;
@@ -90,6 +100,13 @@ export class AuthService {
         );
 
         const { password: _, ...userWithoutPassword } = user;
+
+        console.log({
+            event: "LOGIN",
+            userId: user.id,
+            email: user.email,
+            timestamp: new Date().toISOString(),
+        });
 
         return {
             user: userWithoutPassword,
@@ -148,6 +165,13 @@ export class AuthService {
         const refreshToken = await RefreshTokenService.createRefreshToken(
             user.id,
         );
+
+        console.log({
+            event: "GOOGLE_LOGIN",
+            userId: user.id,
+            email: user.email,
+            timestamp: new Date().toISOString(),
+        });
 
         return {
             user: {
@@ -253,6 +277,13 @@ export class AuthService {
             },
         });
 
+        console.log({
+            event: "UPDATE_PROFILE",
+            userId,
+            changes: Object.keys(updateData),
+            timestamp: new Date().toISOString(),
+        });
+
         return user;
     }
 
@@ -279,6 +310,12 @@ export class AuthService {
         });
 
         await RefreshTokenService.revokeAllUserTokens(userId);
+
+        console.log({
+            event: "UPDATE_PASSWORD",
+            userId,
+            timestamp: new Date().toISOString(),
+        });
     }
 
     static async deleteAccount(userId, { password }) {
@@ -296,6 +333,13 @@ export class AuthService {
             error.statusCode = 400;
             throw error;
         }
+
+        console.log({
+            event: "DELETE_ACCOUNT",
+            userId,
+            email: user.email,
+            timestamp: new Date().toISOString(),
+        });
 
         await prisma.user.delete({ where: { id: userId } });
     }
