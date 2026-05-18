@@ -23,6 +23,8 @@ interface AuthState {
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+let bootstrappingPromise: Promise<void> | null = null;
+
 export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
@@ -46,19 +48,26 @@ export const useAuthStore = create<AuthState>()(
             },
 
             bootstrap: async () => {
-                try {
-                    const { data } = await axios.post(
-                        `${API_URL}/auth/refresh`,
-                        {},
-                        { withCredentials: true },
-                    );
-                    const { accessToken, user } = data.data;
-                    set({ accessToken, user, isAuthenticated: true });
-                } catch {
-                    set({ accessToken: null, isAuthenticated: false });
-                } finally {
-                    set({ bootstrapping: false });
-                }
+                if (bootstrappingPromise) return bootstrappingPromise;
+
+                bootstrappingPromise = (async () => {
+                    try {
+                        const { data } = await axios.post(
+                            `${API_URL}/auth/refresh`,
+                            {},
+                            { withCredentials: true },
+                        );
+                        const { accessToken, user } = data.data;
+                        set({ accessToken, user, isAuthenticated: true });
+                    } catch {
+                        set({ accessToken: null, isAuthenticated: false });
+                    } finally {
+                        set({ bootstrapping: false });
+                        bootstrappingPromise = null;
+                    }
+                })();
+
+                return bootstrappingPromise;
             },
         }),
         {
