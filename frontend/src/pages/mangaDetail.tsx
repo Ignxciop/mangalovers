@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect } from "react";
-import type { Chapter } from "@/types/manga";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
@@ -200,16 +199,20 @@ export default function MangaDetail() {
 
     const [chaptersReversed, setChaptersReversed] = useState(false);
 
-    const sortedChapters = useMemo(() => {
+    const chaptersSorted = useMemo(() => {
         if (!series) return [];
-        return chaptersReversed
-            ? [...series.chapters].reverse()
-            : series.chapters;
-    }, [series, chaptersReversed]);
+        return [...series.chapters].sort(
+            (a, b) => a.chapterNumber - b.chapterNumber,
+        );
+    }, [series]);
+
+    const sortedChapters = useMemo(() => {
+        return chaptersReversed ? [...chaptersSorted].reverse() : chaptersSorted;
+    }, [chaptersSorted, chaptersReversed]);
 
     const nextChapter = useMemo(() => {
         if (!series) return null;
-        const ascending = [...series.chapters].reverse();
+        const ascending = chaptersSorted;
         let lastReadIndex = -1;
         for (let i = 0; i < ascending.length; i++) {
             if (readIds.has(ascending[i].id)) lastReadIndex = i;
@@ -217,16 +220,12 @@ export default function MangaDetail() {
         if (lastReadIndex === -1) return ascending[0];
         if (lastReadIndex === ascending.length - 1) return null;
         return ascending[lastReadIndex + 1];
-    }, [series, readIds]);
+    }, [series, readIds, chaptersSorted]);
 
     const latestChapter = useMemo(() => {
         if (!series) return null;
-
-        return series.chapters.reduce<Chapter | null>((max, ch) => {
-            if (!max) return ch;
-            return ch.chapterNumber > max.chapterNumber ? ch : max;
-        }, null);
-    }, [series]);
+        return chaptersSorted[chaptersSorted.length - 1] ?? null;
+    }, [chaptersSorted]);
 
     const { pull, refreshing } = usePullToRefresh(() => {
         window.location.reload();
@@ -372,9 +371,7 @@ export default function MangaDetail() {
                                     <button
                                         onClick={() => {
                                             const firstChapter =
-                                                series.chapters[
-                                                    series.chapters.length - 1
-                                                ];
+                                                chaptersSorted[0];
                                             navigate(
                                                 `/manga/${slug}/capitulo/${firstChapter.id}`,
                                                 { state: { from: backUrl } },
