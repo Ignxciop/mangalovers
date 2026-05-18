@@ -40,16 +40,7 @@ const authLimiter = rateLimit({
     message: { success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" },
 });
 
-const generalLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" },
-});
-
 app.use("/api/auth", authLimiter);
-app.use("/api", generalLimiter);
 
 app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "OK", message: "Server está activo" });
