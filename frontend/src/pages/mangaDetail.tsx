@@ -197,7 +197,7 @@ export default function MangaDetail() {
     const location = useLocation();
     const backUrl = location.state?.from ?? "/";
 
-    const [chaptersReversed, setChaptersReversed] = useState(false);
+    const [chaptersReversed, setChaptersReversed] = useState(true);
 
     const chaptersSorted = useMemo(() => {
         if (!series) return [];
