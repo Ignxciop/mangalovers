@@ -12,12 +12,12 @@ export const registerValidator = [
         .trim()
         .notEmpty()
         .withMessage("El nombre es requerido")
-        .isLength({ min: 2 })
-        .withMessage("El nombre debe tener al menos 2 caracteres"),
+        .isLength({ min: 2, max: 100 })
+        .withMessage("El nombre debe tener entre 2 y 100 caracteres"),
     body("lastname")
         .trim()
-        .isLength({ min: 2 })
-        .withMessage("El apellido debe tener al menos 2 caracteres"),
+        .isLength({ min: 2, max: 100 })
+        .withMessage("El apellido debe tener entre 2 y 100 caracteres"),
 ];
 
 export const loginValidator = [

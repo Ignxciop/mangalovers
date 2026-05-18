@@ -27,7 +27,10 @@ export async function getAllManga(query) {
     const where = {};
 
     if (search) {
-        where.name = { contains: search, mode: "insensitive" };
+        where.name = {
+            contains: search.replace(/[%_\\]/g, "\\$&"),
+            mode: "insensitive",
+        };
     }
 
     if (status) {
