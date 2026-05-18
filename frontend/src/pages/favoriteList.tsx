@@ -45,6 +45,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
@@ -74,6 +84,7 @@ export default function FavoritesList() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [favorites, setFavorites] = useState<Favorite[]>([]);
     const [loading, setLoading] = useState(true);
+    const [removingId, setRemovingId] = useState<number | null>(null);
 
     const searchText = searchParams.get("search") ?? "";
     const statusFilter = (searchParams.get("status") ??
@@ -577,7 +588,7 @@ export default function FavoritesList() {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleRemove(fav.seriesId);
+                                                setRemovingId(fav.seriesId);
                                             }}
                                             className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-rose-400 transition-opacity hover:bg-black/70 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                             title="Quitar de favoritos"
@@ -717,6 +728,53 @@ export default function FavoritesList() {
                     )}
                 </main>
             </div>
+
+            <AlertDialog
+                open={removingId !== null}
+                onOpenChange={(open) => {
+                    if (!open) setRemovingId(null);
+                }}
+            >
+                <AlertDialogContent size="sm">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            ¿Quitar de favoritos?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {removingId !== null && (
+                                <>
+                                    Se eliminará{" "}
+                                    <span className="font-medium text-foreground">
+                                        {
+                                            favorites.find(
+                                                (f) =>
+                                                    f.seriesId === removingId,
+                                            )?.series.name
+                                        }
+                                    </span>{" "}
+                                    de tu lista de favoritos.
+                                </>
+                            )}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setRemovingId(null)}>
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            onClick={() => {
+                                if (removingId !== null) {
+                                    handleRemove(removingId);
+                                    setRemovingId(null);
+                                }
+                            }}
+                        >
+                            Quitar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
