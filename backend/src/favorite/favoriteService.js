@@ -81,10 +81,23 @@ export async function getFavorite(userId, seriesId) {
 }
 
 export async function upsertFavorite(userId, seriesId, status) {
+    const seriesIdNum = Number(seriesId);
+
+    const series = await prisma.series.findUnique({
+        where: { id: seriesIdNum },
+        select: { id: true },
+    });
+
+    if (!series) {
+        const error = new Error("Serie no encontrada");
+        error.statusCode = 404;
+        throw error;
+    }
+
     return prisma.userFavorite.upsert({
-        where: { userId_seriesId: { userId, seriesId: Number(seriesId) } },
+        where: { userId_seriesId: { userId, seriesId: seriesIdNum } },
         update: { status },
-        create: { userId, seriesId: Number(seriesId), status },
+        create: { userId, seriesId: seriesIdNum, status },
     });
 }
 

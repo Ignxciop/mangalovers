@@ -1,10 +1,20 @@
 import { prisma } from "../config/prisma.js";
 
 export async function getReadChapterIds(userId, seriesId) {
+    const seriesIdNum = Number(seriesId);
+    const series = await prisma.series.findUnique({
+        where: { id: seriesIdNum },
+        select: { id: true },
+    });
+    if (!series) {
+        const error = new Error("Serie no encontrada");
+        error.statusCode = 404;
+        throw error;
+    }
     const reads = await prisma.userChapterRead.findMany({
         where: {
             userId,
-            chapter: { seriesId: Number(seriesId) },
+            chapter: { seriesId: seriesIdNum },
         },
         select: { chapterId: true },
     });
