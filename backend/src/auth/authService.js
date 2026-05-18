@@ -115,6 +115,13 @@ export class AuthService {
             throw error;
         }
 
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.valid) {
+            const error = new Error(emailValidation.reason);
+            error.statusCode = 400;
+            throw error;
+        }
+
         let user = await prisma.user.findUnique({
             where: { email },
         });

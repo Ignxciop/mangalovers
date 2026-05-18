@@ -1,5 +1,15 @@
 import { prisma } from "../config/prisma.js";
 
+function isValidImageUrl(url) {
+    if (!url || typeof url !== "string") return false;
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
 export async function getAllManga(query) {
     const {
         page = 1,
@@ -107,7 +117,7 @@ export async function getAllManga(query) {
             id: s.id,
             name: s.name,
             slug: s.slug,
-            cover: s.cover,
+            cover: isValidImageUrl(s.cover) ? s.cover : null,
             status: s.status,
             chapterCount: s.chapterCount,
             lastChapterNumber: lastChapterMap.get(s.id) ?? null,
@@ -188,6 +198,7 @@ export async function getLatestManga(userId, limit = 16) {
 
     return series.map((s) => ({
         ...s,
+        cover: isValidImageUrl(s.cover) ? s.cover : null,
         lastAvailableChapterName: lastChapterMap.get(s.id) ?? null,
         lastReadChapterName: lastReadMap.get(s.id) ?? null,
     }));
@@ -233,7 +244,7 @@ export async function getSeriesDetailBySlug(slug, page = 1, limit = 100) {
         id: series.id,
         name: series.name,
         slug: series.slug,
-        cover: series.cover,
+        cover: isValidImageUrl(series.cover) ? series.cover : null,
         status: series.status,
         type: series.type,
         summary: series.summary,
@@ -244,7 +255,7 @@ export async function getSeriesDetailBySlug(slug, page = 1, limit = 100) {
         providers: series.providerSeries.map((p) => ({
             provider: p.provider.name,
             externalSlug: p.slug,
-            externalUrl: p.url,
+            externalUrl: isValidImageUrl(p.url) ? p.url : null,
         })),
 
         chapters: chapters.map((c) => ({
