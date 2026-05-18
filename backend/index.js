@@ -17,11 +17,7 @@ import notificationRoutes from "./src/notifications/notificationRoutes.js";
 const app = express();
 const PORT = config.PORT;
 
-const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || "http://localhost:5173").split(",").map((s) => s.trim());
-
-if (!process.env.FRONTEND_URL) {
-    console.warn("⚠ FRONTEND_URL no configurado, usando http://localhost:5173 como fallback");
-}
+const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || "").split(",").map((s) => s.trim()).filter(Boolean);
 
 app.use(helmet());
 app.use(

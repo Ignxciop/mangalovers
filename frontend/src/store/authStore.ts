@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import axios from "axios";
 
 interface User {
     id: string;
@@ -16,7 +17,11 @@ interface AuthState {
     setAuth: (accessToken: string, user: User) => void;
     setAccessToken: (accessToken: string) => void;
     logout: () => void;
+    bootstrapping: boolean;
+    bootstrap: () => Promise<void>;
 }
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const useAuthStore = create<AuthState>()(
     persist(
@@ -24,6 +29,7 @@ export const useAuthStore = create<AuthState>()(
             accessToken: null,
             user: null,
             isAuthenticated: false,
+            bootstrapping: true,
 
             setAuth: (accessToken, user) => {
                 set({ accessToken, user, isAuthenticated: true });
@@ -37,6 +43,22 @@ export const useAuthStore = create<AuthState>()(
                     user: null,
                     isAuthenticated: false,
                 });
+            },
+
+            bootstrap: async () => {
+                try {
+                    const { data } = await axios.post(
+                        `${API_URL}/auth/refresh`,
+                        {},
+                        { withCredentials: true },
+                    );
+                    const { accessToken, user } = data.data;
+                    set({ accessToken, user, isAuthenticated: true });
+                } catch {
+                    set({ accessToken: null, isAuthenticated: false });
+                } finally {
+                    set({ bootstrapping: false });
+                }
             },
         }),
         {
