@@ -1,14 +1,22 @@
 import { config } from "../config/env.js";
 
 export const errorHandler = (err, req, res, next) => {
-    console.error({ err, path: req.path, method: req.method }, "Request error");
+    console.error({
+        message: err.message,
+        path: req.path,
+        method: req.method,
+        ...(config.ENVIRONMENT === "development" && { stack: err.stack }),
+    });
 
     const statusCode = err.statusCode || 500;
     const message = err.message || "Error interno del servidor";
 
-    res.status(statusCode).json({
+    const response = {
         success: false,
-        message,
-        ...(config.ENVIRONMENT === "development" && { stack: err.stack }),
-    });
+        message: statusCode === 500 && config.ENVIRONMENT === "production"
+            ? "Error interno del servidor"
+            : message,
+    };
+
+    res.status(statusCode).json(response);
 };
