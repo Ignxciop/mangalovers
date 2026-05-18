@@ -21,7 +21,7 @@ export function useAuth() {
         setError(null);
         try {
             const data = await authApi.login(payload);
-            setAuth(data.accessToken, data.refreshToken, data.user);
+            setAuth(data.accessToken, data.user);
             navigate("/");
         } catch (err: unknown) {
             setError(getErrorMessage(err));
@@ -35,7 +35,7 @@ export function useAuth() {
         setError(null);
         try {
             const data = await authApi.googleLogin(idToken);
-            setAuth(data.accessToken, data.refreshToken, data.user);
+            setAuth(data.accessToken, data.user);
             navigate("/");
         } catch (err: unknown) {
             setError(getErrorMessage(err));
@@ -49,7 +49,7 @@ export function useAuth() {
         setError(null);
         try {
             const data = await authApi.register(payload);
-            setAuth(data.accessToken, data.refreshToken, data.user);
+            setAuth(data.accessToken, data.user);
             navigate("/");
         } catch (err: unknown) {
             setError(getErrorMessage(err));
@@ -60,10 +60,7 @@ export function useAuth() {
 
     const logout = async () => {
         try {
-            const refreshToken = useAuthStore.getState().refreshToken;
-            if (refreshToken) {
-                await authApi.logout(refreshToken);
-            }
+            await authApi.logout();
         } catch {
             // Silenciar
         } finally {

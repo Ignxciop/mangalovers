@@ -13,7 +13,6 @@ export interface LoginPayload {
 }
 interface AuthData {
     accessToken: string;
-    refreshToken: string;
     user: {
         id: string;
         name: string;
@@ -44,8 +43,8 @@ export const login = async (payload: LoginPayload): Promise<AuthData> => {
     return response.data;
 };
 
-export const logout = async (refreshToken: string): Promise<void> => {
-    await api.post("/auth/logout", { refreshToken });
+export const logout = async (): Promise<void> => {
+    await api.post("/auth/logout");
 };
 
 export const googleLogin = async (
@@ -55,11 +54,6 @@ export const googleLogin = async (
         "/auth/google",
         { idToken },
     );
-    return response.data;
-};
-
-export const refresh = async (): Promise<AuthData> => {
-    const { data: response } = await api.post<AuthResponse>("/auth/refresh");
     return response.data;
 };
 

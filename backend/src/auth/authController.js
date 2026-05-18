@@ -1,10 +1,27 @@
 import { AuthService } from "./authService.js";
 import { config } from "../config/env.js";
 
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: config.ENVIRONMENT === "production",
+    sameSite: "strict",
+    path: "/api/auth",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+function setRefreshCookie(res, refreshToken) {
+    res.cookie("refreshToken", refreshToken, COOKIE_OPTIONS);
+}
+
+function clearRefreshCookie(res) {
+    res.clearCookie("refreshToken", { ...COOKIE_OPTIONS, maxAge: 0 });
+}
+
 export class AuthController {
     static async register(req, res, next) {
         try {
             const result = await AuthService.register(req.body);
+            setRefreshCookie(res, result.refreshToken);
 
             res.status(201).json({
                 success: true,
@@ -12,7 +29,6 @@ export class AuthController {
                 data: {
                     user: result.user,
                     accessToken: result.accessToken,
-                    refreshToken: result.refreshToken,
                 },
             });
         } catch (error) {
@@ -25,11 +41,12 @@ export class AuthController {
             const { user, accessToken, refreshToken } = await AuthService.login(
                 req.body,
             );
+            setRefreshCookie(res, refreshToken);
 
             res.status(200).json({
                 success: true,
                 message: "Inicio de sesión exitoso",
-                data: { user, accessToken, refreshToken },
+                data: { user, accessToken },
             });
         } catch (error) {
             next(error);
@@ -49,11 +66,12 @@ export class AuthController {
 
             const { user, accessToken, refreshToken } =
                 await AuthService.googleLogin(idToken);
+            setRefreshCookie(res, refreshToken);
 
             res.status(200).json({
                 success: true,
                 message: "Inicio de sesión con Google exitoso",
-                data: { user, accessToken, refreshToken },
+                data: { user, accessToken },
             });
         } catch (error) {
             next(error);
@@ -62,10 +80,10 @@ export class AuthController {
 
     static async refresh(req, res, next) {
         try {
-            const { refreshToken } = req.body;
+            const refreshToken = req.cookies?.refreshToken;
 
             if (!refreshToken) {
-                return res.status(400).json({
+                return res.status(401).json({
                     success: false,
                     message: "Refresh token requerido",
                 });
@@ -76,11 +94,12 @@ export class AuthController {
                 accessToken,
                 refreshToken: newRefreshToken,
             } = await AuthService.refreshAccessToken(refreshToken);
+            setRefreshCookie(res, newRefreshToken);
 
             res.status(200).json({
                 success: true,
                 message: "Token renovado exitosamente",
-                data: { user, accessToken, refreshToken: newRefreshToken },
+                data: { user, accessToken },
             });
         } catch (error) {
             next(error);
@@ -89,8 +108,9 @@ export class AuthController {
 
     static async logout(req, res, next) {
         try {
-            const { refreshToken } = req.body;
+            const refreshToken = req.cookies?.refreshToken;
             await AuthService.logout(refreshToken);
+            clearRefreshCookie(res);
 
             res.status(200).json({
                 success: true,

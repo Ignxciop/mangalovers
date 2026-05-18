@@ -59,7 +59,6 @@ function ProfileSection() {
     const { user } = useAuth();
     const setAuth = useAuthStore((s) => s.setAuth);
     const accessToken = useAuthStore((s) => s.accessToken);
-    const refreshToken = useAuthStore((s) => s.refreshToken);
 
     const [form, setForm] = useState({
         name: user?.name ?? "",
@@ -78,7 +77,7 @@ function ProfileSection() {
 
         try {
             const { data } = await api.patch("/auth/profile", form);
-            setAuth(accessToken!, refreshToken!, data.data.user);
+            setAuth(accessToken!, data.data.user);
             setSuccess("Datos actualizados correctamente");
         } catch (err: any) {
             setError(err?.response?.data?.message ?? "Error al actualizar");

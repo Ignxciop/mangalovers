@@ -61,28 +61,20 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         try {
-            const currentRefreshToken = useAuthStore.getState().refreshToken;
-
-            if (!currentRefreshToken) {
-                useAuthStore.getState().logout();
-                window.location.href = "/acceso";
-                return Promise.reject(new Error("No refresh token available"));
-            }
-
             const { data } = await axios.post(
                 `${import.meta.env.VITE_API_URL ?? "http://localhost:3000/api"}/auth/refresh`,
-                { refreshToken: currentRefreshToken },
+                {},
+                { withCredentials: true },
             );
 
             const {
                 accessToken: newAccessToken,
-                refreshToken: newRefreshToken,
                 user,
             } = data.data;
 
             useAuthStore
                 .getState()
-                .setAuth(newAccessToken, newRefreshToken, user);
+                .setAuth(newAccessToken, user);
 
             processQueue(null, newAccessToken);
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
