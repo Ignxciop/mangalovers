@@ -217,10 +217,17 @@ export class AuthService {
     }
 
     static async updateProfile(userId, data) {
-        const { name, lastname, email } = data;
+        const ALLOWED_FIELDS = ["name", "lastname", "email"];
+        const updateData = {};
 
-        if (email) {
-            const existing = await prisma.user.findUnique({ where: { email } });
+        for (const field of ALLOWED_FIELDS) {
+            if (data[field] !== undefined) {
+                updateData[field] = data[field];
+            }
+        }
+
+        if (updateData.email) {
+            const existing = await prisma.user.findUnique({ where: { email: updateData.email } });
             if (existing && existing.id !== userId) {
                 const error = new Error("El email ya está en uso");
                 error.statusCode = 409;
@@ -230,11 +237,7 @@ export class AuthService {
 
         const user = await prisma.user.update({
             where: { id: userId },
-            data: {
-                ...(name && { name }),
-                ...(lastname && { lastname }),
-                ...(email && { email }),
-            },
+            data: updateData,
             select: {
                 id: true,
                 email: true,
