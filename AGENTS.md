@@ -51,7 +51,23 @@ docker compose up -d
 
 ## Testing
 
-- No hay tests configurados en ningún lado.
+- **Backend**: Vitest + Supertest con `DATABASE_TEST_URL` en `.env`.
+  ```bash
+  cd backend
+  pnpm test              # Todos los tests
+  pnpm test:watch        # Watch mode
+  pnpm test:integration  # Solo integration
+  pnpm test:unit         # Solo unit (cuando existan)
+  ```
+- La test DB se limpia (`TRUNCATE CASCADE`) entre cada test.
+- Antes de testear, migrar la test DB:
+  ```bash
+  DATABASE_URL="postgresql://postgres:1243@localhost:5432/mangalovers-db-tests" pnpm prisma migrate deploy
+  ```
+- Tests existentes: auth (19), favorites (12), reads (9), manga (20), notifications (7), middleware unit (11) — **78 tests**.
+- Vitest config (`vitest.config.js`): `fileParallelism: false` para evitar colisiones en test DB compartida.
+- Helpers: `tests/helpers/factories.js` (createUser, createSeries, createChapter, createGenre, createProvider), `tests/helpers/app.js` (buildApp), `tests/helpers/auth.js` (generateAccessToken).
+- `tests/setup.js` sobreescribe `DATABASE_URL` globalmente antes de importar la app.
 
 ## Skills de OpenCode
 
