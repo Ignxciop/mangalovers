@@ -1,4 +1,5 @@
 import { Search, SlidersHorizontal, BookOpen } from "lucide-react";
+import { CoverImage } from "@/components/coverImage";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -409,13 +410,9 @@ export default function MangaList() {
                                     <BookOpen className="h-2.5 w-2.5" />
                                     {manga.lastChapterNumber ?? "?"}
                                 </Badge>
-                                <img
-                                    src={
-                                        manga.cover ||
-                                        "/api/placeholder/300/400"
-                                    }
+                                <CoverImage
+                                    src={manga.cover}
                                     alt={manga.name}
-                                    className="object-cover w-full h-full"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 pointer-events-none">
                                     <span className="text-white text-[10px] font-bold uppercase tracking-wider">
