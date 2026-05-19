@@ -1,6 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
+import logger from "../../../config/logger.js";
 
 const limit = pLimit(3);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -27,9 +28,7 @@ async function processChapter(providerChapter, providerId) {
         const pages = await fetchPages(providerChapter.externalId);
 
         if (!pages.length) {
-            console.warn(
-                `Sin páginas: ${providerChapter.externalId}, se reintentará`,
-            );
+            logger.warn({ externalId: providerChapter.externalId }, "Sin páginas manhwaweb, se reintentará");
             return;
         }
 
@@ -46,18 +45,15 @@ async function processChapter(providerChapter, providerId) {
             data: { pagesScraped: true },
         });
 
-        console.log(`${providerChapter.externalId} → ${pages.length} páginas`);
+        logger.debug({ externalId: providerChapter.externalId, pageCount: pages.length }, "Páginas manhwaweb scrapeadas");
         await sleep(200);
     } catch (err) {
-        console.error(
-            `Error páginas ${providerChapter.externalId}:`,
-            err.message,
-        );
+        logger.error({ externalId: providerChapter.externalId, err: err.message }, "Error páginas manhwaweb");
     }
 }
 
 export async function scrapePages() {
-    console.log("ManhwaWeb - Páginas incremental...");
+    logger.info("ManhwaWeb - Páginas incremental...");
 
     const provider = await prisma.provider.findUnique({
         where: { name: "manhwaweb" },
@@ -79,5 +75,5 @@ export async function scrapePages() {
         ),
     );
 
-    console.log("ManhwaWeb - Páginas listas");
+    logger.info("ManhwaWeb - Páginas listas");
 }

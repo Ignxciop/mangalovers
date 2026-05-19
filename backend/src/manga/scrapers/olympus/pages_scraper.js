@@ -1,6 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
+import logger from "../../../config/logger.js";
 
 const limit = pLimit(5);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -30,9 +31,7 @@ async function processChapter(providerChapter, providerId) {
         );
 
         if (!pages.length) {
-            console.warn(
-                `Sin páginas: ${providerChapter.chapterId}, se reintentará`,
-            );
+            logger.warn({ chapterId: providerChapter.chapterId }, "Sin páginas olympus, se reintentará");
             return;
         }
 
@@ -49,18 +48,15 @@ async function processChapter(providerChapter, providerId) {
             data: { pagesScraped: true },
         });
 
-        console.log(`${providerChapter.chapterId} → ${pages.length} páginas`);
+        logger.debug({ chapterId: providerChapter.chapterId, pageCount: pages.length }, "Páginas olympus scrapeadas");
         await sleep(200);
     } catch (err) {
-        console.error(
-            `Error capítulo ${providerChapter.chapterId}:`,
-            err.message,
-        );
+        logger.error({ chapterId: providerChapter.chapterId, err: err.message }, "Error capítulo olympus");
     }
 }
 
 export async function scrapePages() {
-    console.log("Páginas incremental...");
+    logger.info("Páginas incremental...");
 
     const provider = await prisma.provider.findUnique({
         where: { name: "olympus" },
@@ -82,5 +78,5 @@ export async function scrapePages() {
         ),
     );
 
-    console.log("Páginas listas");
+    logger.info("Páginas listas");
 }

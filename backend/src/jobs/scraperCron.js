@@ -1,26 +1,27 @@
 import cron from "node-cron";
 import { runAllScrapers } from "../manga/scrapers/scraper.js";
+import logger from "../config/logger.js";
 
 let isRunning = false;
 
 export function initScraperCron() {
     cron.schedule("0 * * * *", async () => {
         if (isRunning) {
-            console.log("Scraper anterior aún en ejecución, saltando esta iteración");
+            logger.warn("Scraper anterior aún en ejecución, saltando esta iteración");
             return;
         }
 
         isRunning = true;
-        console.log("Cron ejecutando scraping automático...");
+        logger.info("Cron ejecutando scraping automático...");
 
         try {
             await runAllScrapers();
         } catch (error) {
-            console.error("Error en scraper cron:", error.message);
+            logger.error({ err: error }, "Error en scraper cron");
         } finally {
             isRunning = false;
         }
     });
 
-    console.log("Scraper cron inicializado (cada 1 hora)");
+    logger.info("Scraper cron inicializado (cada 1 hora)");
 }

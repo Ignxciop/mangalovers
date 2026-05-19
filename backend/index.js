@@ -5,7 +5,9 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import { errorHandler } from "./src/middlewares/errorHandler.js";
-import morgan from "morgan";
+import { attachLogger } from "./src/middlewares/attachLogger.js";
+import pinoHttp from "pino-http";
+import logger from "./src/config/logger.js";
 import authRoutes from "./src/auth/authRoutes.js";
 import mangaRoutes from "./src/manga/mangaRoutes.js";
 import favoriteRoutes from "./src/favorite/favoriteRoutes.js";
@@ -16,6 +18,8 @@ import notificationRoutes from "./src/notifications/notificationRoutes.js";
 
 const app = express();
 const PORT = config.PORT;
+
+const isTest = process.env.VITEST === "true";
 
 const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || "").split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -36,7 +40,12 @@ app.use(
 );
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
-app.use(morgan("dev"));
+
+app.use(pinoHttp({
+    logger,
+    autoLogging: isTest ? false : undefined,
+}));
+app.use(attachLogger);
 
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -92,7 +101,7 @@ async function startServer() {
     await seedProviders();
 
     app.listen(PORT, () => {
-        console.log(`Servidor corriendo en puerto ${PORT}`);
+        logger.info({ port: PORT }, "Servidor corriendo");
     });
 
     initScraperCron();

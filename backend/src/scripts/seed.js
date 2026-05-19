@@ -1,9 +1,10 @@
 import { prisma } from "../config/prisma.js";
+import logger from "../config/logger.js";
 
 const providers = [{ name: "olympus" }, { name: "manhwaweb" }];
 
 export async function seedProviders() {
-    console.log("Verificando providers...");
+    logger.info("Verificando providers...");
 
     for (const provider of providers) {
         const exists = await prisma.provider.findUnique({
@@ -15,11 +16,11 @@ export async function seedProviders() {
                 data: provider,
             });
 
-            console.log(`Provider creado: ${provider.name}`);
+            logger.info({ name: provider.name }, "Provider creado");
         } else {
-            console.log(`Provider ya existe: ${provider.name}`);
+            logger.debug({ name: provider.name }, "Provider ya existe");
         }
     }
 
-    console.log("Seed de providers terminado");
+    logger.info("Seed de providers terminado");
 }

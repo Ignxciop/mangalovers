@@ -1,6 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
+import logger from "../../../config/logger.js";
 import { notifyNewChapter } from "../../../notifications/notificationService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
 
@@ -20,9 +21,7 @@ async function fetchChapters(slug, page, retries = 3) {
             return data;
         } catch (error) {
             if (i === retries - 1) throw error;
-            console.warn(
-                `Reintentando capítulos ${slug} página ${page} (intento ${i + 2})...`,
-            );
+            logger.warn({ slug, page, attempt: i + 2 }, "Reintentando capítulos olympus");
             await sleep(2000 * (i + 1));
         }
     }
@@ -32,7 +31,7 @@ async function processSeries(providerSeries, providerId) {
     const slug = providerSeries.slug;
     const seriesId = providerSeries.seriesId;
 
-    console.log(`Revisando: ${slug}`);
+    logger.info({ slug }, "Revisando capítulos olympus");
 
     let latestCreatedChapter = null;
     let shouldStop = false;
@@ -57,7 +56,7 @@ async function processSeries(providerSeries, providerId) {
                     });
 
                 if (existingProviderChapter) {
-                    console.log("Capítulo existente encontrado, stop.");
+                    logger.debug({ slug }, "Capítulo existente encontrado, stop");
                     shouldStop = true;
                     break;
                 }
@@ -80,7 +79,7 @@ async function processSeries(providerSeries, providerId) {
                     },
                 });
 
-                console.log(`Capítulo nuevo: ${ch.name}`);
+                logger.debug({ chapterName: ch.name, slug }, "Capítulo nuevo olympus");
             }
 
             await sleep(300);
@@ -103,12 +102,12 @@ async function processSeries(providerSeries, providerId) {
             });
         }
     } catch (error) {
-        console.error(`Error procesando serie ${slug}:`, error.message);
+        logger.error({ slug, err: error.message }, "Error procesando serie olympus");
     }
 }
 
 export async function scrapeChapters() {
-    console.log("Capítulos incremental...");
+    logger.info("Capítulos incremental...");
 
     const provider = await prisma.provider.findUnique({
         where: { name: "olympus" },
@@ -141,5 +140,5 @@ export async function scrapeChapters() {
         ),
     );
 
-    console.log("Capítulos listos");
+    logger.info("Capítulos listos");
 }

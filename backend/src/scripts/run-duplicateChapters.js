@@ -1,7 +1,8 @@
 import { prisma } from "../config/prisma.js";
+import logger from "../config/logger.js";
 
 async function deduplicateChapters() {
-    console.log("Buscando capítulos duplicados...");
+    logger.info("Buscando capítulos duplicados...");
 
     const olympus = await prisma.provider.findUnique({
         where: { name: "olympus" },
@@ -25,13 +26,13 @@ async function deduplicateChapters() {
         select: { id: true, name: true },
     });
 
-    console.log(`Series con ambos providers: ${sharedSeries.length}`);
+    logger.info({ count: sharedSeries.length }, "Series con ambos providers");
 
     let totalMerged = 0;
     let totalRemoved = 0;
 
     for (const series of sharedSeries) {
-        console.log(`\nProcesando: "${series.name}" (id: ${series.id})`);
+        logger.info({ name: series.name, id: series.id }, "Procesando serie");
 
         const allChapters = await prisma.chapter.findMany({
             where: { seriesId: series.id },
@@ -59,7 +60,7 @@ async function deduplicateChapters() {
             );
 
             if (!olympusChapter) {
-                console.log(`  ⚠ Cap ${name}: sin olympus, saltando`);
+                logger.warn({ name }, "Sin olympus, saltando");
                 continue;
             }
 
@@ -125,9 +126,7 @@ async function deduplicateChapters() {
                     await tx.chapter.delete({ where: { id: dup.id } });
                 });
 
-                console.log(
-                    `  ✓ Cap ${name}: duplicado eliminado (id: ${dup.id} → ${olympusChapter.id})`,
-                );
+                logger.info({ name, dupId: dup.id, keepId: olympusChapter.id }, "Capítulo duplicado eliminado");
                 totalMerged++;
             }
 
@@ -135,14 +134,12 @@ async function deduplicateChapters() {
         }
     }
 
-    console.log(
-        `\nListo — ${totalMerged} capítulos fusionados, ${totalRemoved} duplicados eliminados`,
-    );
+    logger.info({ merged: totalMerged, removed: totalRemoved }, "Deduplicación de capítulos completada");
     await prisma.$disconnect();
 }
 
 deduplicateChapters().catch((e) => {
-    console.error(e);
+    logger.error({ err: e }, "Error en deduplicación de capítulos");
     prisma.$disconnect();
     process.exit(1);
 });

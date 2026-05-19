@@ -1,9 +1,10 @@
 import webpush from "web-push";
 import { config } from "../config/env.js";
 import { prisma } from "../config/prisma.js";
+import logger from "../config/logger.js";
 
 try {
-    console.log("Inicializando VAPID...");
+    logger.info("Inicializando VAPID...");
 
     webpush.setVapidDetails(
         `mailto:${config.VAPID_EMAIL}`,
@@ -11,12 +12,10 @@ try {
         config.VAPID_PRIVATE_KEY,
     );
 
-    console.log("VAPID configurado correctamente");
+    logger.info("VAPID configurado correctamente");
 } catch (error) {
-    console.error("Error configurando VAPID:");
-    console.error(error.message);
-
-    console.warn("Push notifications DESACTIVADAS temporalmente");
+    logger.error({ err: error }, "Error configurando VAPID");
+    logger.warn("Push notifications DESACTIVADAS temporalmente");
 }
 
 export async function subscribe({ userId, endpoint, p256dh, auth }) {
@@ -65,19 +64,14 @@ async function sendToSubscription(subscription, payload) {
         return { success: true };
     } catch (error) {
         if (error.statusCode === 410 || error.statusCode === 404) {
-            console.warn(
-                `Suscripción inválida (${error.statusCode}), eliminando id=${subscription.id}`,
-            );
+            logger.warn({ subscriptionId: subscription.id, statusCode: error.statusCode }, "Suscripción inválida, eliminando");
             await prisma.pushSubscription.delete({
                 where: { id: subscription.id },
             }).catch(() => {});
             return { success: false, expired: true };
         }
 
-        console.error(
-            `Error enviando push a id=${subscription.id}:`,
-            error.message,
-        );
+        logger.error({ subscriptionId: subscription.id }, "Error enviando push");
         return { success: false, expired: false, error: error.message };
     }
 }
@@ -104,7 +98,7 @@ export async function notifyNewChapter({
     slug,
 }) {
     if (!config.VAPID_PUBLIC_KEY || !config.VAPID_PRIVATE_KEY) {
-        console.warn("Push omitido: VAPID no configurado");
+        logger.warn("Push omitido: VAPID no configurado");
         return;
     }
 
@@ -149,10 +143,7 @@ export async function notifyNewChapter({
         { total: subscriptions.length, sent: 0, failed: 0, expired: 0 },
     );
 
-    console.log(
-        `Push "${seriesName}" - ${chapterName}: ` +
-            `${summary.sent}/${summary.total} enviados`,
-    );
+    logger.info({ seriesName, chapterName, sent: summary.sent, total: summary.total }, "Push enviado");
 
     return summary;
 }

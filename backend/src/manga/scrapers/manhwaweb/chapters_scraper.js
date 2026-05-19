@@ -1,6 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
+import logger from "../../../config/logger.js";
 import { notifyNewChapter } from "../../../notifications/notificationService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
 
@@ -19,7 +20,7 @@ async function fetchSeriesWithChapters(externalId, retries = 3) {
             return data;
         } catch (error) {
             if (i === retries - 1) throw error;
-            console.warn(`Reintentando ${externalId} (intento ${i + 2})...`);
+            logger.warn({ externalId, attempt: i + 2 }, "Reintentando fetch manhwaweb");
             await sleep(2000 * (i + 1));
         }
     }
@@ -29,9 +30,8 @@ async function processSeries(providerSeries, providerId) {
     const externalId = providerSeries.externalId;
     const seriesId = providerSeries.seriesId;
 
-    console.log(`Revisando capítulos: ${externalId}`);
+    logger.info({ externalId }, "Revisando capítulos manhwaweb");
 
-    // TRACK
     let latestCreatedChapter = null;
 
     try {
@@ -75,7 +75,6 @@ async function processSeries(providerSeries, providerId) {
                 data: { name: chapterName, publishedAt, seriesId },
             });
 
-            // GUARDAR ÚLTIMO
             latestCreatedChapter = newChapter;
 
             await prisma.providerChapter.create({
@@ -86,12 +85,11 @@ async function processSeries(providerSeries, providerId) {
                 },
             });
 
-            console.log(`Capítulo nuevo: ${chapterName}`);
+            logger.debug({ chapterName, externalId }, "Capítulo nuevo manhwaweb");
         }
 
         await updateSeriesMetadata(seriesId);
 
-        // NOTIFICAR UNA SOLA VEZ
         if (latestCreatedChapter) {
             const series = await prisma.series.findUnique({
                 where: { id: seriesId },
@@ -102,16 +100,16 @@ async function processSeries(providerSeries, providerId) {
                 seriesId,
                 seriesName: series?.name ?? externalId,
                 chapterName: latestCreatedChapter.name,
-                slug: series?.slug ?? externalId, // CLAVE
+                slug: series?.slug ?? externalId,
             });
         }
     } catch (error) {
-        console.error(`Error capítulos ${externalId}:`, error.message);
+        logger.error({ externalId, err: error.message }, "Error capítulos manhwaweb");
     }
 }
 
 export async function scrapeChapters() {
-    console.log("ManhwaWeb - Capítulos incremental...");
+    logger.info("ManhwaWeb - Capítulos incremental...");
 
     const provider = await prisma.provider.findUnique({
         where: { name: "manhwaweb" },
@@ -144,5 +142,5 @@ export async function scrapeChapters() {
         ),
     );
 
-    console.log("ManhwaWeb - Capítulos listos");
+    logger.info("ManhwaWeb - Capítulos listos");
 }

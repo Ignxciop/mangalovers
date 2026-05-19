@@ -1,6 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
+import logger from "../../../config/logger.js";
 import { syncGenres } from "../syncGenres.js";
 
 const limit = pLimit(1);
@@ -22,7 +23,7 @@ async function fetchPage(page, retries = 3) {
             };
         } catch (error) {
             if (i === retries - 1) throw error;
-            console.warn(`Reintentando página ${page} (intento ${i + 2})...`);
+            logger.warn({ page, attempt: i + 2 }, "Reintentando página olympus");
             await sleep(2000 * (i + 1));
         }
     }
@@ -47,11 +48,7 @@ async function fetchMetadata(slug) {
             cover: series.cover ?? null,
         };
     } catch (error) {
-        console.error(
-            `Error metadata ${slug}:`,
-            error.response?.status,
-            error.response?.data || error.message,
-        );
+        logger.error({ slug, status: error.response?.status }, "Error metadata olympus");
         return null;
     }
 }
@@ -106,7 +103,7 @@ async function processSeries(seriesData, providerId) {
         });
 
         if (oldSlug !== slug) {
-            console.log(`Slug actualizado: ${oldSlug} → ${slug}`);
+            logger.info({ oldSlug, slug }, "Slug actualizado");
         }
         return;
     }
@@ -165,11 +162,11 @@ async function processSeries(seriesData, providerId) {
         });
     });
 
-    console.log(`${seriesData.name}`);
+    logger.info({ name: seriesData.name }, "Serie procesada olympus");
 }
 
 export async function scrapeSeries() {
-    console.log("Series + metadata incremental...");
+    logger.info("Series + metadata incremental...");
 
     const provider = await prisma.provider.findUnique({
         where: { name: "olympus" },
@@ -198,5 +195,5 @@ export async function scrapeSeries() {
         await sleep(400);
     }
 
-    console.log("Series y metadata listas");
+    logger.info("Series y metadata listas");
 }

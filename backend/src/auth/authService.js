@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
+import logger from "../config/logger.js";
 import { RefreshTokenService } from "./refreshTokenService.js";
 import { validateEmail } from "../config/emailAllowed.js";
 
@@ -56,12 +57,7 @@ export class AuthService {
             user.id,
         );
 
-        console.log({
-            event: "REGISTER",
-            userId: user.id,
-            email: user.email,
-            timestamp: new Date().toISOString(),
-        });
+        logger.info({ event: "REGISTER", userId: user.id, email: user.email }, "Usuario registrado");
 
         return {
             user,
@@ -95,12 +91,7 @@ export class AuthService {
 
         const { password: _, ...userWithoutPassword } = user;
 
-        console.log({
-            event: "LOGIN",
-            userId: user.id,
-            email: user.email,
-            timestamp: new Date().toISOString(),
-        });
+        logger.info({ event: "LOGIN", userId: user.id, email: user.email }, "Inicio de sesión");
 
         return {
             user: userWithoutPassword,
@@ -160,12 +151,7 @@ export class AuthService {
             user.id,
         );
 
-        console.log({
-            event: "GOOGLE_LOGIN",
-            userId: user.id,
-            email: user.email,
-            timestamp: new Date().toISOString(),
-        });
+        logger.info({ event: "GOOGLE_LOGIN", userId: user.id, email: user.email }, "Login con Google");
 
         return {
             user: {
@@ -271,12 +257,7 @@ export class AuthService {
             },
         });
 
-        console.log({
-            event: "UPDATE_PROFILE",
-            userId,
-            changes: Object.keys(updateData),
-            timestamp: new Date().toISOString(),
-        });
+        logger.info({ event: "UPDATE_PROFILE", userId, changes: Object.keys(updateData) }, "Perfil actualizado");
 
         return user;
     }
@@ -305,11 +286,7 @@ export class AuthService {
 
         await RefreshTokenService.revokeAllUserTokens(userId);
 
-        console.log({
-            event: "UPDATE_PASSWORD",
-            userId,
-            timestamp: new Date().toISOString(),
-        });
+        logger.info({ event: "UPDATE_PASSWORD", userId }, "Contraseña actualizada");
     }
 
     static async deleteAccount(userId, { password }) {
@@ -328,12 +305,7 @@ export class AuthService {
             throw error;
         }
 
-        console.log({
-            event: "DELETE_ACCOUNT",
-            userId,
-            email: user.email,
-            timestamp: new Date().toISOString(),
-        });
+        logger.info({ event: "DELETE_ACCOUNT", userId, email: user.email }, "Cuenta eliminada");
 
         await prisma.user.delete({ where: { id: userId } });
     }

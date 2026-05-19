@@ -5,6 +5,8 @@ import { prisma } from "./helpers/prisma.js";
 dotenv.config({ quiet: true });
 process.env.DATABASE_URL = process.env.DATABASE_TEST_URL;
 
+import logger from "../src/config/logger.js";
+
 const TABLE_NAMES = [
     "user_chapter_reads",
     "user_favorites",
@@ -25,12 +27,9 @@ const TABLE_NAMES = [
 beforeAll(async () => {
     try {
         await prisma.$connect();
-        console.log("Test DB connected");
+        logger.info("Test DB connected");
     } catch (err) {
-        console.error(
-            "Failed to connect to test DB. Ensure PostgreSQL is running and DATABASE_TEST_URL is correct in .env",
-            err.message,
-        );
+        logger.error({ err: err.message }, "Failed to connect to test DB. Ensure PostgreSQL is running and DATABASE_TEST_URL is correct in .env");
         throw err;
     }
 });

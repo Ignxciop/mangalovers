@@ -1,25 +1,26 @@
 import { runOlympus } from "./olympus/olympus.js";
 import { runManhwaweb } from "./manhwaweb/manhwaweb.js";
+import logger from "../../config/logger.js";
 
 let isRunning = false;
 
 export async function runAllScrapers() {
     if (isRunning) {
-        console.log("Scraper ya en ejecución, se omite esta corrida");
+        logger.warn("Scraper ya en ejecución, se omite esta corrida");
         return;
     }
 
     try {
         isRunning = true;
 
-        console.log("Iniciando scraping global...");
+        logger.info("Iniciando scraping global...");
 
         await runOlympus();
         await runManhwaweb();
 
-        console.log("Scraping global terminado");
+        logger.info("Scraping global terminado");
     } catch (error) {
-        console.error("Error en scraping global:", error);
+        logger.error({ err: error }, "Error en scraping global");
     } finally {
         isRunning = false;
     }

@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma.js";
+import logger from "../../config/logger.js";
 import { MANUAL_ALIASES } from "../scrapers/manualAliases.js";
 import {
     normalizeSeriesName,
@@ -103,7 +104,7 @@ async function mergeSeries(keepId, dropId, manhwawebId) {
 }
 
 export async function deduplicateSeries() {
-    console.log("Deduplicacion de series");
+    logger.info("Deduplicacion de series");
 
     const olympus = await prisma.provider.findUnique({
         where: { name: "olympus" },
@@ -184,13 +185,11 @@ export async function deduplicateSeries() {
 
         if (keepId === dropId) continue;
 
-        console.log(
-            `Fusionando [${method}]: "${mwName}" -> "${keepPs.series.name}" (${dropId} -> ${keepId})`,
-        );
+        logger.info({ method, mwName, keepName: keepPs.series.name, dropId, keepId }, "Fusionando series");
 
         await mergeSeries(keepId, dropId, manhwaweb.id);
         merged++;
     }
 
-    console.log(`Listo — ${merged} fusionadas, ${skipped} sin match`);
+    logger.info({ merged, skipped }, "Deduplicación completada");
 }

@@ -1,6 +1,7 @@
 import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
+import logger from "../../../config/logger.js";
 import { syncGenres } from "../syncGenres.js";
 import { MANUAL_ALIASES } from "../manualAliases.js";
 import {
@@ -44,9 +45,7 @@ async function fetchPage(page, tipo, retries = 3) {
             };
         } catch (error) {
             if (i === retries - 1) throw error;
-            console.warn(
-                `Reintentando pagina ${page} tipo=${tipo} (intento ${i + 2})...`,
-            );
+            logger.warn({ page, tipo, attempt: i + 2 }, "Reintentando página manhwaweb");
             await sleep(2000 * (i + 1));
         }
     }
@@ -78,7 +77,7 @@ async function processSeries(seriesData, providerId, tipo) {
         where: { providerId_externalId: { providerId, externalId } },
     });
     if (existing) {
-        console.log(`Ya existe: ${externalId}`);
+        logger.debug({ externalId }, "Ya existe en manhwaweb");
         return;
     }
 
@@ -92,9 +91,7 @@ async function processSeries(seriesData, providerId, tipo) {
             slug,
             type,
         );
-        console.log(
-            `Vinculado (${resolved.method}): "${name}" -> "${resolved.series.name}"`,
-        );
+        logger.info({ name, method: resolved.method, canonicalSeries: resolved.series.name }, "Vinculado manhwaweb");
         return;
     }
 
@@ -157,20 +154,20 @@ async function processSeries(seriesData, providerId, tipo) {
             });
         });
 
-        console.log(`[${type ?? "?"}] ${name}`);
+        logger.info({ type, name }, "Serie procesada manhwaweb");
     } catch (error) {
-        console.error(`Error procesando serie ${externalId}:`, error.message);
+        logger.error({ externalId, err: error.message }, "Error procesando serie manhwaweb");
     }
 }
 
 async function scrapeByTipo(tipo, providerId) {
-    console.log(`Scrapeando tipo: ${tipo}`);
+    logger.info({ tipo }, "Scrapeando tipo manhwaweb");
     let page = 0;
     let hasNext = true;
     let total = 0;
 
     while (hasNext) {
-        console.log(`[${tipo}] Pagina ${page}...`);
+        logger.debug({ tipo, page }, "Página manhwaweb");
         const pageData = await fetchPage(page, tipo);
 
         await Promise.all(
@@ -185,11 +182,11 @@ async function scrapeByTipo(tipo, providerId) {
         await sleep(400);
     }
 
-    console.log(`[${tipo}] Listo — ${total} series procesadas`);
+    logger.info({ tipo, total }, "Tipo completado manhwaweb");
 }
 
 export async function scrapeSeries() {
-    console.log("ManhwaWeb - Series + metadata incremental...");
+    logger.info("ManhwaWeb - Series + metadata incremental...");
 
     const provider = await prisma.provider.findUnique({
         where: { name: "manhwaweb" },
@@ -209,5 +206,5 @@ export async function scrapeSeries() {
         scrapeByTipo("manhua", provider.id),
     ]);
 
-    console.log("ManhwaWeb - Todas las series listas");
+    logger.info("ManhwaWeb - Todas las series listas");
 }

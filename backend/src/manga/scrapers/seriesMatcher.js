@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma.js";
+import logger from "../../config/logger.js";
 
 const LANGUAGE_STOPWORDS = new Set([
     "el",
@@ -239,7 +240,7 @@ export function matchManga(titleA, titleB) {
 }
 
 export async function syncManualAliases(manualAliases, canonicalProviderName) {
-    console.log("Sincronizando aliases manuales...");
+    logger.info("Sincronizando aliases manuales...");
     let synced = 0;
 
     for (const { canonical, aliases } of manualAliases) {
@@ -254,9 +255,7 @@ export async function syncManualAliases(manualAliases, canonicalProviderName) {
         });
 
         if (!series) {
-            console.warn(
-                `Canonical no encontrado en ${canonicalProviderName}: "${canonical}"`,
-            );
+            logger.warn({ canonical, provider: canonicalProviderName }, "Canonical no encontrado");
             continue;
         }
 
@@ -271,11 +270,11 @@ export async function syncManualAliases(manualAliases, canonicalProviderName) {
             });
         }
 
-        console.log(`"${canonical}" — ${aliases.length} aliases sincronizados`);
+        logger.info({ canonical, count: aliases.length }, "Aliases sincronizados");
         synced++;
     }
 
-    console.log(`Aliases: ${synced}/${manualAliases.length} sincronizados\n`);
+    logger.info({ synced, total: manualAliases.length }, "Sincronización de aliases completada");
 }
 
 export async function resolveCanonicalSeries(
