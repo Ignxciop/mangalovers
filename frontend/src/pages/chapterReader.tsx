@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { ChapterImage } from "@/components/chapterImage";
 import { useAuthStore } from "@/store/authStore";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { useReadChapters } from "@/hooks/useReadChapters";
@@ -224,11 +225,10 @@ function PaginationReader({
                     margin: "0 auto",
                 }}
             >
-                <img
+                <ChapterImage
                     key={page.id}
                     src={page.url}
                     alt={`Página ${currentPage + 1}`}
-                    className="w-full select-none block"
                 />
             </div>
             <div className="flex items-center gap-3 py-2">
@@ -454,12 +454,10 @@ export default function ChapterReader() {
                         style={{ maxWidth: `${prefs.zoom}px`, width: "100%" }}
                     >
                         {chapter.pages.map((page, index) => (
-                            <img
+                            <ChapterImage
                                 key={page.id}
                                 src={page.url}
                                 alt={`Página ${index + 1}`}
-                                className="w-full select-none block"
-                                loading="lazy"
                             />
                         ))}
                     </div>
