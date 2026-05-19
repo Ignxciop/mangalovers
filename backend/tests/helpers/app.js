@@ -5,6 +5,7 @@ import authRoutes from "../../src/auth/authRoutes.js";
 import mangaRoutes from "../../src/manga/mangaRoutes.js";
 import favoriteRoutes from "../../src/favorite/favoriteRoutes.js";
 import readRoutes from "../../src/read/readRoutes.js";
+import notificationRoutes from "../../src/notifications/notificationRoutes.js";
 
 export function buildApp() {
     const app = express();
@@ -18,6 +19,7 @@ export function buildApp() {
     app.use("/api/manga", mangaRoutes);
     app.use("/api/favorites", favoriteRoutes);
     app.use("/api/reads", readRoutes);
+    app.use("/api/notifications", notificationRoutes);
 
     app.use(errorHandler);
 
