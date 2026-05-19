@@ -2,6 +2,7 @@ import { useEffect, useState, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CoverImage } from "@/components/coverImage";
 import { fetchLatestManga, fetchReadingStats } from "@/api/manga";
 import type { Manga } from "@/types/manga";
 import { useAuthStore } from "@/store/authStore";
@@ -181,7 +182,6 @@ const MangaCard = memo(function MangaCard({
     index: number;
 }) {
     const navigate = useNavigate();
-    const [imgLoaded, setImgLoaded] = useState(false);
 
     return (
         <div className="group animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
@@ -193,17 +193,7 @@ const MangaCard = memo(function MangaCard({
                 }}
                 className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20 active:scale-[0.98] active:shadow-[0_0_25px_-3px] active:shadow-brand/50"
             >
-                {!imgLoaded && (
-                    <div className="absolute inset-0 bg-muted animate-pulse" />
-                )}
-                <img
-                    src={manga.cover || ""}
-                    alt={manga.name}
-                    width={300}
-                    height={450}
-                    onLoad={() => setImgLoaded(true)}
-                    className={`w-full h-full object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
-                />
+                <CoverImage src={manga.cover} alt={manga.name} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/20 via-transparent to-transparent" />
                 <Badge
