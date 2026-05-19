@@ -22,10 +22,11 @@ if (isTest) {
   });
 }
 
-const logger = pino({
+const opts = {
   level,
   redact: ["req.headers.authorization", "req.headers.cookie"],
-  ...(transport ? { transport } : {}),
-});
+};
+
+const logger = transport ? pino(opts, transport) : pino(opts);
 
 export default logger;
