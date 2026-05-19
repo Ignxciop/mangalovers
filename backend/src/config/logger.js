@@ -14,12 +14,11 @@ if (isTest) {
     options: { colorize: true, translateTime: "HH:MM:ss Z" },
   });
 } else {
-  transport = pino.transport({
-    targets: [
-      { target: "pino/file", options: { destination: 1 } },
-      { target: "pino/file", options: { destination: "./logs/app.log", mkdir: true } },
-    ],
-  });
+  const targets = [{ target: "pino/file", options: { destination: 1 } }];
+  if (process.env.LOG_FILE) {
+    targets.push({ target: "pino/file", options: { destination: process.env.LOG_FILE, mkdir: true } });
+  }
+  transport = pino.transport({ targets });
 }
 
 const opts = {
