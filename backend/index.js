@@ -19,6 +19,8 @@ import notificationRoutes from "./src/notifications/notificationRoutes.js";
 const app = express();
 const PORT = config.PORT;
 
+app.set("trust proxy", 1);
+
 const isTest = process.env.VITEST === "true";
 
 const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -44,6 +46,15 @@ app.use(cookieParser());
 app.use(pinoHttp({
     logger,
     autoLogging: isTest ? false : undefined,
+    serializers: {
+        req: (req) => ({
+            method: req.method,
+            url: req.url,
+        }),
+        res: (res) => ({
+            statusCode: res.statusCode,
+        }),
+    },
 }));
 app.use(attachLogger);
 
