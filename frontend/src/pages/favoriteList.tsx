@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CoverImage } from "@/components/coverImage";
 import { timeAgo } from "@/lib/date";
 import {
     BookOpen,
@@ -559,17 +560,10 @@ export default function FavoritesList() {
                                             }}
                                             className="relative block aspect-[3/4] rounded-lg overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-lg cursor-pointer transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20"
                                         >
-                                            {fav.series.cover ? (
-                                                <img
-                                                    src={fav.series.cover}
-                                                    alt={fav.series.name}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full bg-muted flex items-center justify-center">
-                                                    <BookOpen className="h-8 w-8 text-muted-foreground/40" />
-                                                </div>
-                                            )}
+                                            <CoverImage
+                                                src={fav.series.cover}
+                                                alt={fav.series.name}
+                                            />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/15 via-transparent to-transparent" />
 
