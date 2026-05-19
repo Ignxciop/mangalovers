@@ -4,6 +4,7 @@ import {
     getSeriesDetailBySlug,
     getChapterPages,
     getAllGenres,
+    getRecommendedSeries,
 } from "./mangaService.js";
 import { markChaptersUntil } from "../read/readService.js";
 
