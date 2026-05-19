@@ -3,8 +3,8 @@ import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CoverImage } from "@/components/coverImage";
 import {
-    BookOpen,
     ChevronLeft,
     Clock,
     Hash,
@@ -287,17 +287,10 @@ export default function MangaDetail() {
                         <div className="md:w-56 lg:w-64 shrink-0">
                             <div className="sticky top-8">
                                 <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-xl ring-1 ring-white/5">
-                                    {series.cover ? (
-                                        <img
-                                            src={series.cover}
-                                            alt={series.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                                            <BookOpen className="h-12 w-12 text-muted-foreground/40" />
-                                        </div>
-                                    )}
+                                    <CoverImage
+                                        src={series.cover}
+                                        alt={series.name}
+                                    />
                                 </div>
                                 <div className="mt-4 grid grid-cols-2 gap-2">
                                     <StatPill
