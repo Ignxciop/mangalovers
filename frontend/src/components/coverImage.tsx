@@ -58,7 +58,7 @@ export function CoverImage({ src, alt }: CoverImageProps) {
     }
 
     return (
-        <div className="relative w-full h-full">
+        <div className="relative w-full h-full pointer-events-none">
             {status === "loading" && (
                 <div className="absolute inset-0 bg-muted animate-pulse" />
             )}
@@ -69,7 +69,7 @@ export function CoverImage({ src, alt }: CoverImageProps) {
                     {src && (
                         <button
                             onClick={handleRetry}
-                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md bg-brand/20 text-brand hover:bg-brand/30 transition-colors active:scale-95"
+                            className="pointer-events-auto flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md bg-brand/20 text-brand hover:bg-brand/30 transition-colors active:scale-95"
                         >
                             <RefreshCw className="h-2.5 w-2.5" />
                             Reintentar
