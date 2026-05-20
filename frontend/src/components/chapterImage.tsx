@@ -4,7 +4,7 @@ import { RefreshCw, AlertCircle } from "lucide-react";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1500;
-const PRELOAD_RANGE = 3;
+const PRELOAD_RANGE = 6;
 
 let preloadQueue: string[] = [];
 let preloadTimer: ReturnType<typeof setTimeout> | null = null;
@@ -60,7 +60,7 @@ export function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
                     observer.disconnect();
                 }
             },
-            { rootMargin: "300px" },
+            { rootMargin: "1500px" },
         );
 
         observer.observe(el);
@@ -135,9 +135,7 @@ export function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
 
             <img
                 ref={imgRef}
-                src={src}
                 alt={alt}
-                loading="lazy"
                 className={`w-full select-none block ${
                     status !== "loaded" ? "hidden" : ""
                 }`}

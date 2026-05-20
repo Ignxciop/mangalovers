@@ -323,6 +323,7 @@ export default function ChapterReader() {
     useEffect(() => {
         if (!chapter) return;
         document.title = `${chapter.series.name} — Cap. ${chapter.name}`;
+        window.scrollTo(0, 0);
         return () => {
             document.title = "Mangalovers";
         };
