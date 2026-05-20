@@ -3,16 +3,23 @@ import { config } from "../config/env.js";
 
 export const authenticate = async (req, res, next) => {
     try {
-        const token =
-            req.headers.authorization?.split(" ")[1] || req.cookies?.token;
-
-        if (!token) {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
             return res.status(401).json({
                 success: false,
                 message: "Token no proporcionado",
             });
         }
 
+        const parts = authHeader.split(" ");
+        if (parts.length !== 2 || parts[0] !== "Bearer") {
+            return res.status(401).json({
+                success: false,
+                message: "Formato de token inválido",
+            });
+        }
+
+        const token = parts[1];
         const decoded = jwt.verify(token, config.JWT_SECRET);
         req.user = { userId: decoded.userId };
         next();
@@ -35,14 +42,19 @@ export const authenticate = async (req, res, next) => {
 
 export const optionalAuthenticate = async (req, res, next) => {
     try {
-        const token =
-            req.headers.authorization?.split(" ")[1] || req.cookies?.token;
-
-        if (!token) {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
             req.user = null;
             return next();
         }
 
+        const parts = authHeader.split(" ");
+        if (parts.length !== 2 || parts[0] !== "Bearer") {
+            req.user = null;
+            return next();
+        }
+
+        const token = parts[1];
         const decoded = jwt.verify(token, config.JWT_SECRET);
         req.user = { userId: decoded.userId };
         next();

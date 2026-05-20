@@ -11,9 +11,9 @@ export const api = axios.create({
 
 api.interceptors.request.use(
     (config) => {
-        const token = useAuthStore.getState().accessToken;
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        const { accessToken } = useAuthStore.getState();
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
         }
         return config;
     },
@@ -37,8 +37,6 @@ const processQueue = (error: unknown, token: string | null = null) => {
     failedQueue = [];
 };
 
-const AUTH_PUBLIC_PATTERNS = ["/auth/login", "/auth/register", "/auth/google", "/auth/google-client-id"];
-
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -48,10 +46,8 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        const isAuthPublic = AUTH_PUBLIC_PATTERNS.some((p) =>
-            originalRequest.url?.includes(p),
-        );
-        if (isAuthPublic) {
+        const url = originalRequest.url ?? "";
+        if (url.includes("/auth/")) {
             return Promise.reject(error);
         }
 
@@ -76,23 +72,18 @@ api.interceptors.response.use(
                 { withCredentials: true },
             );
 
-            const {
-                accessToken: newAccessToken,
-                user,
-            } = data.data;
+            const { accessToken: newAccessToken, user } = data.data;
 
-            useAuthStore
-                .getState()
-                .setAuth(newAccessToken, user);
+            const store = useAuthStore.getState();
+            store.setAuth(newAccessToken, user);
 
             processQueue(null, newAccessToken);
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return api(originalRequest);
-        } catch (refreshError) {
-            processQueue(refreshError, null);
+        } catch {
+            processQueue(null, null);
             useAuthStore.getState().logout();
-            window.location.href = "/acceso";
-            return Promise.reject(refreshError);
+            return Promise.reject(error);
         } finally {
             isRefreshing = false;
         }

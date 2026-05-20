@@ -4,7 +4,7 @@ import { config } from "../config/env.js";
 const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: config.ENVIRONMENT === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/api/auth",
     maxAge: 7 * 24 * 60 * 60 * 1000,
 };

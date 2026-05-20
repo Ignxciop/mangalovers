@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import jwt from "jsonwebtoken";
 import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
 
@@ -60,10 +59,7 @@ export class RefreshTokenService {
         }
 
         if (refreshToken.isRevoked) {
-            await this.revokeTokenFamily(token);
-            const error = new Error(
-                "Refresh token revocado. Por seguridad, se han revocado todos tus tokens.",
-            );
+            const error = new Error("Refresh token revocado");
             error.statusCode = 401;
             throw error;
         }
@@ -77,29 +73,6 @@ export class RefreshTokenService {
             data: {
                 isRevoked: true,
                 replacedBy,
-            },
-        });
-    }
-
-    static async revokeTokenFamily(token) {
-        const currentToken = await prisma.refreshToken.findUnique({
-            where: { token },
-        });
-
-        if (!currentToken) return;
-
-        await this.revokeRefreshToken(token);
-
-        await prisma.refreshToken.updateMany({
-            where: {
-                userId: currentToken.userId,
-                createdAt: {
-                    gte: currentToken.createdAt,
-                },
-                isRevoked: false,
-            },
-            data: {
-                isRevoked: true,
             },
         });
     }

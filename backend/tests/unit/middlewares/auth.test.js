@@ -3,10 +3,9 @@ import jwt from "jsonwebtoken";
 import { authenticate, optionalAuthenticate } from "../../../src/middlewares/auth.js";
 import { config } from "../../../src/config/env.js";
 
-function mockReq(authHeader, tokenCookie) {
+function mockReq(authHeader) {
     return {
         headers: authHeader ? { authorization: authHeader } : {},
-        cookies: tokenCookie ? { token: tokenCookie } : {},
     };
 }
 
@@ -33,18 +32,19 @@ describe("authenticate middleware", () => {
         expect(next).toHaveBeenCalledOnce();
     });
 
-    it("pasa si el token es válido en cookie", () => {
-        const token = jwt.sign({ userId: "user-456" }, config.JWT_SECRET, {
-            expiresIn: "15m",
-        });
-        const req = mockReq(null, token);
+    it("rechaza con 401 si no hay Authorization header (ignora cookies)", () => {
+        const req = mockReq(null);
         const res = mockRes();
         const next = vi.fn();
 
         authenticate(req, res, next);
 
-        expect(req.user.userId).toBe("user-456");
-        expect(next).toHaveBeenCalledOnce();
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.status().json).toHaveBeenCalledWith({
+            success: false,
+            message: "Token no proporcionado",
+        });
+        expect(next).not.toHaveBeenCalled();
     });
 
     it("rechaza con 401 si no hay token", () => {

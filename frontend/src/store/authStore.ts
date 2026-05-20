@@ -13,11 +13,11 @@ interface AuthState {
     accessToken: string | null;
     user: User | null;
     isAuthenticated: boolean;
+    bootstrapping: boolean;
 
     setAuth: (accessToken: string, user: User) => void;
     setAccessToken: (accessToken: string) => void;
     logout: () => void;
-    bootstrapping: boolean;
     bootstrap: () => Promise<void>;
 }
 
@@ -45,6 +45,11 @@ export const useAuthStore = create<AuthState>()(
                     user: null,
                     isAuthenticated: false,
                 });
+                try {
+                    localStorage.removeItem("mangalovers-auth");
+                } catch {
+                    // Silenciar errores de localStorage
+                }
             },
 
             bootstrap: async () => {
@@ -65,6 +70,11 @@ export const useAuthStore = create<AuthState>()(
                             user: null,
                             isAuthenticated: false,
                         });
+                        try {
+                            localStorage.removeItem("mangalovers-auth");
+                        } catch {
+                            // Silenciar errores de localStorage
+                        }
                     } finally {
                         set({ bootstrapping: false });
                         bootstrappingPromise = null;
@@ -78,6 +88,7 @@ export const useAuthStore = create<AuthState>()(
             name: "mangalovers-auth",
             partialize: (state) => ({
                 user: state.user,
+                isAuthenticated: state.isAuthenticated,
             }),
         },
     ),
