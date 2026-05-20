@@ -88,7 +88,7 @@ const StatCard = memo(function StatCard({
 function StatsSection({ stats }: { stats: ReadingStats }) {
     const navigate = useNavigate();
     return (
-        <section className="h-full flex flex-col">
+        <section>
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -138,7 +138,7 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
             </div>
 
             {(stats.currentStreak > 0 || stats.bestStreak > 0) && (
-                <div className="mt-auto flex items-center justify-center gap-8 px-4 py-3 rounded-xl border border-border bg-card">
+                <div className="flex items-center justify-center gap-8 p-4 rounded-xl border border-white/10 dark:border-white/[0.05] bg-card transition-all duration-200 hover:border-brand/20 hover:shadow-[0_0_20px_-8px] hover:shadow-brand/20">
                     <div className="flex items-center gap-2">
                         <div className="flex items-center justify-center size-7 rounded-lg bg-orange-500/10 text-orange-500 shrink-0">
                             <Flame className="size-3.5" />
@@ -153,7 +153,7 @@ function StatsSection({ stats }: { stats: ReadingStats }) {
                             </p>
                         </div>
                     </div>
-                    <div className="h-6 w-px bg-border" />
+                    <div className="h-6 w-px bg-border/50" />
                     <div className="flex items-center gap-2">
                         <div className="flex items-center justify-center size-7 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
                             <Trophy className="size-3.5" />
