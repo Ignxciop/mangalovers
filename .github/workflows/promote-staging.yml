@@ -62,7 +62,7 @@ jobs:
 
             BODY=$(printf '## Promote automático 🚀\n\nEste PR se genera después de que **staging** estuvo **%s minutos** sin cambios nuevos.\n\nCommits incluidos:\n\n%s' \
               "$WAIT_MINUTES" \
-              "$(git log --oneline main..staging)")
+              "$(git log --oneline origin/main..origin/staging)")
 
             gh pr create \
               --head staging \
