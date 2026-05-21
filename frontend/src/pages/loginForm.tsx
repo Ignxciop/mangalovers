@@ -42,7 +42,10 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
     const [googleLoaded, setGoogleLoaded] = useState(false);
     const [clientId, setClientId] = useState("");
     const loginWithGoogleRef = useRef(loginWithGoogle);
-    loginWithGoogleRef.current = loginWithGoogle;
+
+    useEffect(() => {
+        loginWithGoogleRef.current = loginWithGoogle;
+    }, [loginWithGoogle]);
 
     useEffect(() => {
         fetchGoogleClientId()
@@ -52,7 +55,6 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
 
     useEffect(() => {
         if (document.getElementById("google-gis-script")) {
-            if (window.google) setGoogleLoaded(true);
             return;
         }
 

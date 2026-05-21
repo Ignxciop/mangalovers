@@ -225,7 +225,7 @@ export default function MangaDetail() {
     const latestChapter = useMemo(() => {
         if (!series) return null;
         return chaptersSorted[chaptersSorted.length - 1] ?? null;
-    }, [chaptersSorted]);
+    }, [series, chaptersSorted]);
 
     const { pull, refreshing } = usePullToRefresh(() => {
         window.location.reload();

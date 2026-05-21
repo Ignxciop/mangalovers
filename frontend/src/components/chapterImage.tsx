@@ -6,7 +6,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 1500;
 const PRELOAD_RANGE = 6;
 
-let preloadQueue: string[] = [];
+const preloadQueue: string[] = [];
 let preloadTimer: ReturnType<typeof setTimeout> | null = null;
 
 function schedulePreload() {
@@ -48,6 +48,7 @@ export function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
     const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [inView, setInView] = useState(false);
     const loadedRef = useRef(false);
+    const loadImageRef = useRef<((url: string) => void) | null>(null);
 
     useEffect(() => {
         const el = containerRef.current;
@@ -82,7 +83,7 @@ export function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
             if (retryCountRef.current < MAX_RETRIES) {
                 retryCountRef.current++;
                 const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
-                retryTimerRef.current = setTimeout(() => loadImage(url), delay);
+                retryTimerRef.current = setTimeout(() => loadImageRef.current?.(url), delay);
             } else {
                 setStatus("error");
             }
@@ -91,11 +92,15 @@ export function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
     }, [onLoad]);
 
     useEffect(() => {
+        loadImageRef.current = loadImage;
+    }, [loadImage]);
+
+    useEffect(() => {
         if (!inView) return;
 
         retryCountRef.current = 0;
         loadedRef.current = false;
-        loadImage(src);
+        loadImage(src); // eslint-disable-line react-hooks/set-state-in-effect
 
         queuePreload(src);
 
@@ -150,7 +155,7 @@ export function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
                     if (retryCountRef.current < MAX_RETRIES && !loadedRef.current) {
                         retryCountRef.current++;
                         const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
-                        setTimeout(() => loadImage(src), delay);
+                        setTimeout(() => loadImageRef.current?.(src), delay);
                     } else if (!loadedRef.current) {
                         setStatus("error");
                     }

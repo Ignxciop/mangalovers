@@ -79,8 +79,11 @@ function ProfileSection() {
             const { data } = await api.patch("/auth/profile", form);
             setAuth(accessToken!, data.data.user);
             setSuccess("Datos actualizados correctamente");
-        } catch (err: any) {
-            setError(err?.response?.data?.message ?? "Error al actualizar");
+        } catch (err) {
+            setError(
+                (err as { response?: { data?: { message?: string } } })?.response
+                    ?.data?.message ?? "Error al actualizar",
+            );
         } finally {
             setLoading(false);
         }
@@ -205,9 +208,10 @@ function PasswordSection() {
             });
             setSuccess("Contraseña actualizada. Cerrando sesión…");
             setTimeout(() => logout(), 2000);
-        } catch (err: any) {
+        } catch (err) {
             setError(
-                err?.response?.data?.message ?? "Error al cambiar contraseña",
+                (err as { response?: { data?: { message?: string } } })?.response
+                    ?.data?.message ?? "Error al cambiar contraseña",
             );
         } finally {
             setLoading(false);
@@ -310,11 +314,11 @@ function DeleteAccountSection() {
         try {
             await api.delete("/auth/account", { data: { password } });
             logout();
-        } catch (err: any) {
+        } catch (err) {
             setError(
-                err?.response?.data?.message ?? "Error al eliminar cuenta",
+                (err as { response?: { data?: { message?: string } } })?.response
+                    ?.data?.message ?? "Error al eliminar cuenta",
             );
-            setLoading(false);
         }
     }
 

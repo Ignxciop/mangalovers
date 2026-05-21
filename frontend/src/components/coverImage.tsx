@@ -17,6 +17,7 @@ export function CoverImage({ src, alt }: CoverImageProps) {
         "loading",
     );
     const loadedRef = useRef(false);
+    const loadImageRef = useRef<((url: string) => void) | null>(null);
 
     const loadImage = useCallback((url: string) => {
         setStatus("loading");
@@ -30,7 +31,7 @@ export function CoverImage({ src, alt }: CoverImageProps) {
             if (retryCountRef.current < MAX_RETRIES) {
                 retryCountRef.current++;
                 const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
-                timerRef.current = setTimeout(() => loadImage(url), delay);
+                timerRef.current = setTimeout(() => loadImageRef.current?.(url), delay);
             } else {
                 setStatus("error");
             }
@@ -39,8 +40,12 @@ export function CoverImage({ src, alt }: CoverImageProps) {
     }, []);
 
     useEffect(() => {
+        loadImageRef.current = loadImage;
+    }, [loadImage]);
+
+    useEffect(() => {
         if (!src) {
-            setStatus("error");
+            setStatus("error"); // eslint-disable-line react-hooks/set-state-in-effect
             return;
         }
         retryCountRef.current = 0;
@@ -96,7 +101,7 @@ export function CoverImage({ src, alt }: CoverImageProps) {
                         retryCountRef.current++;
                         const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
                         timerRef.current = setTimeout(() => {
-                            if (src) loadImage(src);
+                            if (src) loadImageRef.current?.(src);
                         }, delay);
                     } else if (!loadedRef.current) {
                         setStatus("error");

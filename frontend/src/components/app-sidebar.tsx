@@ -37,7 +37,7 @@ import {
     Settings,
     BarChart3,
 } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
+import { useTheme } from "@/hooks/useTheme";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
