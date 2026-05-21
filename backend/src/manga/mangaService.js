@@ -10,7 +10,7 @@ function isValidImageUrl(url) {
     }
 }
 
-export async function getAllManga(query) {
+export async function getAllManga(query, userId = null) {
     const {
         page = 1,
         limit = 24,
@@ -103,12 +103,35 @@ export async function getAllManga(query) {
     }
 
     const lastChapterMap = new Map();
+    const lastChapterNameMap = new Map();
     for (const c of chapterNames) {
         const num = parseFloat(c.name);
         if (!isNaN(num)) {
             const current = lastChapterMap.get(c.seriesId);
             if (current === undefined || num > current) {
                 lastChapterMap.set(c.seriesId, num);
+                lastChapterNameMap.set(c.seriesId, c.name);
+            }
+        }
+    }
+
+    const lastReadMap = new Map();
+    if (userId) {
+        const readDetails = await prisma.userChapterRead.findMany({
+            where: {
+                userId,
+                chapter: { seriesId: { in: seriesIds } },
+            },
+            select: {
+                chapter: { select: { seriesId: true, name: true } },
+            },
+        });
+
+        for (const r of readDetails) {
+            const sid = r.chapter.seriesId;
+            const current = lastReadMap.get(sid);
+            if (!current || parseFloat(r.chapter.name) > parseFloat(current)) {
+                lastReadMap.set(sid, r.chapter.name);
             }
         }
     }
@@ -124,6 +147,8 @@ export async function getAllManga(query) {
             status: s.status,
             chapterCount: s.chapterCount,
             lastChapterNumber: lastChapterMap.get(s.id) ?? null,
+            lastAvailableChapterName: lastChapterNameMap.get(s.id) ?? null,
+            lastReadChapterName: lastReadMap.get(s.id) ?? null,
             updatedAt: s.updatedAt,
             lastChapterPublishedAt: s.lastChapterPublishedAt,
             type: s.type,
