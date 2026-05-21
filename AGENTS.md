@@ -88,6 +88,43 @@ Se cargan automáticamente al iniciar OpenCode. Si no aparecen, reiniciar la ses
 - Frontend sin `pnpm typecheck` standalone; `tsc -b` corre dentro de `pnpm build`.
 - Scripts de mantenimiento en `backend/src/scripts/` (VAPID, dedup, scrapers manuales).
 - Git: commits en español, informales.
+
+## Git Workflow
+
+Cada modificación al proyecto debe hacerse en una **rama nueva** desde `main`. Nunca se trabaja directo en `main`.
+
+### Nomenclatura de ramas
+
+| Tipo | Prefijo | Ejemplo |
+|---|---|---|
+| Feature nueva | `feat/` | `feat/dark-mode` |
+| Bugfix | `fix/` | `fix/error-lectura` |
+| Refactor | `refactor/` | `refactor/auth-service` |
+| CI/CD | `ci/` | `ci/workers` |
+
+### Flujo
+
+```
+main
+  └── feat/mi-cambio  →  PR  →  staging  (CI)
+                                  ↓
+                            ⏳ 10 min (estabilidad)
+                                  ↓
+                            PR automático  →  main  (CI)
+                                  ↓
+                            Merge manual
+```
+
+1. Crear rama desde `main`: `git switch -c feat/mi-cambio`
+2. Trabajar, commitar, pushear: `git push -u origin feat/mi-cambio`
+3. Abrir **Pull Request** de `feat/mi-cambio` → `staging` en GitHub
+4. Esperar que el CI pase y mergear
+5. El workflow `Promote staging` espera 10 min sin cambios y auto-crea PR a `main`
+6. Revisar y mergear el PR a `main`
+7. Eliminar la rama local y remota: `git branch -d feat/mi-cambio`
+
+> `main` y `staging` tienen protección activada: requieren PR con CI verde, push directo bloqueado.
+
 - Docker: nginx sirve frontend (:4007) con proxy reverso `/api` → backend (:4008).
 
 ## Operaciones
