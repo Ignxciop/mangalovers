@@ -12,6 +12,10 @@ concurrency:
 env:
   WAIT_MINUTES: 10
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   promote:
     runs-on: ubuntu-latest
@@ -21,6 +25,9 @@ jobs:
         with:
           ref: staging
           fetch-depth: 0
+
+      - name: Fetch main branch
+        run: git fetch origin main
 
       - name: Guardar SHA del trigger
         run: echo "TRIGGER_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
