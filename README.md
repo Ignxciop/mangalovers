@@ -40,7 +40,7 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 | **Notificaciones** | Web Push API con VAPID |
 | **Scraping** | Axios + node-cron (automático cada hora) |
 | **Infraestructura** | Docker + Docker Compose, Nginx, Cloudflare Tunnel |
-| **Calidad** | ESLint + typescript-eslint |
+| **Calidad** | ESLint + typescript-eslint, GitHub Actions CI |
 
 ### Arquitectura
 
@@ -135,6 +135,17 @@ O con Docker:
 ```bash
 docker compose up -d
 ```
+
+### CI/CD
+
+Cada `push` a cualquier rama y cada `pull_request` hacia `main` ejecuta automáticamente:
+
+| Trabajo | Pasos | Requisitos |
+|---|---|---|
+| **backend** | `pnpm install` → `prisma generate` → `prisma migrate deploy` → `eslint .` → `vitest run` | PostgreSQL (service container) |
+| **frontend** | `pnpm install` → `eslint .` → `tsc -b && vite build` | — |
+
+Los tests del backend requieren una base de datos PostgreSQL efímera que GitHub Actions levanta como service container. Las credenciales y claves se pasan como variables de entorno inline (sin secrets de producción).
 
 ### Estructura del proyecto
 
