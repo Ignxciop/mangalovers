@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, BookOpen } from "lucide-react";
+import { Search, SlidersHorizontal, BookOpen, Eye, Heart } from "lucide-react";
 import { CoverImage } from "@/components/coverImage";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,8 @@ import React, { useEffect, useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useMangaList } from "@/hooks/useMangaList";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchGenres } from "@/api/manga";
+import { fetchGenres, fetchFavorites } from "@/api/manga";
+import { useAuthStore } from "@/store/authStore";
 
 export default function MangaList() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -120,7 +121,22 @@ export default function MangaList() {
     });
 
     const navigate = useNavigate();
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const mangas = data?.data ?? [];
+    const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchFavorites().then((res) => {
+                const ids = (res.data ?? res ?? []).map(
+                    (f: { seriesId: number }) => f.seriesId,
+                );
+                setFavoriteIds(new Set(ids));
+            }).catch(() => {});
+        } else {
+            setFavoriteIds(new Set()); // eslint-disable-line react-hooks/set-state-in-effect
+        }
+    }, [isAuthenticated]);
 
     const activeFiltersCount = [
         status,
@@ -403,12 +419,24 @@ export default function MangaList() {
                                     className="absolute inset-0 z-0"
                                     aria-label={manga.name}
                                 />
+                                {favoriteIds.has(manga.id) && (
+                                    <div className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-black/50 text-rose-400 pointer-events-none">
+                                        <Heart className="h-3 w-3 fill-rose-400" />
+                                    </div>
+                                )}
                                 <Badge
                                     variant="secondary"
                                     className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium pointer-events-none"
                                 >
+                                    {manga.lastReadChapterName !== null && (
+                                        <>
+                                            <Eye className="h-2 w-2" />
+                                            {manga.lastReadChapterName}
+                                            <span className="opacity-40">/</span>
+                                        </>
+                                    )}
                                     <BookOpen className="h-2.5 w-2.5" />
-                                    {manga.lastChapterNumber ?? "?"}
+                                    {manga.lastAvailableChapterName ?? manga.lastChapterNumber ?? "?"}
                                 </Badge>
                                 <CoverImage
                                     src={manga.cover}
