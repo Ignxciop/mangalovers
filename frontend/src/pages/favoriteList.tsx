@@ -635,26 +635,28 @@ export default function FavoritesList() {
                                                 )}
                                             </div>
 
-                                            {fav.lastReadChapterName &&
-                                                fav.lastAvailableChapterName && (
-                                                    <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                                                        <div
-                                                            className="h-full bg-primary rounded-full transition-[width]"
-                                                            style={{
-                                                                width: `${Math.min(
-                                                                    (parseFloat(
-                                                                        fav.lastReadChapterName,
-                                                                    ) /
-                                                                        parseFloat(
-                                                                            fav.lastAvailableChapterName,
-                                                                        )) *
-                                                                        100,
+                                            {fav.lastAvailableChapterName && (
+                                                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-primary rounded-full transition-[width]"
+                                                        style={{
+                                                            width: `${Math.min(
+                                                                ((fav.lastReadChapterName
+                                                                    ? parseFloat(
+                                                                          fav.lastReadChapterName,
+                                                                      )
+                                                                    : 0
+                                                                ) /
+                                                                    parseFloat(
+                                                                        fav.lastAvailableChapterName,
+                                                                    )) *
                                                                     100,
-                                                                )}%`,
-                                                            }}
-                                                        />
-                                                    </div>
-                                                )}
+                                                                100,
+                                                            )}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
 
                                             {fav.status && (
                                                 <DropdownMenu>
