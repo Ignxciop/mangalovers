@@ -1,0 +1,65 @@
+name: Promote staging
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+concurrency:
+  group: promote-staging
+  cancel-in-progress: true
+
+env:
+  WAIT_MINUTES: 10
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
+
+      - name: Guardar SHA del trigger
+        run: echo "TRIGGER_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Esperar periodo de estabilidad
+        run: sleep $(( WAIT_MINUTES * 60 ))
+
+      - name: Verificar que staging no haya cambiado
+        run: |
+          git fetch origin staging
+          LATEST=$(git rev-parse origin/staging)
+          if [ "$TRIGGER_SHA" != "$LATEST" ]; then
+            echo "❌ Staging cambió durante la espera ($TRIGGER_SHA → $LATEST). Cancelando."
+            exit 0
+          fi
+          echo "✅ Staging estable. Procediendo con el PR..."
+
+      - name: Crear o actualizar PR staging → main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="🚀 Promote staging → main ($(date +'%d/%m %H:%M'))"
+
+          # Buscar PR existente de staging → main
+          EXISTING=$(gh pr list --head staging --base main --json number --jq '.[0].number' 2>/dev/null)
+
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+            echo "🔄 Actualizando PR existente #$EXISTING"
+            gh pr edit "$EXISTING" --title "$TITLE"
+          else
+            echo "🆕 Creando nuevo PR staging → main"
+
+            BODY=$(printf '## Promote automático 🚀\n\nEste PR se genera después de que **staging** estuvo **%s minutos** sin cambios nuevos.\n\nCommits incluidos:\n\n%s' \
+              "$WAIT_MINUTES" \
+              "$(git log --oneline main..staging)")
+
+            gh pr create \
+              --head staging \
+              --base main \
+              --title "$TITLE" \
+              --body "$BODY"
+          fi

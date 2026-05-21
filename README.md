@@ -140,12 +140,33 @@ docker compose up -d
 
 Cada `push` a cualquier rama y cada `pull_request` hacia `main` ejecuta automáticamente:
 
-| Trabajo | Pasos | Requisitos |
+| Workflow | Disparador | Pasos |
 |---|---|---|
-| **backend** | `pnpm install` → `prisma generate` → `prisma migrate deploy` → `eslint .` → `vitest run` | PostgreSQL (service container) |
-| **frontend** | `pnpm install` → `eslint .` → `tsc -b && vite build` | — |
+| **CI** | Push a cualquier rama, PR a `main` | `backend`: install → prisma generate → migrate → lint → test · `frontend`: install → lint → build |
+| **Promote staging** | Push a `staging` | Espera 10 min de estabilidad → Crea/actualiza PR `staging` → `main` |
 
 Los tests del backend requieren una base de datos PostgreSQL efímera que GitHub Actions levanta como service container. Las credenciales y claves se pasan como variables de entorno inline (sin secrets de producción).
+
+#### Flujo de trabajo recomendado
+
+```
+feature/xxx  →  PR  →  staging  (CI)
+                          ↓
+                    ⏳ 10 min sin cambios
+                          ↓
+                    PR automático  →  main  (CI)
+                          ↓
+                    Merge manual
+```
+
+1. Crear rama desde `main`: `git switch -c feat/mi-cambio`
+2. Trabajar, commitar, pushear: `git push -u origin feat/mi-cambio`
+3. Abrir PR de `feat/mi-cambio` → `staging`
+4. Al mergear a `staging`, el CI corre y el workflow `Promote staging` espera 10 min
+5. Si no hay nuevos cambios en esos 10 min, se auto-crea un PR de `staging` → `main`
+6. Revisar el PR y hacer click en **Merge** cuando corresponda
+
+> Las ramas `main` y `staging` deben tener protección activada en GitHub Settings → Branches: requerir PR con CI verde, bloquear push directo.
 
 ### Estructura del proyecto
 
