@@ -10,7 +10,8 @@ import { markChaptersUntil } from "../read/readService.js";
 
 export async function handleGetAllManga(req, res, next) {
     try {
-        const result = await getAllManga(req.query);
+        const userId = req.user?.userId ?? null;
+        const result = await getAllManga(req.query, userId);
         res.json(result);
     } catch (error) {
         next(error);
