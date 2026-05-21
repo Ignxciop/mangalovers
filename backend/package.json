@@ -9,7 +9,8 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:integration": "vitest run tests/integration",
-        "test:unit": "vitest run tests/unit"
+        "test:unit": "vitest run tests/unit",
+        "lint": "eslint ."
     },
     "keywords": [],
     "author": "",
