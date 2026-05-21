@@ -34,13 +34,14 @@ async function processSeries(providerSeries, providerId) {
     logger.info({ slug }, "Revisando capítulos olympus");
 
     let latestCreatedChapter = null;
-    let shouldStop = false;
+    const MAX_CONSECUTIVE_EXISTING = 10;
+    let consecutiveExisting = 0;
 
     try {
         const firstPage = await fetchChapters(slug, 1);
         const lastPage = firstPage.meta.last_page;
 
-        for (let page = 1; page <= lastPage && !shouldStop; page++) {
+        for (let page = 1; page <= lastPage; page++) {
             const data =
                 page === 1 ? firstPage : await fetchChapters(slug, page);
 
@@ -56,9 +57,37 @@ async function processSeries(providerSeries, providerId) {
                     });
 
                 if (existingProviderChapter) {
-                    logger.debug({ slug }, "Capítulo existente encontrado, stop");
-                    shouldStop = true;
-                    break;
+                    consecutiveExisting++;
+                    if (consecutiveExisting >= MAX_CONSECUTIVE_EXISTING) {
+                        logger.debug(
+                            { slug, count: consecutiveExisting },
+                            "Capítulos existentes consecutivos, stop",
+                        );
+                        break;
+                    }
+                    continue;
+                }
+
+                consecutiveExisting = 0;
+
+                const existingChapter = await prisma.chapter.findFirst({
+                    where: { seriesId, name: ch.name },
+                });
+
+                if (existingChapter) {
+                    await prisma.providerChapter.create({
+                        data: {
+                            providerId,
+                            externalId: String(ch.id),
+                            chapterId: existingChapter.id,
+                        },
+                    });
+                    latestCreatedChapter = existingChapter;
+                    logger.debug(
+                        { chapterName: ch.name, slug },
+                        "Capítulo existente vinculado olympus",
+                    );
+                    continue;
                 }
 
                 const newChapter = await prisma.chapter.create({
@@ -81,6 +110,8 @@ async function processSeries(providerSeries, providerId) {
 
                 logger.debug({ chapterName: ch.name, slug }, "Capítulo nuevo olympus");
             }
+
+            if (consecutiveExisting >= MAX_CONSECUTIVE_EXISTING) break;
 
             await sleep(300);
         }

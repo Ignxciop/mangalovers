@@ -10,7 +10,8 @@
         "test:watch": "vitest",
         "test:integration": "vitest run tests/integration",
         "test:unit": "vitest run tests/unit",
-        "lint": "eslint ."
+        "lint": "eslint .",
+"fill-missing": "node src/scripts/fill-missing-chapters.js"
     },
     "keywords": [],
     "author": "",
