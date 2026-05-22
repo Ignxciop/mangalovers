@@ -6,6 +6,7 @@ import { CoverImage } from "@/components/coverImage";
 import { fetchLatestManga, fetchReadingStats, fetchFavorites } from "@/api/manga";
 import type { Manga } from "@/types/manga";
 import { useAuthStore } from "@/store/authStore";
+import { getLocalLastReadName } from "@/hooks/useReadChapters";
 import { timeAgo } from "@/lib/date";
 import {
     Clock,
@@ -204,20 +205,25 @@ const MangaCard = memo(function MangaCard({
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/20 via-transparent to-transparent" />
-                <Badge
-                    variant="secondary"
-                    className="absolute top-2 right-2 flex items-center gap-1 text-[9px] px-1.5 py-0 h-4"
-                >
-                    {manga.lastReadChapterName !== null && (
-                        <>
-                            <Eye className="h-2 w-2" />
-                            {manga.lastReadChapterName}
-                            <span className="opacity-40">/</span>
-                        </>
-                    )}
-                    <BookOpen className="h-2 w-2" />
-                    {manga.lastAvailableChapterName ?? "-"}
-                </Badge>
+                {(() => {
+                    const localLastRead = manga.lastReadChapterName ?? getLocalLastReadName(manga.id);
+                    return (
+                        <Badge
+                            variant="secondary"
+                            className="absolute top-2 right-2 flex items-center gap-1 text-[9px] px-1.5 py-0 h-4"
+                        >
+                            {localLastRead !== null && (
+                                <>
+                                    <Eye className="h-2 w-2" />
+                                    {localLastRead}
+                                    <span className="opacity-40">/</span>
+                                </>
+                            )}
+                            <BookOpen className="h-2 w-2" />
+                            {manga.lastAvailableChapterName ?? "-"}
+                        </Badge>
+                    );
+                })()}
                 <div className="absolute bottom-2 left-2 flex items-center gap-1 text-[9px] text-white/60">
                     <Clock className="h-2.5 w-2.5" />
                     {timeAgo(manga.lastChapterPublishedAt!)}
