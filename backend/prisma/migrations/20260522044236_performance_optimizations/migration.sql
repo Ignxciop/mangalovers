@@ -16,13 +16,13 @@ DROP INDEX IF EXISTS "user_chapter_reads_userId_idx";
 -- DropIndex
 DROP INDEX IF EXISTS "user_favorites_userId_idx";
 
--- AlterTable
-ALTER TABLE "Chapter" ADD COLUMN     "number" DOUBLE PRECISION;
+-- AlterTable (idempotent: IF NOT EXISTS)
+ALTER TABLE "Chapter" ADD COLUMN IF NOT EXISTS "number" DOUBLE PRECISION;
 
 -- Backfill number from existing chapter names
 UPDATE "Chapter"
 SET "number" = CAST(SUBSTRING("name" FROM '([0-9]+(\.[0-9]+)?)') AS DOUBLE PRECISION)
-WHERE "name" ~ '[0-9]';
+WHERE "number" IS NULL AND "name" ~ '[0-9]';
 
 -- CreateIndex
 CREATE INDEX "Chapter_seriesId_number_idx" ON "Chapter"("seriesId", "number");
