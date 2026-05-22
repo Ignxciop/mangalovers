@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, Fragment } from "react";
+import { useEffect, useState, useMemo, Fragment, memo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
@@ -79,6 +79,174 @@ type SortBy =
     | "pendiente-desc"
     | "nombre"
     | "za";
+
+const FavoriteListItem = memo(function FavoriteListItem({
+    fav,
+    fromUrl,
+    onRequestRemove,
+    onStatusChange,
+}: {
+    fav: Favorite;
+    fromUrl: string;
+    onRequestRemove: (seriesId: number) => void;
+    onStatusChange: (seriesId: number, status: string) => void;
+}) {
+    const navigate = useNavigate();
+
+    return (
+        <div className="group animate-fade-in-up">
+            <a
+                href={`/manga/${fav.series.slug}`}
+                onClick={(e) => {
+                    e.preventDefault();
+                    navigate(`/manga/${fav.series.slug}`, {
+                        state: { from: fromUrl },
+                    });
+                }}
+                className="relative block aspect-[3/4] rounded-lg overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-lg cursor-pointer transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20"
+            >
+                <CoverImage
+                    src={fav.series.cover}
+                    alt={fav.series.name}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/15 via-transparent to-transparent" />
+
+                {isUpToDate(fav) &&
+                    fav.lastReadChapterName && (
+                        <div className="absolute bottom-2 left-2 bg-primary/90 text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                            {fav.status === "Terminado"
+                                ? "Finalizado"
+                                : "Al día"}
+                        </div>
+                    )}
+            </a>
+
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onRequestRemove(fav.seriesId);
+                }}
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-rose-400 transition-opacity hover:bg-black/70 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                title="Quitar de favoritos"
+                style={{ position: "absolute" }}
+            >
+                <Heart className="h-3.5 w-3.5 fill-rose-400" />
+            </button>
+
+            <div className="mt-3 space-y-2">
+                <a
+                    href={`/manga/${fav.series.slug}`}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        navigate(`/manga/${fav.series.slug}`, {
+                            state: { from: fromUrl },
+                        });
+                    }}
+                    className="block text-sm font-bold truncate leading-none hover:text-primary transition-colors"
+                    title={fav.series.name}
+                >
+                    {fav.series.name}
+                </a>
+
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                        <Eye className="h-2.5 w-2.5" />
+                        {fav.lastReadChapterName ?? "0"}
+                        <span className="opacity-40">/</span>
+                        <BookOpen className="h-2.5 w-2.5" />
+                        {fav.lastAvailableChapterName ??
+                            fav.series.chapterCount}
+                    </span>
+                    {fav.series
+                        .lastChapterPublishedAt && (
+                        <span className="flex items-center gap-1">
+                            <Clock className="h-2.5 w-2.5" />
+                            {timeAgo(
+                                fav.series
+                                    .lastChapterPublishedAt,
+                            )}
+                        </span>
+                    )}
+                </div>
+
+                {fav.lastAvailableChapterName && (
+                    <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-primary rounded-full transition-[width]"
+                            style={{
+                                width: `${Math.min(
+                                    ((fav.lastReadChapterName
+                                        ? parseFloat(
+                                              fav.lastReadChapterName,
+                                          )
+                                        : 0
+                                    ) /
+                                        parseFloat(
+                                            fav.lastAvailableChapterName,
+                                        )) *
+                                        100,
+                                    100,
+                                )}%`,
+                            }}
+                        />
+                    </div>
+                )}
+
+                {fav.status && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger
+                            asChild
+                        >
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-[10px] h-7 px-2 justify-between"
+                            >
+                                {fav.status}
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            align="end"
+                            className="w-[140px]"
+                        >
+                            <DropdownMenuItem
+                                onClick={() =>
+                                    onStatusChange(
+                                        fav.seriesId,
+                                        "Siguiendo",
+                                    )
+                                }
+                                className="flex justify-between cursor-pointer"
+                            >
+                                Siguiendo
+                                {fav.status ===
+                                    "Siguiendo" && (
+                                    <Check className="h-3 w-3" />
+                                )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() =>
+                                    onStatusChange(
+                                        fav.seriesId,
+                                        "Terminado",
+                                    )
+                                }
+                                className="flex justify-between cursor-pointer"
+                            >
+                                Terminado
+                                {fav.status ===
+                                    "Terminado" && (
+                                    <Check className="h-3 w-3" />
+                                )}
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+            </div>
+        </div>
+    );
+});
 
 export default function FavoritesList() {
     const navigate = useNavigate();
@@ -165,21 +333,24 @@ export default function FavoritesList() {
         setSearchParams({ page: "1" });
     }
 
-    async function handleStatusChange(seriesId: number, newStatus: string) {
-        await upsertFavorite(seriesId, newStatus);
-        setFavorites((prev) =>
-            prev.map((f) =>
-                f.seriesId === seriesId
-                    ? { ...f, status: newStatus as "Siguiendo" | "Terminado" }
-                    : f,
-            ),
-        );
-    }
+    const handleStatusChange = useCallback(
+        async (seriesId: number, newStatus: string) => {
+            await upsertFavorite(seriesId, newStatus);
+            setFavorites((prev) =>
+                prev.map((f) =>
+                    f.seriesId === seriesId
+                        ? { ...f, status: newStatus as "Siguiendo" | "Terminado" }
+                        : f,
+                ),
+            );
+        },
+        [],
+    );
 
-    async function handleRemove(seriesId: number) {
+    const handleRemove = useCallback(async (seriesId: number) => {
         await deleteFavorite(seriesId);
         setFavorites((prev) => prev.filter((f) => f.seriesId !== seriesId));
-    }
+    }, []);
 
     const filtered = useMemo(() => {
         let result = [...favorites];
@@ -543,173 +714,13 @@ export default function FavoritesList() {
                         <>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
                                 {paginatedFavorites.map((fav) => (
-                                    <div key={fav.id} className="group animate-fade-in-up">
-                                        {/* Card imagen — <a> envuelve solo la imagen */}
-                                        <a
-                                            href={`/manga/${fav.series.slug}`}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                navigate(
-                                                    `/manga/${fav.series.slug}`,
-                                                    {
-                                                        state: {
-                                                            from: fromUrl,
-                                                        },
-                                                    },
-                                                );
-                                            }}
-                                            className="relative block aspect-[3/4] rounded-lg overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-lg cursor-pointer transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20"
-                                        >
-                                            <CoverImage
-                                                src={fav.series.cover}
-                                                alt={fav.series.name}
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/15 via-transparent to-transparent" />
-
-                                            {isUpToDate(fav) &&
-                                                fav.lastReadChapterName && (
-                                                    <div className="absolute bottom-2 left-2 bg-primary/90 text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                                                        {fav.status ===
-                                                        "Terminado"
-                                                            ? "Finalizado"
-                                                            : "Al día"}
-                                                    </div>
-                                                )}
-                                        </a>
-
-                                        {/* Botón quitar — fuera del <a> para no interferir */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setRemovingId(fav.seriesId);
-                                            }}
-                                            className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-rose-400 transition-opacity hover:bg-black/70 opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                                            title="Quitar de favoritos"
-                                            style={{ position: "absolute" }}
-                                        >
-                                            <Heart className="h-3.5 w-3.5 fill-rose-400" />
-                                        </button>
-
-                                        <div className="mt-3 space-y-2">
-                                            <a
-                                                href={`/manga/${fav.series.slug}`}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    navigate(
-                                                        `/manga/${fav.series.slug}`,
-                                                        {
-                                                            state: {
-                                                                from: fromUrl,
-                                                            },
-                                                        },
-                                                    );
-                                                }}
-                                                className="block text-sm font-bold truncate leading-none hover:text-primary transition-colors"
-                                                title={fav.series.name}
-                                            >
-                                                {fav.series.name}
-                                            </a>
-
-                                            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Eye className="h-2.5 w-2.5" />
-                                                    {fav.lastReadChapterName ??
-                                                        "0"}
-                                                    <span className="opacity-40">
-                                                        /
-                                                    </span>
-                                                    <BookOpen className="h-2.5 w-2.5" />
-                                                    {fav.lastAvailableChapterName ??
-                                                        fav.series.chapterCount}
-                                                </span>
-                                                {fav.series
-                                                    .lastChapterPublishedAt && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Clock className="h-2.5 w-2.5" />
-                                                        {timeAgo(
-                                                            fav.series
-                                                                .lastChapterPublishedAt,
-                                                        )}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {fav.lastAvailableChapterName && (
-                                                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-primary rounded-full transition-[width]"
-                                                        style={{
-                                                            width: `${Math.min(
-                                                                ((fav.lastReadChapterName
-                                                                    ? parseFloat(
-                                                                          fav.lastReadChapterName,
-                                                                      )
-                                                                    : 0
-                                                                ) /
-                                                                    parseFloat(
-                                                                        fav.lastAvailableChapterName,
-                                                                    )) *
-                                                                    100,
-                                                                100,
-                                                            )}%`,
-                                                        }}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {fav.status && (
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger
-                                                        asChild
-                                                    >
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="w-full text-[10px] h-7 px-2 justify-between"
-                                                        >
-                                                            {fav.status}
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent
-                                                        align="end"
-                                                        className="w-[140px]"
-                                                    >
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                handleStatusChange(
-                                                                    fav.seriesId,
-                                                                    "Siguiendo",
-                                                                )
-                                                            }
-                                                            className="flex justify-between cursor-pointer"
-                                                        >
-                                                            Siguiendo
-                                                            {fav.status ===
-                                                                "Siguiendo" && (
-                                                                <Check className="h-3 w-3" />
-                                                            )}
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                handleStatusChange(
-                                                                    fav.seriesId,
-                                                                    "Terminado",
-                                                                )
-                                                            }
-                                                            className="flex justify-between cursor-pointer"
-                                                        >
-                                                            Terminado
-                                                            {fav.status ===
-                                                                "Terminado" && (
-                                                                <Check className="h-3 w-3" />
-                                                            )}
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <FavoriteListItem
+                                        key={fav.id}
+                                        fav={fav}
+                                        fromUrl={fromUrl}
+                                        onRequestRemove={setRemovingId}
+                                        onStatusChange={handleStatusChange}
+                                    />
                                 ))}
                             </div>
 
