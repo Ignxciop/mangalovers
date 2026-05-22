@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/authStore";
 import type { Chapter } from "@/types/manga";
 
 const STORAGE_PREFIX = "read_chapters_";
+const LAST_READ_PREFIX = "last_read_name_";
 
 function getLocalReadIds(seriesId: number): Set<number> {
     try {
@@ -24,6 +25,22 @@ function saveLocalReadIds(seriesId: number, ids: Set<number>) {
         `${STORAGE_PREFIX}${seriesId}`,
         JSON.stringify([...ids]),
     );
+}
+
+export function getLocalLastReadName(seriesId: number): string | null {
+    try {
+        return localStorage.getItem(`${LAST_READ_PREFIX}${seriesId}`);
+    } catch {
+        return null;
+    }
+}
+
+function setLocalLastReadName(seriesId: number, name: string) {
+    localStorage.setItem(`${LAST_READ_PREFIX}${seriesId}`, name);
+}
+
+function clearLocalLastReadName(seriesId: number) {
+    localStorage.removeItem(`${LAST_READ_PREFIX}${seriesId}`);
 }
 
 export function useReadChapters(seriesId: number, chapters: Chapter[] = []) {
@@ -71,10 +88,19 @@ export function useReadChapters(seriesId: number, chapters: Chapter[] = []) {
                         chapters
                             .filter((c) => parseFloat(c.name) >= targetNumber)
                             .forEach((c) => next.delete(c.id));
+                        const remaining = chapters
+                            .filter((c) => next.has(c.id))
+                            .sort((a, b) => parseFloat(b.name) - parseFloat(a.name));
+                        if (remaining.length > 0) {
+                            setLocalLastReadName(seriesId, remaining[0].name);
+                        } else {
+                            clearLocalLastReadName(seriesId);
+                        }
                     } else {
                         chapters
                             .filter((c) => parseFloat(c.name) <= targetNumber)
                             .forEach((c) => next.add(c.id));
+                        setLocalLastReadName(seriesId, targetChapter.name);
                     }
                     saveLocalReadIds(seriesId, next);
                     return next;
@@ -121,6 +147,7 @@ export function useReadChapters(seriesId: number, chapters: Chapter[] = []) {
                         .filter((c) => parseFloat(c.name) <= targetNumber)
                         .forEach((c) => next.add(c.id));
                     saveLocalReadIds(seriesId, next);
+                    setLocalLastReadName(seriesId, targetChapter.name);
                     return next;
                 });
                 return;
