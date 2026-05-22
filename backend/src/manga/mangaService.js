@@ -67,8 +67,7 @@ export async function getAllManga(query, userId = null) {
       ? prisma.userChapterRead.findMany({
           where: { userId, chapter: { seriesId: { in: seriesIds } } },
           select: { chapter: { select: { seriesId: true, number: true } } },
-          orderBy: { createdAt: "desc" },
-          take: 50,
+          orderBy: { chapter: { number: "desc" } },
         })
       : [],
     prisma.series.count({ where }),
@@ -129,8 +128,7 @@ export async function getLatestManga(userId, limit = 16) {
       ? prisma.userChapterRead.findMany({
           where: { userId, chapter: { seriesId: { in: seriesIds } } },
           select: { chapter: { select: { seriesId: true, number: true } } },
-          orderBy: { createdAt: "desc" },
-          take: 50,
+          orderBy: { chapter: { number: "desc" } },
         })
       : [],
   ]);
