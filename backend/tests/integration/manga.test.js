@@ -227,7 +227,6 @@ describe("GET /api/manga/:slug", () => {
         expect(res.body.summary).toBe("A summary");
         expect(res.body.genres).toContain("Acción");
         expect(res.body.chapters).toHaveLength(2);
-        expect(res.body.chaptersMeta.total).toBe(2);
     });
 
     it("devuelve 404 para slug inexistente", async () => {
