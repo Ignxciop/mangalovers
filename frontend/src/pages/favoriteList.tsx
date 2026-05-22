@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo, Fragment, memo, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState, useMemo, memo, useCallback } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,14 +35,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -58,6 +50,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { MangaPagination } from "@/components/MangaPagination";
 
 function chaptersLeft(fav: Favorite): number {
     const read = parseFloat(fav.lastReadChapterName ?? "0");
@@ -91,18 +84,11 @@ const FavoriteListItem = memo(function FavoriteListItem({
     onRequestRemove: (seriesId: number) => void;
     onStatusChange: (seriesId: number, status: string) => void;
 }) {
-    const navigate = useNavigate();
-
     return (
         <div className="group animate-fade-in-up">
-            <a
-                href={`/manga/${fav.series.slug}`}
-                onClick={(e) => {
-                    e.preventDefault();
-                    navigate(`/manga/${fav.series.slug}`, {
-                        state: { from: fromUrl },
-                    });
-                }}
+            <Link
+                to={`/manga/${fav.series.slug}`}
+                state={{ from: fromUrl }}
                 className="relative block aspect-[3/4] rounded-lg overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-lg cursor-pointer transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20"
             >
                 <CoverImage
@@ -120,7 +106,7 @@ const FavoriteListItem = memo(function FavoriteListItem({
                                 : "Al día"}
                         </div>
                     )}
-            </a>
+            </Link>
 
             <button
                 onClick={(e) => {
@@ -135,19 +121,14 @@ const FavoriteListItem = memo(function FavoriteListItem({
             </button>
 
             <div className="mt-3 space-y-2">
-                <a
-                    href={`/manga/${fav.series.slug}`}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        navigate(`/manga/${fav.series.slug}`, {
-                            state: { from: fromUrl },
-                        });
-                    }}
+                <Link
+                    to={`/manga/${fav.series.slug}`}
+                    state={{ from: fromUrl }}
                     className="block text-sm font-bold truncate leading-none hover:text-primary transition-colors"
                     title={fav.series.name}
                 >
                     {fav.series.name}
-                </a>
+                </Link>
 
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1.5">
@@ -264,13 +245,14 @@ export default function FavoritesList() {
     const sortBy = (searchParams.get("sort") ?? "reciente") as SortBy;
     const page = Number(searchParams.get("page") ?? "1");
 
-    const { pull, refreshing } = usePullToRefresh(() => {
+    const { pull, refreshing } = usePullToRefresh(useCallback(() => {
         window.location.reload();
-    });
+    }, []));
 
     useEffect(() => {
         fetchFavorites()
             .then(setFavorites)
+            .catch(() => setFavorites([]))
             .finally(() => setLoading(false));
     }, []);
 
@@ -547,9 +529,17 @@ export default function FavoritesList() {
                                                             : "outline"
                                                     }
                                                     className="cursor-pointer px-3 py-1 text-xs"
+                                                    role="button"
+                                                    tabIndex={0}
                                                     onClick={() =>
                                                         setStatusFilter(f)
                                                     }
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === " ") {
+                                                            e.preventDefault();
+                                                            setStatusFilter(f);
+                                                        }
+                                                    }}
                                                 >
                                                     {f}
                                                 </Badge>
@@ -576,6 +566,8 @@ export default function FavoritesList() {
                                                             : "outline"
                                                     }
                                                     className="cursor-pointer px-3 py-1 text-xs"
+                                                    role="button"
+                                                    tabIndex={0}
                                                     onClick={() =>
                                                         setTypeFilter(
                                                             typeFilter === value
@@ -583,6 +575,16 @@ export default function FavoritesList() {
                                                                 : (value as TypeFilter),
                                                         )
                                                     }
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === " ") {
+                                                            e.preventDefault();
+                                                            setTypeFilter(
+                                                                typeFilter === value
+                                                                    ? ""
+                                                                    : (value as TypeFilter),
+                                                            );
+                                                        }
+                                                    }}
                                                 >
                                                     {label}
                                                 </Badge>
@@ -616,6 +618,8 @@ export default function FavoritesList() {
                                                 ) => (
                                                     <div
                                                         key={value}
+                                                        role="button"
+                                                        tabIndex={0}
                                                         className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
                                                             idx !==
                                                             arr.length - 1
@@ -627,6 +631,14 @@ export default function FavoritesList() {
                                                                 value as ProgressFilter,
                                                             )
                                                         }
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" || e.key === " ") {
+                                                                e.preventDefault();
+                                                                setProgressFilter(
+                                                                    value as ProgressFilter,
+                                                                );
+                                                            }
+                                                        }}
                                                     >
                                                         <span
                                                             className={`text-sm transition-colors ${
@@ -668,7 +680,7 @@ export default function FavoritesList() {
                 <main className="container mx-auto px-4 py-8">
                     {!loading && filtered.length > 0 && (
                         <div className="mb-8">
-                            <FavoritesPagination
+                            <MangaPagination
                                 page={page}
                                 totalPages={totalPages}
                                 setPage={setPage}
@@ -728,7 +740,7 @@ export default function FavoritesList() {
                             </div>
 
                             <div className="mt-12 mb-8 pt-8">
-                                <FavoritesPagination
+                                <MangaPagination
                                     page={page}
                                     totalPages={totalPages}
                                     setPage={setPage}
@@ -789,102 +801,4 @@ export default function FavoritesList() {
     );
 }
 
-interface FavoritesPaginationProps {
-    page: number;
-    totalPages: number;
-    setPage: (page: number) => void;
-}
 
-const FavoritesPagination: React.FC<FavoritesPaginationProps> = ({
-    page,
-    totalPages,
-    setPage,
-}) => {
-    const handlePrev = () => {
-        if (page > 1) setPage(page - 1);
-    };
-
-    const handleNext = () => {
-        if (page < totalPages) setPage(page + 1);
-    };
-
-    const pageNumbers: number[] = [1];
-
-    let start = Math.max(page - 3, 2);
-    let end = Math.min(page + 3, totalPages - 1);
-
-    if (page <= 4) {
-        start = 2;
-        end = Math.min(7, totalPages - 1);
-    }
-
-    if (page >= totalPages - 3) {
-        start = Math.max(totalPages - 6, 2);
-        end = totalPages - 1;
-    }
-
-    for (let i = start; i <= end; i++) pageNumbers.push(i);
-
-    if (totalPages > 1) pageNumbers.push(totalPages);
-
-    const uniquePages = [...new Set(pageNumbers)];
-
-    return (
-        <Pagination>
-            <PaginationContent className="flex flex-wrap justify-center gap-1 max-w-full overflow-hidden">
-                {/* ← SOLO DESKTOP */}
-                <PaginationItem className="hidden sm:block">
-                    <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            handlePrev();
-                        }}
-                        aria-disabled={page === 1}
-                        className="px-3"
-                    />
-                </PaginationItem>
-
-                {uniquePages.map((p, idx) => (
-                    <Fragment key={p}>
-                        {idx > 0 &&
-                            uniquePages[idx] - uniquePages[idx - 1] > 1 && (
-                                <PaginationItem>
-                                    <span className="px-2 text-muted-foreground">
-                                        ...
-                                    </span>
-                                </PaginationItem>
-                            )}
-
-                        <PaginationItem>
-                            <PaginationLink
-                                href="#"
-                                isActive={p === page}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setPage(p);
-                                }}
-                                className="px-2 sm:px-3"
-                            >
-                                {p}
-                            </PaginationLink>
-                        </PaginationItem>
-                    </Fragment>
-                ))}
-
-                {/* → SOLO DESKTOP */}
-                <PaginationItem className="hidden sm:block">
-                    <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            handleNext();
-                        }}
-                        aria-disabled={page === totalPages}
-                        className="px-3"
-                    />
-                </PaginationItem>
-            </PaginationContent>
-        </Pagination>
-    );
-};

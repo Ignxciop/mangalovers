@@ -16,7 +16,7 @@ export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
     const retryCountRef = useRef(0);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [status, setStatus] = useState<"loading" | "loaded" | "error">(
-        "loading",
+        src ? "loading" : "error",
     );
     const loadedRef = useRef(false);
     const loadImageRef = useRef<((url: string) => void) | null>(null);
@@ -47,16 +47,13 @@ export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
     }, [loadImage]);
 
     useEffect(() => {
-        if (!src) {
-            setStatus("error");
-            return;
-        }
+        if (!src) return;
 
         if (priority) {
             shouldLoadRef.current = true;
             retryCountRef.current = 0;
             loadedRef.current = false;
-            loadImage(src);
+            queueMicrotask(() => loadImage(src));
             return;
         }
 
