@@ -87,7 +87,7 @@ async function processSeries(providerSeries, providerId) {
             const publishedAt = ch.create ? new Date(ch.create) : new Date();
 
             const newChapter = await prisma.chapter.create({
-                data: { name: chapterName, publishedAt, seriesId },
+                data: { name: chapterName, number: parseFloat(chapterName), publishedAt, seriesId },
             });
 
             latestCreatedChapter = newChapter;

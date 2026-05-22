@@ -1,4 +1,5 @@
 import webpush from "web-push";
+import pLimit from "p-limit";
 import { config } from "../config/env.js";
 import { prisma } from "../config/prisma.js";
 import logger from "../config/logger.js";
@@ -125,8 +126,9 @@ export async function notifyNewChapter({
         slug,
     });
 
+    const pushLimit = pLimit(50);
     const results = await Promise.allSettled(
-        subscriptions.map((sub) => sendToSubscription(sub, payload)),
+        subscriptions.map((sub) => pushLimit(() => sendToSubscription(sub, payload))),
     );
 
     const summary = results.reduce(

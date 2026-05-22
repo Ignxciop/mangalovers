@@ -19,24 +19,23 @@ export async function getUserFavorites(userId) {
 
   const seriesIds = favorites.map((f) => f.seriesId);
 
-  const [readDetails, lastChapters] = await Promise.all([
+  const [readDetails, lastChapterGroup] = await Promise.all([
     prisma.userChapterRead.findMany({
       where: { userId, chapter: { seriesId: { in: seriesIds } } },
-      select: { chapter: { select: { seriesId: true, name: true, publishedAt: true } } },
+      select: { chapter: { select: { seriesId: true, number: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 200,
     }),
-    prisma.chapter.findMany({
-      where: { seriesId: { in: seriesIds } },
-      select: { seriesId: true, name: true },
+    prisma.chapter.groupBy({
+      by: ["seriesId"],
+      where: { seriesId: { in: seriesIds }, number: { not: null } },
+      _max: { number: true },
     }),
   ]);
 
-  const lastChapterMap = new Map();
-  for (const c of lastChapters) {
-    const current = lastChapterMap.get(c.seriesId);
-    if (!current || parseFloat(c.name) > parseFloat(current)) {
-      lastChapterMap.set(c.seriesId, c.name);
-    }
-  }
+  const lastChapterMap = new Map(
+    lastChapterGroup.map((g) => [g.seriesId, String(g._max.number)]),
+  );
 
   const seriesReadMap = new Map();
   for (const r of readDetails) {
@@ -45,8 +44,8 @@ export async function getUserFavorites(userId) {
       seriesReadMap.set(sid, { lastReadChapterName: null });
     }
     const entry = seriesReadMap.get(sid);
-    if (!entry.lastReadChapterName || parseFloat(r.chapter.name) > parseFloat(entry.lastReadChapterName)) {
-      entry.lastReadChapterName = r.chapter.name;
+    if (!entry.lastReadChapterName) {
+      entry.lastReadChapterName = String(r.chapter.number);
     }
   }
 

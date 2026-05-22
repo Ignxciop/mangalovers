@@ -33,8 +33,8 @@ model RefreshToken {
   replacedBy String?
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([token])
+  @@index([expiresAt])
+  @@index([userId, isRevoked, expiresAt])
   @@map("refresh_tokens")
 }
 
@@ -61,7 +61,6 @@ model Series {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  @@index([slug])
   @@index([name])
   @@index([lastChapterPublishedAt])
 }
@@ -79,6 +78,7 @@ model SeriesAlias {
 model Chapter {
   id          Int      @id @default(autoincrement())
   name        String
+  number      Float?
   publishedAt DateTime
 
   seriesId Int
@@ -92,9 +92,9 @@ model Chapter {
 
   createdAt DateTime @default(now())
 
-  @@index([seriesId])
   @@index([publishedAt])
   @@index([seriesId, publishedAt])
+  @@index([seriesId, number])
 }
 
 model Page {
@@ -189,7 +189,6 @@ model UserFavorite {
   series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@unique([userId, seriesId])
-  @@index([userId])
   @@map("user_favorites")
 }
 
@@ -203,7 +202,6 @@ model UserChapterRead {
   chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
   @@unique([userId, chapterId])
-  @@index([userId])
   @@map("user_chapter_reads")
 }
 
