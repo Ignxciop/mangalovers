@@ -473,15 +473,39 @@ export default function MangaDetail() {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() =>
-                                                navigator.share({
+                                            onClick={async () => {
+                                                const shareData: ShareData = {
                                                     title: series.name,
                                                     text:
                                                         series.summary ??
                                                         `Lee ${series.name} en Mangalovers`,
                                                     url: window.location.href,
-                                                })
-                                            }
+                                                };
+                                                try {
+                                                    if (!series.cover) throw new Error();
+                                                    const res = await fetch(series.cover);
+                                                    const blob = await res.blob();
+                                                    const file = new File(
+                                                        [blob],
+                                                        `${series.name}.jpg`,
+                                                        { type: blob.type },
+                                                    );
+                                                    shareData.files = [file];
+                                                } catch {
+                                                    /* ignorar */
+                                                }
+                                                if (
+                                                    navigator.canShare?.(shareData)
+                                                ) {
+                                                    await navigator.share(shareData);
+                                                } else {
+                                                    await navigator.share({
+                                                        title: shareData.title,
+                                                        text: shareData.text,
+                                                        url: shareData.url,
+                                                    });
+                                                }
+                                            }}
                                         >
                                             <Share2 className="h-4 w-4" />
                                             Compartir
