@@ -5,6 +5,7 @@ import {
     markChapterUntil,
 } from "@/api/manga";
 import { useAuthStore } from "@/store/authStore";
+import { useQueryCache } from "@/store/queryCache";
 import type { Chapter } from "@/types/manga";
 
 const STORAGE_PREFIX = "read_chapters_";
@@ -48,6 +49,7 @@ export function useReadChapters(seriesId: number, chapters: Chapter[] = []) {
     const [loading, setLoading] = useState(false);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const readIdsRef = useRef(readIds);
+    const invalidate = useQueryCache((s) => s.invalidate);
     readIdsRef.current = readIds;
 
     const load = useCallback(async () => {
@@ -121,6 +123,7 @@ export function useReadChapters(seriesId: number, chapters: Chapter[] = []) {
                 await toggleChapterRead(chapterId);
                 const ids = await fetchReadChapterIds(seriesId);
                 setReadIds(new Set(ids));
+                invalidate("series-detail");
             } catch {
                 setReadIds((prev) => {
                     const next = new Set(prev);
@@ -157,6 +160,7 @@ export function useReadChapters(seriesId: number, chapters: Chapter[] = []) {
                 await markChapterUntil(chapterId);
                 const ids = await fetchReadChapterIds(seriesId);
                 setReadIds(new Set(ids));
+                invalidate("series-detail");
             } catch {
                 // silencioso
             }

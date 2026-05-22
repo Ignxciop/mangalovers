@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { fetchFavorite, upsertFavorite, deleteFavorite } from "@/api/manga";
 import { useAuthStore } from "@/store/authStore";
+import { useQueryCache } from "@/store/queryCache";
 
 export function useFavorite(seriesId: number) {
     const [status, setStatus] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    const invalidate = useQueryCache((s) => s.invalidate);
 
     useEffect(() => {
         if (!seriesId || !isAuthenticated) return;
@@ -29,12 +31,14 @@ export function useFavorite(seriesId: number) {
         if (!isAuthenticated) return;
         const result = await upsertFavorite(seriesId, newStatus);
         setStatus(result.status);
+        invalidate("manga-list");
     }
 
     async function remove() {
         if (!isAuthenticated) return;
         await deleteFavorite(seriesId);
         setStatus(null);
+        invalidate("manga-list");
     }
 
     return { status, loading, save, remove };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchMangaList } from "@/api/manga.ts";
+import { useCachedQuery } from "@/hooks/useCachedQuery";
 import type { MangaListResponse } from "@/types/manga";
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -18,35 +19,14 @@ export function useMangaList(params: Record<string, string | number>) {
 
     const search = useDebounce(rawSearch, 300);
 
-    const [data, setData] = useState<MangaListResponse | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
+    const cacheKey = `manga-list:${JSON.stringify({ search, page, status, type, provider, sort, order, genres })}`;
 
-    useEffect(() => {
-        const abortController = new AbortController();
-
-        async function load() {
-            setLoading(true);
-            setError(null);
-            try {
-                const result = await fetchMangaList(
-                    { page, search, status, type, provider, sort, order, genres },
-                    abortController.signal,
-                );
-                if (!abortController.signal.aborted) setData(result);
-            } catch (err) {
-                if (!abortController.signal.aborted) setError(err as Error);
-            } finally {
-                if (!abortController.signal.aborted) setLoading(false);
-            }
-        }
-
-        load();
-
-        return () => {
-            abortController.abort();
-        };
-    }, [search, page, status, type, provider, sort, order, genres]);
-
-    return { data, loading, error };
+    return useCachedQuery<MangaListResponse | null>(
+        cacheKey,
+        (signal) => fetchMangaList(
+            { page, search, status, type, provider, sort, order, genres },
+            signal,
+        ),
+        { ttl: 30_000, initialData: null },
+    );
 }
