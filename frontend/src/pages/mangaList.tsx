@@ -32,6 +32,7 @@ import { useMangaList } from "@/hooks/useMangaList";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchGenres, fetchFavorites } from "@/api/manga";
 import { useAuthStore } from "@/store/authStore";
+import { getLocalLastReadName } from "@/hooks/useReadChapters";
 
 export default function MangaList() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -424,20 +425,26 @@ export default function MangaList() {
                                         <Heart className="h-3 w-3 fill-rose-400" />
                                     </div>
                                 )}
-                                <Badge
-                                    variant="secondary"
-                                    className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium pointer-events-none"
-                                >
-                                    {manga.lastReadChapterName !== null && (
-                                        <>
-                                            <Eye className="h-2 w-2" />
-                                            {manga.lastReadChapterName}
-                                            <span className="opacity-40">/</span>
-                                        </>
-                                    )}
-                                    <BookOpen className="h-2.5 w-2.5" />
-                                    {manga.lastAvailableChapterName ?? manga.lastChapterNumber ?? "?"}
-                                </Badge>
+                                {(() => {
+                                    const localLastRead = manga.lastReadChapterName ?? getLocalLastReadName(manga.id);
+                                    const total = manga.lastAvailableChapterName ?? manga.lastChapterNumber?.toString() ?? "?";
+                                    return (
+                                        <Badge
+                                            variant="secondary"
+                                            className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium pointer-events-none"
+                                        >
+                                            {localLastRead !== null && (
+                                                <>
+                                                    <Eye className="h-2.5 w-2.5" />
+                                                    {localLastRead}
+                                                    <span className="opacity-40">/</span>
+                                                </>
+                                            )}
+                                            <BookOpen className="h-2.5 w-2.5" />
+                                            {total}
+                                        </Badge>
+                                    );
+                                })()}
                                 <CoverImage
                                     src={manga.cover}
                                     alt={manga.name}
