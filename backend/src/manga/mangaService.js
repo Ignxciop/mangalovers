@@ -189,9 +189,13 @@ export async function getSeriesDetailBySlug(slug) {
       externalSlug: p.slug,
       externalUrl: isValidImageUrl(p.url) ? p.url : null,
     })),
-    chapters: chapters.map((c) => ({
-      id: c.id, name: c.name, publishedAt: c.publishedAt, createdAt: c.createdAt,
-    })),
+    chapters: chapters.map((c) => {
+      const match = String(c.name).match(/(\d+(\.\d+)?)/);
+      return {
+        id: c.id, name: c.name, publishedAt: c.publishedAt, createdAt: c.createdAt,
+        chapterNumber: match ? parseFloat(match[1]) : 0,
+      };
+    }),
   };
 }
 
