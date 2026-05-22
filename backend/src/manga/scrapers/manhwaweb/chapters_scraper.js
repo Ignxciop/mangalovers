@@ -33,6 +33,8 @@ async function processSeries(providerSeries, providerId) {
     logger.info({ externalId }, "Revisando capítulos manhwaweb");
 
     let latestCreatedChapter = null;
+    const MAX_CONSECUTIVE_EXISTING = 10;
+    let consecutiveExisting = 0;
 
     try {
         const data = await fetchSeriesWithChapters(externalId);
@@ -52,7 +54,19 @@ async function processSeries(providerSeries, providerId) {
                     },
                 });
 
-            if (existingProviderChapter) break;
+            if (existingProviderChapter) {
+                consecutiveExisting++;
+                if (consecutiveExisting >= MAX_CONSECUTIVE_EXISTING) {
+                    logger.debug(
+                        { externalId, count: consecutiveExisting },
+                        "Capítulos existentes consecutivos, stop",
+                    );
+                    break;
+                }
+                continue;
+            }
+
+            consecutiveExisting = 0;
 
             const existingChapterInSeries = await prisma.chapter.findFirst({
                 where: { seriesId, name: chapterName },
@@ -66,6 +80,7 @@ async function processSeries(providerSeries, providerId) {
                         chapterId: existingChapterInSeries.id,
                     },
                 });
+                latestCreatedChapter = existingChapterInSeries;
                 continue;
             }
 
