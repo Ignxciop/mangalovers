@@ -207,7 +207,7 @@ export async function getLatestManga(userId, limit = 16) {
     }));
 }
 
-export async function getSeriesDetailBySlug(slug, page = 1, limit = 100) {
+export async function getSeriesDetailBySlug(slug) {
     const series = await prisma.series.findUnique({
         where: { slug },
         include: {
@@ -226,15 +226,9 @@ export async function getSeriesDetailBySlug(slug, page = 1, limit = 100) {
 
     if (!series) return null;
 
-    const totalChapters = await prisma.chapter.count({
-        where: { seriesId: series.id },
-    });
-
     const chapters = await prisma.chapter.findMany({
         where: { seriesId: series.id },
         orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
-        skip: (page - 1) * limit,
-        take: limit,
     });
 
     const extractChapterNumber = (name) => {
@@ -268,13 +262,6 @@ export async function getSeriesDetailBySlug(slug, page = 1, limit = 100) {
             createdAt: c.createdAt,
             chapterNumber: extractChapterNumber(c.name),
         })),
-
-        chaptersMeta: {
-            total: totalChapters,
-            page,
-            limit,
-            totalPages: Math.ceil(totalChapters / limit),
-        },
     };
 }
 
