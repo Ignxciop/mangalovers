@@ -1,11 +1,12 @@
-import { useEffect, useState, memo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, memo, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CoverImage } from "@/components/coverImage";
-import { fetchLatestManga, fetchReadingStats, fetchFavorites } from "@/api/manga";
+import { fetchLatestManga, fetchReadingStats } from "@/api/manga";
 import type { Manga } from "@/types/manga";
 import { useAuthStore } from "@/store/authStore";
+import { useFavoriteIds } from "@/hooks/useFavoriteIds";
 import { getLocalLastReadName } from "@/hooks/useReadChapters";
 import { timeAgo } from "@/lib/date";
 import {
@@ -185,19 +186,14 @@ const MangaCard = memo(function MangaCard({
     index: number;
     isFavorited?: boolean;
 }) {
-    const navigate = useNavigate();
-
     return (
         <div className="group animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
-            <a
-                href={`/manga/${manga.slug}`}
-                onClick={(e) => {
-                    e.preventDefault();
-                    navigate(`/manga/${manga.slug}`, { state: { from: "/" } });
-                }}
+            <Link
+                to={`/manga/${manga.slug}`}
+                state={{ from: "/" }}
                 className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20 active:scale-[0.98] active:shadow-[0_0_25px_-3px] active:shadow-brand/50"
             >
-                <CoverImage src={manga.cover} alt={manga.name} />
+                <CoverImage src={manga.cover} alt={manga.name} priority={index === 0} />
                 {isFavorited && (
                     <div className="absolute top-2 left-2 p-1.5 rounded-full bg-black/50 text-rose-400">
                         <Heart className="h-3 w-3 fill-rose-400" />
@@ -228,7 +224,7 @@ const MangaCard = memo(function MangaCard({
                     <Clock className="h-2.5 w-2.5" />
                     {timeAgo(manga.lastChapterPublishedAt!)}
                 </div>
-            </a>
+            </Link>
             <div className="mt-2">
                 <h3
                     className="text-[11px] font-semibold text-foreground truncate leading-tight"
@@ -271,29 +267,18 @@ export default function Home() {
     const [loadingLatest, setLoadingLatest] = useState(true);
     const [loadingStats, setLoadingStats] = useState(false);
     const [error, setError] = useState(false);
-    const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+    const { favoriteIds } = useFavoriteIds();
 
-    const { pull, refreshing } = usePullToRefresh(() => {
+    const { pull, refreshing } = usePullToRefresh(useCallback(() => {
         window.location.reload();
-    });
+    }, []));
 
     useEffect(() => {
         fetchLatestManga(24)
             .then(setMangas)
             .catch(() => setError(true))
             .finally(() => setLoadingLatest(false));
-
-        if (isAuthenticated) {
-            fetchFavorites().then((res) => {
-                const ids = (res.data ?? res ?? []).map(
-                    (f: { seriesId: number }) => f.seriesId,
-                );
-                setFavoriteIds(new Set(ids));
-            }).catch(() => {});
-        } else {
-            setFavoriteIds(new Set());
-        }
-    }, [isAuthenticated]);
+    }, []);
 
     useEffect(() => {
         if (!isAuthenticated) return;

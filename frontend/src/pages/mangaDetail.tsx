@@ -28,7 +28,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, memo, useCallback } from "react";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
@@ -98,11 +98,13 @@ function StatusBadge({ status }: { status: string | null }) {
     );
 }
 
-function ChapterRow({
+const ChapterRow = memo(function ChapterRow({
     chapter,
     isRead,
-    onToggleRead,
-    onClick,
+    chapterId,
+    toggleRead,
+    slug,
+    backUrl,
 }: {
     chapter: {
         id: number;
@@ -112,17 +114,35 @@ function ChapterRow({
         chapterNumber: number;
     };
     isRead: boolean;
-    onToggleRead: (e: React.MouseEvent) => void;
-    onClick: () => void;
+    chapterId: number;
+    toggleRead: (id: number) => Promise<void>;
+    slug: string;
+    backUrl: string;
 }) {
     const date = new Date(chapter.publishedAt).toLocaleDateString("es-ES", {
         day: "2-digit",
         month: "short",
         year: "numeric",
     });
+    const navigate = useNavigate();
+
+    const handleToggle = useCallback(
+        (e: React.MouseEvent) => {
+            e.stopPropagation();
+            toggleRead(chapterId);
+        },
+        [toggleRead, chapterId],
+    );
+
+    const handleClick = useCallback(() => {
+        navigate(`/manga/${slug}/capitulo/${chapterId}`, {
+            state: { from: backUrl },
+        });
+    }, [navigate, slug, chapterId, backUrl]);
+
     return (
         <div
-            onClick={onClick}
+            onClick={handleClick}
             className={`group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-[background-color,border-color,opacity] duration-150 border ${
                 isRead
                     ? "border-transparent hover:bg-muted hover:border-border opacity-50 hover:opacity-100"
@@ -134,7 +154,7 @@ function ChapterRow({
                     {chapter.chapterNumber}
                 </span>
                 <button
-                    onClick={onToggleRead}
+                    onClick={handleToggle}
                     className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
                     title={
                         isRead ? "Marcar como no leído" : "Marcar como leído"
@@ -156,7 +176,7 @@ function ChapterRow({
             </div>
         </div>
     );
-}
+});
 
 function StatPill({
     icon: Icon,
@@ -523,20 +543,10 @@ export default function MangaDetail() {
                                                     isRead={readIds.has(
                                                         chapter.id,
                                                     )}
-                                                    onToggleRead={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleRead(chapter.id);
-                                                    }}
-                                                    onClick={() =>
-                                                        navigate(
-                                                            `/manga/${slug}/capitulo/${chapter.id}`,
-                                                            {
-                                                                state: {
-                                                                    from: backUrl,
-                                                                },
-                                                            },
-                                                        )
-                                                    }
+                                                    chapterId={chapter.id}
+                                                    toggleRead={toggleRead}
+                                                    slug={slug ?? ""}
+                                                    backUrl={backUrl}
                                                 />
                                             ))}
                                         </div>
