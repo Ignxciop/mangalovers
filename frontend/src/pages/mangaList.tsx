@@ -17,22 +17,106 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
-
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, memo, useMemo } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useMangaList } from "@/hooks/useMangaList";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchGenres, fetchFavorites } from "@/api/manga";
-import { useAuthStore } from "@/store/authStore";
+import { Link, useSearchParams } from "react-router-dom";
+import { fetchGenres } from "@/api/manga";
 import { getLocalLastReadName } from "@/hooks/useReadChapters";
+import { useFavoriteIds } from "@/hooks/useFavoriteIds";
+import { MangaPagination } from "@/components/MangaPagination";
+import type { Manga } from "@/types/manga";
+
+const MangaListItem = memo(function MangaListItem({
+    manga,
+    isFavorited,
+    backUrl,
+}: {
+    manga: Manga;
+    isFavorited: boolean;
+    backUrl: string;
+}) {
+    return (
+        <div className="group animate-fade-in-up">
+            <div className="relative aspect-[3/4] rounded-lg overflow-hidden border border-white/10 dark:border-white/[0.05] bg-muted shadow-sm transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20">
+                <Link
+                    to={`/manga/${manga.slug}`}
+                    state={{ from: backUrl }}
+                    className="absolute inset-0 z-0"
+                    aria-label={manga.name}
+                />
+                {isFavorited && (
+                    <div className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-black/50 text-rose-400 pointer-events-none">
+                        <Heart className="h-3 w-3 fill-rose-400" />
+                    </div>
+                )}
+                {(() => {
+                    const localLastRead = manga.lastReadChapterName ?? getLocalLastReadName(manga.id);
+                    const total = manga.lastAvailableChapterName ?? manga.lastChapterNumber?.toString() ?? "?";
+                    return (
+                        <Badge
+                            variant="secondary"
+                            className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium pointer-events-none"
+                        >
+                            {localLastRead !== null && (
+                                <>
+                                    <Eye className="h-2.5 w-2.5" />
+                                    {localLastRead}
+                                    <span className="opacity-40">/</span>
+                                </>
+                            )}
+                            <BookOpen className="h-2.5 w-2.5" />
+                            {total}
+                        </Badge>
+                    );
+                })()}
+                <CoverImage
+                    src={manga.cover}
+                    alt={manga.name}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 pointer-events-none">
+                    <span className="text-white text-[10px] font-bold uppercase tracking-wider">
+                        Ver detalles
+                    </span>
+                </div>
+            </div>
+            <div className="mt-3 space-y-2">
+                <h3
+                    className="text-sm font-bold truncate leading-none group-hover:text-primary transition-colors"
+                    title={manga.name}
+                >
+                    {manga.name}
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                    <Badge
+                        variant="secondary"
+                        className="text-[10px] px-1.5 py-0 h-5 font-medium"
+                    >
+                        {manga.type ?? "No tipo"}
+                    </Badge>
+                    <Badge
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0 h-5 border-primary/50 text-primary font-medium"
+                    >
+                        {(() => {
+                            if (
+                                manga.status ===
+                                "Pausado por el autor (Hiatus)"
+                            )
+                                return "Pausado";
+                            if (
+                                manga.status ===
+                                "Abandonado por el scan"
+                            )
+                                return "Abandonado";
+                            return manga.status || "Abandonado";
+                        })()}
+                    </Badge>
+                </div>
+            </div>
+        </div>
+    );
+});
 
 export default function MangaList() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -49,6 +133,10 @@ export default function MangaList() {
     const genres = searchParams.get("genres") ?? "";
     const selectedGenres = genres.split(",").filter(Boolean);
     const provider = "";
+    const backUrl = useMemo(
+        () => `/mangas?${searchParams.toString()}`,
+        [searchParams],
+    );
 
     useEffect(() => {
         fetchGenres().then(setGenresList);
@@ -121,23 +209,8 @@ export default function MangaList() {
         genres,
     });
 
-    const navigate = useNavigate();
-    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const mangas = data?.data ?? [];
-    const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
-
-    useEffect(() => {
-        if (isAuthenticated) {
-            fetchFavorites().then((res) => {
-                const ids = (res.data ?? res ?? []).map(
-                    (f: { seriesId: number }) => f.seriesId,
-                );
-                setFavoriteIds(new Set(ids));
-            }).catch(() => {});
-        } else {
-            setFavoriteIds(new Set()); // eslint-disable-line react-hooks/set-state-in-effect
-        }
-    }, [isAuthenticated]);
+    const { favoriteIds } = useFavoriteIds();
 
     const activeFiltersCount = [
         status,
@@ -252,6 +325,8 @@ export default function MangaList() {
                                                         : "outline"
                                                 }
                                                 className="cursor-pointer px-3 py-1 text-xs"
+                                                role="button"
+                                                tabIndex={0}
                                                 onClick={() =>
                                                     setStatus(
                                                         status === value
@@ -259,6 +334,16 @@ export default function MangaList() {
                                                             : value,
                                                     )
                                                 }
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        setStatus(
+                                                            status === value
+                                                                ? ""
+                                                                : value,
+                                                        );
+                                                    }
+                                                }}
                                             >
                                                 {label}
                                             </Badge>
@@ -285,11 +370,21 @@ export default function MangaList() {
                                                         : "outline"
                                                 }
                                                 className="cursor-pointer px-3 py-1 text-xs"
+                                                role="button"
+                                                tabIndex={0}
                                                 onClick={() =>
                                                     setType(
                                                         type === value ? "" : value,
                                                     )
                                                 }
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        setType(
+                                                            type === value ? "" : value,
+                                                        );
+                                                    }
+                                                }}
                                             >
                                                 {label}
                                             </Badge>
@@ -322,6 +417,8 @@ export default function MangaList() {
                                         {genresList.map((genre, idx) => (
                                             <div
                                                 key={genre.id}
+                                                role="button"
+                                                tabIndex={0}
                                                 className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
                                                     idx !==
                                                     genresList.length - 1
@@ -331,6 +428,12 @@ export default function MangaList() {
                                                 onClick={() =>
                                                     toggleGenre(genre.name)
                                                 }
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        toggleGenre(genre.name);
+                                                    }
+                                                }}
                                             >
                                                 <span
                                                     className={`text-sm transition-colors ${
@@ -403,93 +506,21 @@ export default function MangaList() {
                             Error cargando mangas
                         </div>
                     )}
-                    {mangas.map((manga) => (
-                        <div key={manga.id} className="group animate-fade-in-up">
-                            <div className="relative aspect-[3/4] rounded-lg overflow-hidden border border-white/10 dark:border-white/[0.05] bg-muted shadow-sm transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20">
-                                {/* Enlace principal — cubre todo el card */}
-                                <a
-                                    href={`/manga/${manga.slug}`}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        navigate(`/manga/${manga.slug}`, {
-                                            state: {
-                                                from: `/mangas?${searchParams.toString()}`,
-                                            },
-                                        });
-                                    }}
-                                    className="absolute inset-0 z-0"
-                                    aria-label={manga.name}
-                                />
-                                {favoriteIds.has(manga.id) && (
-                                    <div className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-black/50 text-rose-400 pointer-events-none">
-                                        <Heart className="h-3 w-3 fill-rose-400" />
-                                    </div>
-                                )}
-                                {(() => {
-                                    const localLastRead = manga.lastReadChapterName ?? getLocalLastReadName(manga.id);
-                                    const total = manga.lastAvailableChapterName ?? manga.lastChapterNumber?.toString() ?? "?";
-                                    return (
-                                        <Badge
-                                            variant="secondary"
-                                            className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0 h-5 font-medium pointer-events-none"
-                                        >
-                                            {localLastRead !== null && (
-                                                <>
-                                                    <Eye className="h-2.5 w-2.5" />
-                                                    {localLastRead}
-                                                    <span className="opacity-40">/</span>
-                                                </>
-                                            )}
-                                            <BookOpen className="h-2.5 w-2.5" />
-                                            {total}
-                                        </Badge>
-                                    );
-                                })()}
-                                <CoverImage
-                                    src={manga.cover}
-                                    alt={manga.name}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 pointer-events-none">
-                                    <span className="text-white text-[10px] font-bold uppercase tracking-wider">
-                                        Ver detalles
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="mt-3 space-y-2">
-                                <h3
-                                    className="text-sm font-bold truncate leading-none group-hover:text-primary transition-colors"
-                                    title={manga.name}
-                                >
-                                    {manga.name}
-                                </h3>
-                                <div className="flex flex-wrap gap-1.5">
-                                    <Badge
-                                        variant="secondary"
-                                        className="text-[10px] px-1.5 py-0 h-5 font-medium"
-                                    >
-                                        {manga.type ?? "No tipo"}
-                                    </Badge>
-                                    <Badge
-                                        variant="outline"
-                                        className="text-[10px] px-1.5 py-0 h-5 border-primary/50 text-primary font-medium"
-                                    >
-                                        {(() => {
-                                            if (
-                                                manga.status ===
-                                                "Pausado por el autor (Hiatus)"
-                                            )
-                                                return "Pausado";
-                                            if (
-                                                manga.status ===
-                                                "Abandonado por el scan"
-                                            )
-                                                return "Abandonado";
-                                            return manga.status || "Abandonado";
-                                        })()}
-                                    </Badge>
-                                </div>
-                            </div>
+                    {!loading && !error && mangas.length === 0 && (
+                        <div className="col-span-full flex flex-col items-center justify-center py-16 gap-3 text-center">
+                            <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+                            <p className="text-muted-foreground text-sm">
+                                No se encontraron mangas con estos filtros
+                            </p>
                         </div>
+                    )}
+                    {mangas.map((manga) => (
+                        <MangaListItem
+                            key={manga.id}
+                            manga={manga}
+                            isFavorited={favoriteIds.has(manga.id)}
+                            backUrl={backUrl}
+                        />
                     ))}
                 </div>
                 <div className="mt-12 mb-8 pt-8">
@@ -504,100 +535,4 @@ export default function MangaList() {
     );
 }
 
-interface MangaPaginationProps {
-    page: number;
-    totalPages: number;
-    setPage: (page: number) => void;
-}
 
-const MangaPagination: React.FC<MangaPaginationProps> = ({
-    page,
-    totalPages,
-    setPage,
-}) => {
-    const handlePrev = () => {
-        if (page > 1) setPage(page - 1);
-    };
-
-    const handleNext = () => {
-        if (page < totalPages) setPage(page + 1);
-    };
-
-    const pageNumbers: number[] = [1];
-    let start = Math.max(page - 3, 2);
-    let end = Math.min(page + 3, totalPages - 1);
-
-    if (page <= 4) {
-        start = 2;
-        end = Math.min(7, totalPages - 1);
-    }
-
-    if (page >= totalPages - 3) {
-        start = Math.max(totalPages - 6, 2);
-        end = totalPages - 1;
-    }
-
-    for (let i = start; i <= end; i++) pageNumbers.push(i);
-    if (totalPages > 1) pageNumbers.push(totalPages);
-
-    const uniquePages = [...new Set(pageNumbers)];
-
-    return (
-        <Pagination>
-            <PaginationContent className="flex flex-wrap justify-center gap-1 max-w-full overflow-hidden">
-                {/* ← SOLO DESKTOP */}
-                <PaginationItem className="hidden sm:block">
-                    <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            handlePrev();
-                        }}
-                        aria-disabled={page === 1}
-                        className="px-3"
-                    />
-                </PaginationItem>
-
-                {uniquePages.map((p, idx) => (
-                    <React.Fragment key={p}>
-                        {idx > 0 &&
-                            uniquePages[idx] - uniquePages[idx - 1] > 1 && (
-                                <PaginationItem>
-                                    <span className="px-2 text-muted-foreground">
-                                        ...
-                                    </span>
-                                </PaginationItem>
-                            )}
-
-                        <PaginationItem>
-                            <PaginationLink
-                                href="#"
-                                isActive={p === page}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setPage(p);
-                                }}
-                                className="px-2 sm:px-3"
-                            >
-                                {p}
-                            </PaginationLink>
-                        </PaginationItem>
-                    </React.Fragment>
-                ))}
-
-                {/* → SOLO DESKTOP */}
-                <PaginationItem className="hidden sm:block">
-                    <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            handleNext();
-                        }}
-                        aria-disabled={page === totalPages}
-                        className="px-3"
-                    />
-                </PaginationItem>
-            </PaginationContent>
-        </Pagination>
-    );
-};

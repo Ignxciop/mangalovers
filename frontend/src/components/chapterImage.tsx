@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw, AlertCircle } from "lucide-react";
 
@@ -38,7 +38,7 @@ interface ChapterImageProps {
     onLoad?: () => void;
 }
 
-export function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
+export const ChapterImage = memo(function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
     const imgRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [status, setStatus] = useState<"loading" | "loaded" | "error">(
@@ -163,4 +163,4 @@ export function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
             />
         </div>
     );
-}
+});

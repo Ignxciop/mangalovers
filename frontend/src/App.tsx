@@ -1,21 +1,22 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AuthLayout from "./components/layouts/authLayout.tsx";
-import { Login } from "./pages/loginForm.tsx";
-import { Register } from "./pages/registerForm.tsx";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ProtectedRoute, GuestRoute } from "@/components/protectedRoutes.tsx";
 import MainLayout from "./components/layouts/mainLayout.tsx";
-import Home from "./pages/home.tsx";
 import { useAuthStore } from "./store/authStore.ts";
-import MangaList from "./pages/mangaList.tsx";
-import MangaDetail from "./pages/mangaDetail.tsx";
-import ChapterReader from "./pages/chapterReader.tsx";
-import FavoritesList from "./pages/favoriteList.tsx";
-import TermsOfService from "./pages/termsOfService.tsx";
-import PrivacyPolicy from "./pages/privacyPolicy.tsx";
-import ProfilePage from "./pages/profilePage.tsx";
-import StatsPage from "./pages/statsPage.tsx";
+
+const Login = lazy(() => import("./pages/loginForm.tsx").then((m) => ({ default: m.Login })));
+const Register = lazy(() => import("./pages/registerForm.tsx").then((m) => ({ default: m.Register })));
+const Home = lazy(() => import("./pages/home.tsx"));
+const MangaList = lazy(() => import("./pages/mangaList.tsx"));
+const MangaDetail = lazy(() => import("./pages/mangaDetail.tsx"));
+const ChapterReader = lazy(() => import("./pages/chapterReader.tsx"));
+const FavoritesList = lazy(() => import("./pages/favoriteList.tsx"));
+const TermsOfService = lazy(() => import("./pages/termsOfService.tsx"));
+const PrivacyPolicy = lazy(() => import("./pages/privacyPolicy.tsx"));
+const ProfilePage = lazy(() => import("./pages/profilePage.tsx"));
+const StatsPage = lazy(() => import("./pages/statsPage.tsx"));
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -49,6 +50,11 @@ function BootstrappedApp() {
             >
                 Saltar al contenido principal
             </a>
+            <Suspense fallback={
+                <div className="flex items-center justify-center min-h-screen bg-background">
+                    <div className="size-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+                </div>
+            }>
             <Routes>
                 <Route element={<GuestRoute />}>
                     <Route element={<AuthLayout />}>
@@ -89,6 +95,7 @@ function BootstrappedApp() {
 
                 <Route path="*" element={<SmartDirect />} />
             </Routes>
+            </Suspense>
         </BrowserRouter>
     );
 }

@@ -364,6 +364,7 @@ function TopSeriesSection({ series }: { series: FullStats["topSeries"] }) {
                                 <img
                                     src={s.cover}
                                     alt={s.name}
+                                    loading="lazy"
                                     className="size-10 rounded-lg object-cover shrink-0 border border-border"
                                 />
                             )}

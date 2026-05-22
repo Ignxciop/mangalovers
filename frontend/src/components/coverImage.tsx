@@ -7,17 +7,20 @@ const RETRY_DELAY = 1500;
 interface CoverImageProps {
     src: string | null | undefined;
     alt: string;
+    priority?: boolean;
 }
 
-export function CoverImage({ src, alt }: CoverImageProps) {
+export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
     const imgRef = useRef<HTMLImageElement>(null);
+    const divRef = useRef<HTMLDivElement>(null);
     const retryCountRef = useRef(0);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [status, setStatus] = useState<"loading" | "loaded" | "error">(
-        "loading",
+        src ? "loading" : "error",
     );
     const loadedRef = useRef(false);
     const loadImageRef = useRef<((url: string) => void) | null>(null);
+    const shouldLoadRef = useRef(priority);
 
     const loadImage = useCallback((url: string) => {
         setStatus("loading");
@@ -44,17 +47,39 @@ export function CoverImage({ src, alt }: CoverImageProps) {
     }, [loadImage]);
 
     useEffect(() => {
-        if (!src) {
-            setStatus("error"); // eslint-disable-line react-hooks/set-state-in-effect
+        if (!src) return;
+
+        if (priority) {
+            shouldLoadRef.current = true;
+            retryCountRef.current = 0;
+            loadedRef.current = false;
+            queueMicrotask(() => loadImage(src));
             return;
         }
-        retryCountRef.current = 0;
-        loadedRef.current = false;
-        loadImage(src);
+
+        const el = divRef.current;
+        if (!el) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    shouldLoadRef.current = true;
+                    retryCountRef.current = 0;
+                    loadedRef.current = false;
+                    loadImage(src);
+                    observer.disconnect();
+                }
+            },
+            { rootMargin: "200px" },
+        );
+
+        observer.observe(el);
+
         return () => {
+            observer.disconnect();
             if (timerRef.current) clearTimeout(timerRef.current);
         };
-    }, [src, loadImage]);
+    }, [src, loadImage, priority]);
 
     function handleRetry() {
         if (!src) return;
@@ -63,7 +88,7 @@ export function CoverImage({ src, alt }: CoverImageProps) {
     }
 
     return (
-        <div className="relative w-full h-full pointer-events-none">
+        <div ref={divRef} className="relative w-full h-full pointer-events-none">
             {status === "loading" && (
                 <div className="absolute inset-0 bg-muted animate-pulse" />
             )}
@@ -87,6 +112,8 @@ export function CoverImage({ src, alt }: CoverImageProps) {
                 ref={imgRef}
                 src={src || ""}
                 alt={alt}
+                loading={priority ? "eager" : "lazy"}
+                {...(priority ? { fetchpriority: "high" } : {})}
                 className={`w-full h-full object-cover ${
                     status === "loaded" ? "opacity-100" : "opacity-0"
                 } transition-opacity duration-300`}

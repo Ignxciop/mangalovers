@@ -3,6 +3,12 @@ import { useEffect, useRef, useState } from "react";
 export function usePullToRefresh(onRefresh: () => void) {
     const [pull, setPull] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
+    const pullRef = useRef(0);
+    const onRefreshRef = useRef(onRefresh);
+
+    useEffect(() => {
+        onRefreshRef.current = onRefresh;
+    });
 
     const startY = useRef(0);
     const pulling = useRef(false);
@@ -22,24 +28,28 @@ export function usePullToRefresh(onRefresh: () => void) {
             const diff = currentY - startY.current;
 
             if (diff > 0) {
-                e.preventDefault(); // evita scroll normal
-                setPull(Math.min(diff, 120));
+                e.preventDefault();
+                const next = Math.min(diff, 120);
+                pullRef.current = next;
+                setPull(next);
             }
         };
 
         const handleTouchEnd = () => {
             if (!pulling.current) return;
 
-            if (pull > 80) {
+            if (pullRef.current > 80) {
                 setRefreshing(true);
 
                 setTimeout(() => {
-                    onRefresh();
+                    onRefreshRef.current();
                     setRefreshing(false);
                     setPull(0);
+                    pullRef.current = 0;
                 }, 600);
             } else {
                 setPull(0);
+                pullRef.current = 0;
             }
 
             pulling.current = false;
@@ -58,7 +68,7 @@ export function usePullToRefresh(onRefresh: () => void) {
             window.removeEventListener("touchmove", handleTouchMove);
             window.removeEventListener("touchend", handleTouchEnd);
         };
-    }, [pull, onRefresh]);
+    }, []);
 
     return { pull, refreshing };
 }
