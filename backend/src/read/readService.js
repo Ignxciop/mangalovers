@@ -42,24 +42,12 @@ function getReadDaysSet(readRecords) {
   return [...new Set(readRecords.map((r) => new Date(r.createdAt).toISOString().split("T")[0]))].sort((a, b) => b.localeCompare(a));
 }
 
-function buildChapterNameNumberMap(chapters) {
-  const map = new Map();
-  for (const c of chapters) {
-    const current = map.get(c.seriesId);
-    if (!current || parseFloat(c.name) > parseFloat(current)) {
-      map.set(c.seriesId, c.name);
-    }
-  }
-  return map;
-}
-
 function buildLastReadMap(readRecords) {
   const map = new Map();
   for (const r of readRecords) {
     const sid = r.chapter.seriesId;
-    const current = map.get(sid);
-    if (!current || parseFloat(r.chapter.name) > parseFloat(current)) {
-      map.set(sid, r.chapter.name);
+    if (!map.has(sid)) {
+      map.set(sid, r.chapter.number);
     }
   }
   return map;
@@ -96,19 +84,16 @@ export const toggleChapterRead = async (userId, chapterId) => {
 export async function markChaptersUntil(userId, chapterId) {
   const target = await prisma.chapter.findUnique({
     where: { id: Number(chapterId) },
-    select: { seriesId: true, name: true },
+    select: { seriesId: true, number: true },
   });
 
   if (!target) throw new NotFoundError("Chapter not found");
 
-  const targetNumber = parseFloat(target.name);
-
-  const allChapters = await prisma.chapter.findMany({
-    where: { seriesId: target.seriesId },
-    select: { id: true, name: true },
+  const chapters = await prisma.chapter.findMany({
+    where: { seriesId: target.seriesId, number: { lte: target.number } },
+    select: { id: true },
   });
 
-  const chapters = allChapters.filter((c) => parseFloat(c.name) <= targetNumber);
   if (chapters.length === 0) return { updated: 0 };
 
   await prisma.userChapterRead.createMany({
@@ -122,19 +107,15 @@ export async function markChaptersUntil(userId, chapterId) {
 export async function unmarkChaptersFrom(userId, chapterId) {
   const target = await prisma.chapter.findUnique({
     where: { id: Number(chapterId) },
-    select: { seriesId: true, name: true },
+    select: { seriesId: true, number: true },
   });
 
   if (!target) throw new NotFoundError("Chapter not found");
 
-  const targetNumber = parseFloat(target.name);
-
-  const allChapters = await prisma.chapter.findMany({
-    where: { seriesId: target.seriesId },
-    select: { id: true, name: true },
+  const chapters = await prisma.chapter.findMany({
+    where: { seriesId: target.seriesId, number: { gte: target.number } },
+    select: { id: true },
   });
-
-  const chapters = allChapters.filter((c) => parseFloat(c.name) >= targetNumber);
 
   await prisma.userChapterRead.deleteMany({
     where: { userId, chapterId: { in: chapters.map((c) => c.id) } },
@@ -148,12 +129,12 @@ export async function getUserReadingStats(userId) {
 
   const favorites = await prisma.userFavorite.findMany({
     where: { userId },
-    include: {
+    select: {
+      seriesId: true,
       series: {
         select: {
           id: true, name: true, slug: true, cover: true,
           chapterCount: true, status: true,
-          chapters: { select: { id: true, name: true } },
         },
       },
     },
@@ -164,39 +145,54 @@ export async function getUserReadingStats(userId) {
     return buildEmptyStats(totalChaptersRead);
   }
 
-  const readDetails = await prisma.userChapterRead.findMany({
-    where: { userId },
-    select: {
-      createdAt: true,
-      chapter: { select: { seriesId: true, name: true, id: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const favSeriesIds = favorites.map((f) => f.seriesId);
 
-  const lastReadMap = buildLastReadMap(readDetails);
+  const [lastChapterGroup, readDetails] = await Promise.all([
+    favSeriesIds.length > 0
+      ? prisma.chapter.groupBy({
+          by: ["seriesId"],
+          where: { seriesId: { in: favSeriesIds }, number: { not: null } },
+          _max: { number: true },
+        })
+      : [],
+    prisma.userChapterRead.findMany({
+      where: { userId },
+      select: {
+        createdAt: true,
+        chapter: { select: { seriesId: true, number: true, id: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
+  const lastAvailableMap = new Map(
+    lastChapterGroup.map((g) => [g.seriesId, g._max.number]),
+  );
+
+  const lastReadMap = new Map();
   const lastReadDateMap = new Map();
+  const readCountMap = new Map();
   for (const r of readDetails) {
     const sid = r.chapter.seriesId;
-    if (!lastReadDateMap.has(sid)) {
+    if (!lastReadMap.has(sid)) {
+      lastReadMap.set(sid, r.chapter.number);
       lastReadDateMap.set(sid, r.createdAt);
     }
+    readCountMap.set(sid, (readCountMap.get(sid) ?? 0) + 1);
   }
-
-  const lastAvailableMap = buildChapterNameNumberMap(favorites.flatMap((f) => f.series.chapters.map((c) => ({ seriesId: f.seriesId, name: c.name }))));
 
   let completedSeries = 0;
   for (const fav of favorites) {
-    const lastRead = parseFloat(lastReadMap.get(fav.seriesId) ?? "-1");
-    const lastAvail = parseFloat(lastAvailableMap.get(fav.seriesId) ?? "0");
+    const lastRead = lastReadMap.get(fav.seriesId) ?? -1;
+    const lastAvail = lastAvailableMap.get(fav.seriesId) ?? 0;
     if (lastRead >= lastAvail && lastAvail > 0) completedSeries++;
   }
 
   let totalPercent = 0;
   let seriesWithProgress = 0;
   for (const fav of favorites) {
-    const lastRead = parseFloat(lastReadMap.get(fav.seriesId) ?? "0");
-    const lastAvail = parseFloat(lastAvailableMap.get(fav.seriesId) ?? "0");
+    const lastRead = lastReadMap.get(fav.seriesId) ?? 0;
+    const lastAvail = lastAvailableMap.get(fav.seriesId) ?? 0;
     if (lastAvail > 0) {
       totalPercent += Math.min((lastRead / lastAvail) * 100, 100);
       seriesWithProgress++;
@@ -215,14 +211,14 @@ export async function getUserReadingStats(userId) {
     .map((fav) => {
       const lastRead = lastReadMap.get(fav.seriesId) ?? null;
       const lastAvail = lastAvailableMap.get(fav.seriesId) ?? null;
-      const readCountForSeries = readDetails.filter((r) => r.chapter.seriesId === fav.seriesId).length;
-      const totalChapters = fav.series.chapters.length;
+      const readCountForSeries = readCountMap.get(fav.seriesId) ?? 0;
+      const totalChapters = fav.series.chapterCount;
       const chaptersLeft = totalChapters > 0 ? Math.max(0, totalChapters - readCountForSeries) : null;
 
       return {
         id: fav.series.id, name: fav.series.name, slug: fav.series.slug,
-        cover: fav.series.cover, lastReadChapterName: lastRead,
-        lastAvailableChapterName: lastAvail, chaptersLeft,
+        cover: fav.series.cover, lastReadChapterName: lastRead != null ? String(lastRead) : null,
+        lastAvailableChapterName: lastAvail != null ? String(lastAvail) : null, chaptersLeft,
       };
     });
 
@@ -296,8 +292,8 @@ export async function getFullStats(userId) {
     ? await Promise.all([
       prisma.chapter.groupBy({
         by: ["seriesId"],
-        where: { seriesId: { in: allSeriesIds } },
-        _max: { name: true },
+        where: { seriesId: { in: allSeriesIds }, number: { not: null } },
+        _max: { number: true },
       }),
       prisma.series.findMany({
         where: { id: { in: allSeriesIds } },
@@ -315,8 +311,8 @@ export async function getFullStats(userId) {
     seriesGenreMap.set(s.id, s.genres.map((g) => g.genre.name));
   }
 
-  const lastChapterNameMap = new Map(
-    chapterMaxGroup.map((g) => [g.seriesId, g._max.name]),
+  const lastChapterNumberMap = new Map(
+    chapterMaxGroup.map((g) => [g.seriesId, g._max.number]),
   );
 
   const totalChaptersRead = reads.length;
@@ -328,10 +324,10 @@ export async function getFullStats(userId) {
 
   let completedSeries = 0;
   for (const fav of favorites) {
-    const lastAvail = lastChapterNameMap.get(fav.seriesId);
+    const lastAvail = lastChapterNumberMap.get(fav.seriesId);
     if (!lastAvail) continue;
-    const lastRead = lastReadMap.get(fav.seriesId) ?? "-1";
-    if (parseFloat(lastRead) >= parseFloat(lastAvail)) completedSeries++;
+    const lastRead = lastReadMap.get(fav.seriesId) ?? -1;
+    if (lastRead >= lastAvail) completedSeries++;
   }
 
   const startedSeries = lastReadMap.size;
@@ -406,8 +402,8 @@ export async function getFullStats(userId) {
         cover: info?.cover,
         chapterCount: info?.chapterCount,
         chaptersRead,
-        lastReadChapterName: lastReadMap.get(id) ?? null,
-        lastAvailableChapterName: lastChapterNameMap.get(id) ?? null,
+        lastReadChapterName: lastReadMap.get(id) != null ? String(lastReadMap.get(id)) : null,
+        lastAvailableChapterName: lastChapterNumberMap.get(id) != null ? String(lastChapterNumberMap.get(id)) : null,
       };
     });
 

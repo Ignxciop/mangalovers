@@ -39,6 +39,7 @@ export async function createChapter(seriesId, overrides = {}) {
             publishedAt: new Date(),
             pagesScraped: true,
             ...overrides,
+            number: overrides.number ?? parseFloat(overrides.name ?? "1"),
         },
     });
 }

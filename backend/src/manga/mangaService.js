@@ -55,39 +55,34 @@ export async function getAllManga(query, userId = null) {
 
   const seriesIds = seriesList.map((s) => s.id);
 
-  const [chapterNames, readDetails, total] = await Promise.all([
+  const [chapterMaxGroup, readDetails, total] = await Promise.all([
     seriesIds.length > 0
-      ? prisma.chapter.findMany({
+      ? prisma.chapter.groupBy({
+          by: ["seriesId"],
           where: { seriesId: { in: seriesIds } },
-          select: { seriesId: true, name: true },
+          _max: { number: true },
         })
       : [],
     userId && seriesIds.length > 0
       ? prisma.userChapterRead.findMany({
           where: { userId, chapter: { seriesId: { in: seriesIds } } },
-          select: { chapter: { select: { seriesId: true, name: true } } },
+          select: { chapter: { select: { seriesId: true, number: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 50,
         })
       : [],
     prisma.series.count({ where }),
   ]);
 
-  const lastChapterMap = new Map();
-  for (const c of chapterNames) {
-    const num = parseFloat(c.name);
-    if (!isNaN(num)) {
-      const current = lastChapterMap.get(c.seriesId);
-      if (current === undefined || num > current) {
-        lastChapterMap.set(c.seriesId, num);
-      }
-    }
-  }
+  const lastChapterMap = new Map(
+    chapterMaxGroup.map((g) => [g.seriesId, g._max.number]),
+  );
 
   const lastReadMap = new Map();
   for (const r of readDetails) {
     const sid = r.chapter.seriesId;
-    const current = lastReadMap.get(sid);
-    if (!current || parseFloat(r.chapter.name) > parseFloat(current)) {
-      lastReadMap.set(sid, r.chapter.name);
+    if (!lastReadMap.has(sid)) {
+      lastReadMap.set(sid, String(r.chapter.number));
     }
   }
 
@@ -124,33 +119,31 @@ export async function getLatestManga(userId, limit = 16) {
 
   const seriesIds = series.map((s) => s.id);
 
-  const [allChapters, readDetails] = await Promise.all([
-    prisma.chapter.findMany({
+  const [chapterMaxGroup, readDetails] = await Promise.all([
+    prisma.chapter.groupBy({
+      by: ["seriesId"],
       where: { seriesId: { in: seriesIds } },
-      select: { seriesId: true, name: true },
+      _max: { number: true },
     }),
     userId
       ? prisma.userChapterRead.findMany({
           where: { userId, chapter: { seriesId: { in: seriesIds } } },
-          select: { chapter: { select: { seriesId: true, name: true } } },
+          select: { chapter: { select: { seriesId: true, number: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 50,
         })
       : [],
   ]);
 
-  const lastChapterMap = new Map();
-  for (const c of allChapters) {
-    const current = lastChapterMap.get(c.seriesId);
-    if (!current || parseFloat(c.name) > parseFloat(current)) {
-      lastChapterMap.set(c.seriesId, c.name);
-    }
-  }
+  const lastChapterMap = new Map(
+    chapterMaxGroup.map((g) => [g.seriesId, g._max.number]),
+  );
 
   const lastReadMap = new Map();
   for (const r of readDetails) {
     const sid = r.chapter.seriesId;
-    const current = lastReadMap.get(sid);
-    if (!current || parseFloat(r.chapter.name) > parseFloat(current)) {
-      lastReadMap.set(sid, r.chapter.name);
+    if (!lastReadMap.has(sid)) {
+      lastReadMap.set(sid, String(r.chapter.number));
     }
   }
 
@@ -189,13 +182,10 @@ export async function getSeriesDetailBySlug(slug) {
       externalSlug: p.slug,
       externalUrl: isValidImageUrl(p.url) ? p.url : null,
     })),
-    chapters: chapters.map((c) => {
-      const match = String(c.name).match(/(\d+(\.\d+)?)/);
-      return {
-        id: c.id, name: c.name, publishedAt: c.publishedAt, createdAt: c.createdAt,
-        chapterNumber: match ? parseFloat(match[1]) : 0,
-      };
-    }),
+    chapters: chapters.map((c) => ({
+      id: c.id, name: c.name, publishedAt: c.publishedAt, createdAt: c.createdAt,
+      chapterNumber: c.number ?? 0,
+    })),
   };
 }
 
@@ -217,21 +207,27 @@ export async function getChapterPages(slug, chapterId, _userId = null) {
 
   if (!chapter) throw new NotFoundError("Capítulo no encontrado");
 
-  const allChapters = await prisma.chapter.findMany({
-    where: { seriesId: chapter.seriesId },
-    select: { id: true, name: true },
-  });
-
-  const sorted = allChapters.sort((a, b) => parseFloat(a.name) - parseFloat(b.name));
-  const currentIndex = sorted.findIndex((c) => c.id === chapter.id);
+  const [prev, next] = await Promise.all([
+    prisma.chapter.findFirst({
+      where: { seriesId: chapter.seriesId, number: { lt: chapter.number } },
+      orderBy: { number: "desc" },
+      select: { id: true, name: true },
+    }),
+    prisma.chapter.findFirst({
+      where: { seriesId: chapter.seriesId, number: { gt: chapter.number } },
+      orderBy: { number: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   return {
     chapterId: chapter.id,
     name: chapter.name,
+    number: chapter.number,
     publishedAt: chapter.publishedAt,
     series: chapter.series,
-    prev: currentIndex > 0 ? { id: sorted[currentIndex - 1].id, name: sorted[currentIndex - 1].name } : null,
-    next: currentIndex < sorted.length - 1 ? { id: sorted[currentIndex + 1].id, name: sorted[currentIndex + 1].name } : null,
+    prev: prev ?? null,
+    next: next ?? null,
     pages: chapter.pages.map((p) => ({ id: p.id, url: p.url })),
   };
 }
@@ -248,6 +244,8 @@ export async function getRecommendedSeries(userId, limit = 12) {
         },
       },
     },
+    orderBy: { createdAt: "desc" },
+    take: 500,
   });
 
   const genreCount = new Map();
