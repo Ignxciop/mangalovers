@@ -6,6 +6,7 @@ import {
     matchManga,
     syncManualAliases,
 } from "../scrapers/seriesMatcher.js";
+import { resolveStatus } from "../scrapers/resolveStatus.js";
 
 async function mergeSeries(keepId, dropId, manhwawebId) {
     await prisma.$transaction(async (tx) => {
@@ -92,6 +93,24 @@ async function mergeSeries(keepId, dropId, manhwawebId) {
                 await tx.providerSeries.update({
                     where: { id: mwPs.id },
                     data: { seriesId: keepId },
+                });
+            }
+        }
+
+        const droppedSeries = await tx.series.findUnique({
+            where: { id: dropId },
+            select: { status: true },
+        });
+        if (droppedSeries?.status) {
+            const keptSeries = await tx.series.findUnique({
+                where: { id: keepId },
+                select: { status: true },
+            });
+            const resolved = resolveStatus(keptSeries?.status, droppedSeries.status);
+            if (resolved !== keptSeries?.status) {
+                await tx.series.update({
+                    where: { id: keepId },
+                    data: { status: resolved },
                 });
             }
         }
