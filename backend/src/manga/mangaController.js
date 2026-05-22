@@ -42,9 +42,7 @@ export async function getSeriesDetail(req, res, next) {
     try {
         const { slug } = req.params;
 
-        const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 100;
-        const series = await getSeriesDetailBySlug(slug, page, Math.min(limit, 200));
+        const series = await getSeriesDetailBySlug(slug);
 
         if (!series) {
             return res.status(404).json({
