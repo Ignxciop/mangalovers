@@ -138,6 +138,7 @@ export function SearchBar() {
                                                 <img
                                                     src={m.cover}
                                                     alt=""
+                                                    loading="lazy"
                                                     width={32}
                                                     height={32}
                                                     className="w-full h-full object-cover"

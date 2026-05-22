@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CoverImage } from "@/components/coverImage";
 import {
     PlayCircle,
     BookMarked,
     ChevronRight,
-    BookOpen,
     Eye,
 } from "lucide-react";
 
@@ -60,19 +60,10 @@ const ContinueItem = memo(function ContinueItem({
                 }}
                 className="relative block aspect-[2/3] rounded-xl overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-md transition-all duration-200 group-hover:scale-[1.03] group-hover:shadow-[0_0_25px_-5px] group-hover:shadow-brand/30 group-hover:border-brand/20 active:scale-[0.98]"
             >
-                {item.cover ? (
-                    <img
-                        src={item.cover}
-                        alt={item.name}
-                        width={300}
-                        height={450}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <BookOpen className="h-8 w-8 text-muted-foreground/30" />
-                    </div>
-                )}
+                <CoverImage
+                    src={item.cover}
+                    alt={item.name}
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/20 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 px-2 pb-2">
