@@ -26,7 +26,7 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 
-import React, { useEffect, useState, memo } from "react";
+import React, { useEffect, useState, memo, useMemo } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useMangaList } from "@/hooks/useMangaList";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -148,6 +148,10 @@ export default function MangaList() {
     const genres = searchParams.get("genres") ?? "";
     const selectedGenres = genres.split(",").filter(Boolean);
     const provider = "";
+    const backUrl = useMemo(
+        () => `/mangas?${searchParams.toString()}`,
+        [searchParams],
+    );
 
     useEffect(() => {
         fetchGenres().then(setGenresList);
@@ -506,7 +510,7 @@ export default function MangaList() {
                             key={manga.id}
                             manga={manga}
                             isFavorited={favoriteIds.has(manga.id)}
-                            backUrl={`/mangas?${searchParams.toString()}`}
+                            backUrl={backUrl}
                         />
                     ))}
                 </div>

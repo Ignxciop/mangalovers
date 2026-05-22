@@ -71,15 +71,43 @@ docker compose up -d
 
 ## Skills de OpenCode
 
-Skills instalados en `.agents/skills/` y `.opencode/skills/`:
+Skills instalados en `.agents/skills/` y `.opencode/skills/`. Se cargan automáticamente al iniciar OpenCode.
+
+### Backend
+
+| Skill | Propósito |
+|---|---|
+| `nodejs-backend-patterns` | Patrones de backend Express/Fastify, middleware, auth, API design |
+| `nodejs-best-practices` | Principios Node.js, async, seguridad, arquitectura |
+| `nodejs-express-server` | Servidores Express, routing, middleware chains |
+| `prisma-cli` | Comandos Prisma CLI (init, generate, migrate, studio, mcp) |
+| `prisma-client-api` | Consultas Prisma Client (CRUD, filtros, transacciones) |
+| `prisma-database-setup` | Configuración de Prisma con PostgreSQL, MySQL, etc. |
+| `prisma-postgres` | Setup y operaciones Prisma Postgres |
+| `vitest` | Tests unitarios/integración con Vitest |
+
+### Frontend
 
 | Skill | Propósito |
 |---|---|
 | `frontend-design` | Diseño frontend de alta calidad sin estética AI genérica |
 | `vercel-react-best-practices` | 70 reglas de performance React/Next.js de Vercel Engineering |
-| `web-design-guidelines` | Revisión de UI contra guías de diseño web (accesibilidad, UX) |
+| `web-design-guidelines` | Revisión de UI contra guías de diseño web |
+| `accessibility` | Auditoría y mejora de accesibilidad WCAG 2.2 |
+| `composition-patterns` | Patrones de composición React (compound components, render props) |
+| `seo` | Optimización para motores de búsqueda |
+| `shadcn` | Gestión de componentes shadcn/ui |
+| `tailwind-css-patterns` | Patrones de estilo Tailwind CSS |
+| `tailwind-v4-shadcn` | Setup Tailwind v4 + shadcn/ui |
+| `typescript-advanced-types` | Tipos avanzados TypeScript |
+| `ui-ux-pro-max` | Guías UI/UX, paletas, tipografías, estilos |
+| `vite` | Configuración y plugins de Vite |
 
-Se cargan automáticamente al iniciar OpenCode. Si no aparecen, reiniciar la sesión.
+### Docker
+
+| Skill | Propósito |
+|---|---|
+| `docker-expert` | Contenerización Docker, optimización, multi-stage, orquestación |
 
 ## Notas adicionales
 

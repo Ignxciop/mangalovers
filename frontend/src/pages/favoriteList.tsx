@@ -433,7 +433,10 @@ export default function FavoritesList() {
         searchText.trim(),
     ].filter(Boolean).length;
 
-    const fromUrl = `/favoritos?${searchParams.toString()}`;
+    const fromUrl = useMemo(
+        () => `/favoritos?${searchParams.toString()}`,
+        [searchParams],
+    );
 
     return (
         <>
