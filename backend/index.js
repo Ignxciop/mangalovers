@@ -13,6 +13,7 @@ import mangaRoutes from "./src/manga/mangaRoutes.js";
 import favoriteRoutes from "./src/favorite/favoriteRoutes.js";
 import readRoutes from "./src/read/readRoutes.js";
 import { initScraperCron } from "./src/jobs/scraperCron.js";
+import { initCleanupCron } from "./src/jobs/cleanupCron.js";
 import { seedProviders } from "./src/scripts/seed.js";
 import notificationRoutes from "./src/notifications/notificationRoutes.js";
 
@@ -116,6 +117,7 @@ async function startServer() {
     });
 
     initScraperCron();
+    initCleanupCron();
 }
 
 startServer();
