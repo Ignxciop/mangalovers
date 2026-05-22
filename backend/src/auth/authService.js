@@ -6,307 +6,228 @@ import { config } from "../config/env.js";
 import logger from "../config/logger.js";
 import { RefreshTokenService } from "./refreshTokenService.js";
 import { validateEmail } from "../config/emailAllowed.js";
+import { ConflictError, UnauthorizedError, NotFoundError, ValidationError } from "../utils/errors.js";
 
 export class AuthService {
-    static generateAccessToken(userId) {
-        return jwt.sign({ userId }, config.JWT_SECRET, {
-            expiresIn: config.JWT_EXPIRES_IN,
-        });
+  static generateAccessToken(userId) {
+    return jwt.sign({ userId }, config.JWT_SECRET, {
+      expiresIn: config.JWT_EXPIRES_IN,
+    });
+  }
+
+  static async register(userData) {
+    const { email, password, name, lastname } = userData;
+
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      throw new ValidationError(emailValidation.reason);
     }
 
-    static async register(userData) {
-        const { email, password, name, lastname } = userData;
-
-        const emailValidation = validateEmail(email);
-        if (!emailValidation.valid) {
-            const error = new Error(emailValidation.reason);
-            error.statusCode = 400;
-            throw error;
-        }
-
-        const existingUser = await prisma.user.findUnique({
-            where: { email },
-        });
-
-        if (existingUser) {
-            const error = new Error("El usuario ya existe.");
-            error.statusCode = 409;
-            throw error;
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const user = await prisma.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                name,
-                lastname: lastname,
-            },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                lastname: true,
-                createdAt: true,
-            },
-        });
-
-        const accessToken = this.generateAccessToken(user.id);
-        const refreshToken = await RefreshTokenService.createRefreshToken(
-            user.id,
-        );
-
-        logger.info({ event: "REGISTER", userId: user.id, email: user.email }, "Usuario registrado");
-
-        return {
-            user,
-            accessToken,
-            refreshToken: refreshToken.token,
-        };
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw new ConflictError("El usuario ya existe.");
     }
 
-    static async login(credentials) {
-        const { email, password } = credentials;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-        const user = await prisma.user.findUnique({
-            where: { email },
-        });
+    const user = await prisma.user.create({
+      data: { email, password: hashedPassword, name, lastname },
+      select: { id: true, email: true, name: true, lastname: true, createdAt: true },
+    });
 
-        const dummyHash = bcrypt.hashSync("dummy_timing_attack", 10);
+    const accessToken = this.generateAccessToken(user.id);
+    const refreshToken = await RefreshTokenService.createRefreshToken(user.id);
 
-        const passwordToCheck = user ? user.password : dummyHash;
-        const isValidPassword = await bcrypt.compare(password, passwordToCheck);
+    logger.info({ event: "REGISTER", userId: user.id, email: user.email }, "Usuario registrado");
 
-        if (!user || !isValidPassword) {
-            const error = new Error("Credenciales inválidas");
-            error.statusCode = 401;
-            throw error;
-        }
+    return { user, accessToken, refreshToken: refreshToken.token };
+  }
 
-        const accessToken = this.generateAccessToken(user.id);
-        const refreshToken = await RefreshTokenService.createRefreshToken(
-            user.id,
-        );
+  static async login(credentials) {
+    const { email, password } = credentials;
 
-        const { password: _, ...userWithoutPassword } = user;
+    const user = await prisma.user.findUnique({ where: { email } });
 
-        logger.info({ event: "LOGIN", userId: user.id, email: user.email }, "Inicio de sesión");
+    const dummyHash = bcrypt.hashSync("dummy_timing_attack", 10);
+    const passwordToCheck = user ? user.password : dummyHash;
+    const isValidPassword = await bcrypt.compare(password, passwordToCheck);
 
-        return {
-            user: userWithoutPassword,
-            accessToken,
-            refreshToken: refreshToken.token,
-        };
+    if (!user || !isValidPassword) {
+      throw new UnauthorizedError("Credenciales inválidas");
     }
 
-    static async googleLogin(idToken) {
-        const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
+    const accessToken = this.generateAccessToken(user.id);
+    const refreshToken = await RefreshTokenService.createRefreshToken(user.id);
 
-        const ticket = await client.verifyIdToken({
-            idToken,
-            audience: config.GOOGLE_CLIENT_ID,
-        });
+    const userWithoutPassword = { ...user };
+    delete userWithoutPassword.password;
 
-        const payload = ticket.getPayload();
-        const { email, given_name, family_name } = payload;
+    logger.info({ event: "LOGIN", userId: user.id, email: user.email }, "Inicio de sesión");
 
-        if (!email) {
-            const error = new Error("Email requerido de Google");
-            error.statusCode = 400;
-            throw error;
-        }
+    return { user: userWithoutPassword, accessToken, refreshToken: refreshToken.token };
+  }
 
-        const emailValidation = validateEmail(email);
-        if (!emailValidation.valid) {
-            const error = new Error(emailValidation.reason);
-            error.statusCode = 400;
-            throw error;
-        }
+  static async googleLogin(idToken) {
+    const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
-        let user = await prisma.user.findUnique({
-            where: { email },
-        });
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: config.GOOGLE_CLIENT_ID,
+    });
 
-        if (!user) {
-            user = await prisma.user.create({
-                data: {
-                    email,
-                    name: given_name || "Usuario",
-                    lastname: family_name || "",
-                    password: "",
-                },
-                select: {
-                    id: true,
-                    email: true,
-                    name: true,
-                    lastname: true,
-                    createdAt: true,
-                },
-            });
-        }
+    const payload = ticket.getPayload();
+    const { email, given_name, family_name } = payload;
 
-        const accessToken = this.generateAccessToken(user.id);
-        const refreshToken = await RefreshTokenService.createRefreshToken(
-            user.id,
-        );
-
-        logger.info({ event: "GOOGLE_LOGIN", userId: user.id, email: user.email }, "Login con Google");
-
-        return {
-            user: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                lastname: user.lastname,
-            },
-            accessToken,
-            refreshToken: refreshToken.token,
-        };
+    if (!email) {
+      throw new ValidationError("Email requerido de Google");
     }
 
-    static async refreshAccessToken(refreshTokenString) {
-        const refreshToken =
-            await RefreshTokenService.validateRefreshToken(refreshTokenString);
-
-        const accessToken = this.generateAccessToken(refreshToken.userId);
-
-        const newRefreshToken = await RefreshTokenService.createRefreshToken(
-            refreshToken.userId,
-        );
-
-        await RefreshTokenService.revokeRefreshToken(
-            refreshTokenString,
-            newRefreshToken.token,
-        );
-
-        const { password: _, ...userWithoutPassword } = refreshToken.user;
-
-        return {
-            user: userWithoutPassword,
-            accessToken,
-            refreshToken: newRefreshToken.token,
-        };
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      throw new ValidationError(emailValidation.reason);
     }
 
-    static async logout(refreshTokenString) {
-        if (refreshTokenString) {
-            await RefreshTokenService.revokeRefreshToken(refreshTokenString);
-        }
-        return { message: "Logout exitoso" };
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: given_name || "Usuario",
+          lastname: family_name || "",
+          password: "",
+        },
+        select: { id: true, email: true, name: true, lastname: true, createdAt: true },
+      });
     }
 
-    static async logoutAll(userId) {
-        await RefreshTokenService.revokeAllUserTokens(userId);
-        return { message: "Se han cerrado todas las sesiones" };
+    const accessToken = this.generateAccessToken(user.id);
+    const refreshToken = await RefreshTokenService.createRefreshToken(user.id);
+
+    logger.info({ event: "GOOGLE_LOGIN", userId: user.id, email: user.email }, "Login con Google");
+
+    return {
+      user: { id: user.id, email: user.email, name: user.name, lastname: user.lastname },
+      accessToken,
+      refreshToken: refreshToken.token,
+    };
+  }
+
+  static async refreshAccessToken(refreshTokenString) {
+    if (!refreshTokenString) {
+      throw new UnauthorizedError("Refresh token requerido");
     }
 
-    static async getMe(userId) {
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                lastname: true,
-                createdAt: true,
-                updatedAt: true,
-            },
-        });
+    const refreshToken = await RefreshTokenService.validateRefreshToken(refreshTokenString);
 
-        if (!user) {
-            const error = new Error("Usuario no encontrado");
-            error.statusCode = 404;
-            throw error;
-        }
+    const accessToken = this.generateAccessToken(refreshToken.userId);
+    const newRefreshTokenToken = RefreshTokenService.generateRefreshToken();
+    const daysToExpire = parseInt(config.JWT_REFRESH_EXPIRES_IN.replace("d", ""));
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + daysToExpire);
 
-        return user;
+    await prisma.$transaction(async (_tx) => {
+      await prisma.refreshToken.create({
+        data: { token: newRefreshTokenToken, userId: refreshToken.userId, expiresAt },
+      });
+      await RefreshTokenService.revokeRefreshToken(refreshTokenString, newRefreshTokenToken);
+    });
+
+    const userWithoutPassword = { ...refreshToken.user };
+    delete userWithoutPassword.password;
+
+    return { user: userWithoutPassword, accessToken, refreshToken: newRefreshTokenToken };
+  }
+
+  static async logout(refreshTokenString) {
+    if (refreshTokenString) {
+      await RefreshTokenService.revokeRefreshToken(refreshTokenString);
+    }
+    return { message: "Logout exitoso" };
+  }
+
+  static async logoutAll(userId) {
+    await RefreshTokenService.revokeAllUserTokens(userId);
+    return { message: "Se han cerrado todas las sesiones" };
+  }
+
+  static async getMe(userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true, lastname: true, createdAt: true, updatedAt: true },
+    });
+
+    if (!user) throw new NotFoundError("Usuario no encontrado");
+
+    return user;
+  }
+
+  static async getActiveSessions(userId) {
+    return RefreshTokenService.getUserActiveTokens(userId);
+  }
+
+  static async updateProfile(userId, data) {
+    const ALLOWED_FIELDS = ["name", "lastname", "email"];
+    const updateData = {};
+
+    for (const field of ALLOWED_FIELDS) {
+      if (data[field] !== undefined) {
+        updateData[field] = data[field];
+      }
     }
 
-    static async getActiveSessions(userId) {
-        return await RefreshTokenService.getUserActiveTokens(userId);
+    if (updateData.email) {
+      const existing = await prisma.user.findUnique({ where: { email: updateData.email } });
+      if (existing && existing.id !== userId) {
+        throw new ConflictError("El email ya está en uso");
+      }
     }
 
-    static async updateProfile(userId, data) {
-        const ALLOWED_FIELDS = ["name", "lastname", "email"];
-        const updateData = {};
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: { id: true, email: true, name: true, lastname: true },
+    });
 
-        for (const field of ALLOWED_FIELDS) {
-            if (data[field] !== undefined) {
-                updateData[field] = data[field];
-            }
-        }
+    logger.info({ event: "UPDATE_PROFILE", userId, changes: Object.keys(updateData) }, "Perfil actualizado");
 
-        if (updateData.email) {
-            const existing = await prisma.user.findUnique({ where: { email: updateData.email } });
-            if (existing && existing.id !== userId) {
-                const error = new Error("El email ya está en uso");
-                error.statusCode = 409;
-                throw error;
-            }
-        }
+    return user;
+  }
 
-        const user = await prisma.user.update({
-            where: { id: userId },
-            data: updateData,
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                lastname: true,
-            },
-        });
+  static async updatePassword(userId, { currentPassword, newPassword }) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
 
-        logger.info({ event: "UPDATE_PROFILE", userId, changes: Object.keys(updateData) }, "Perfil actualizado");
-
-        return user;
+    if (!user.password) {
+      throw new ValidationError("Las cuentas vinculadas a Google no pueden cambiar contraseña");
     }
 
-    static async updatePassword(userId, { currentPassword, newPassword }) {
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-
-        if (!user.password) {
-            const error = new Error("Las cuentas vinculadas a Google no pueden cambiar contraseña");
-            error.statusCode = 400;
-            throw error;
-        }
-
-        const isValid = await bcrypt.compare(currentPassword, user.password);
-        if (!isValid) {
-            const error = new Error("Contraseña actual incorrecta");
-            error.statusCode = 400;
-            throw error;
-        }
-
-        const hashed = await bcrypt.hash(newPassword, 10);
-        await prisma.user.update({
-            where: { id: userId },
-            data: { password: hashed },
-        });
-
-        await RefreshTokenService.revokeAllUserTokens(userId);
-
-        logger.info({ event: "UPDATE_PASSWORD", userId }, "Contraseña actualizada");
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      throw new ValidationError("Contraseña actual incorrecta");
     }
 
-    static async deleteAccount(userId, { password }) {
-        const user = await prisma.user.findUnique({ where: { id: userId } });
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: userId }, data: { password: hashed } });
+      await RefreshTokenService.revokeAllUserTokens(userId);
+    });
 
-        if (!user.password) {
-            const error = new Error("Las cuentas vinculadas a Google no pueden eliminarse con contraseña");
-            error.statusCode = 400;
-            throw error;
-        }
+    logger.info({ event: "UPDATE_PASSWORD", userId }, "Contraseña actualizada");
+  }
 
-        const isValid = await bcrypt.compare(password, user.password);
-        if (!isValid) {
-            const error = new Error("Contraseña incorrecta");
-            error.statusCode = 400;
-            throw error;
-        }
+  static async deleteAccount(userId, { password }) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
 
-        logger.info({ event: "DELETE_ACCOUNT", userId, email: user.email }, "Cuenta eliminada");
-
-        await prisma.user.delete({ where: { id: userId } });
+    if (!user.password) {
+      throw new ValidationError("Las cuentas vinculadas a Google no pueden eliminarse con contraseña");
     }
+
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      throw new ValidationError("Contraseña incorrecta");
+    }
+
+    logger.info({ event: "DELETE_ACCOUNT", userId, email: user.email }, "Cuenta eliminada");
+    await prisma.user.delete({ where: { id: userId } });
+  }
 }
