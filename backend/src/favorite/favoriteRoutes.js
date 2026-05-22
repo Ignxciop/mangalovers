@@ -1,16 +1,11 @@
 import { Router } from "express";
 import {
-    handleGetFavorites,
-    handleGetFavorite,
-    handleUpsertFavorite,
-    handleDeleteFavorite,
+  handleGetFavorites, handleGetFavorite,
+  handleUpsertFavorite, handleDeleteFavorite,
 } from "./favoriteController.js";
 import { authenticate } from "../middlewares/auth.js";
-import {
-    seriesIdParamValidator,
-    upsertFavoriteValidator,
-    validate,
-} from "./favoriteValidator.js";
+import { seriesIdParamValidator, upsertFavoriteValidator } from "./favoriteValidator.js";
+import { validate } from "../utils/validate.js";
 
 const router = Router();
 
