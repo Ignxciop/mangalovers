@@ -9,6 +9,7 @@ import {
     resolveCanonicalSeries,
     linkToCanonicalSeries,
 } from "../seriesMatcher.js";
+import { updateSeriesStatus } from "../resolveStatus.js";
 
 const limit = pLimit(1);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -81,6 +82,8 @@ async function processSeries(seriesData, providerId, tipo) {
         return;
     }
 
+    const status = STATUS_MAP[seriesData._status] ?? seriesData._status ?? null;
+
     const resolved = await resolveCanonicalSeries(name, "olympus");
 
     if (resolved) {
@@ -91,6 +94,7 @@ async function processSeries(seriesData, providerId, tipo) {
             slug,
             type,
         );
+        await updateSeriesStatus(resolved.series.id, status);
         logger.info({ name, method: resolved.method, canonicalSeries: resolved.series.name }, "Vinculado manhwaweb");
         return;
     }
@@ -105,7 +109,7 @@ async function processSeries(seriesData, providerId, tipo) {
             })
             .filter(Boolean) ?? [];
 
-    const status = STATUS_MAP[seriesData._status] ?? seriesData._status ?? null;
+    
     const cover = seriesData._imagen ?? null;
     const chapterCount = seriesData._numero_cap ?? 0;
     const summary = metadata?._sinopsis ?? null;

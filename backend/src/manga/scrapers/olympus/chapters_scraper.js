@@ -4,6 +4,7 @@ import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
 import { notifyNewChapter } from "../../../notifications/notificationService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
+import { promoteStatusIfInactive } from "../resolveStatus.js";
 
 const limit = pLimit(4);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -118,6 +119,7 @@ async function processSeries(providerSeries, providerId) {
         }
 
         await updateSeriesMetadata(seriesId);
+        await promoteStatusIfInactive(seriesId, !!latestCreatedChapter);
 
         // NOTIFICAR SOLO UNA VEZ Y AL FINAL
         if (latestCreatedChapter) {
