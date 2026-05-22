@@ -93,6 +93,7 @@ async function processSeries(providerSeries, providerId) {
                 const newChapter = await prisma.chapter.create({
                     data: {
                         name: ch.name,
+                        number: parseFloat(ch.name),
                         publishedAt: new Date(ch.published_at),
                         seriesId,
                     },
