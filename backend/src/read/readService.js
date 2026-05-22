@@ -161,7 +161,7 @@ export async function getUserReadingStats(userId) {
         createdAt: true,
         chapter: { select: { seriesId: true, number: true, id: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { chapter: { number: "desc" } },
     }),
   ]);
 
@@ -268,7 +268,7 @@ export async function getFullStats(userId) {
         createdAt: true,
         chapter: { select: { seriesId: true, name: true } },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { chapter: { number: "desc" } },
     }),
     prisma.userFavorite.findMany({
       where: { userId },

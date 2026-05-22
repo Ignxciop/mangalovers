@@ -23,8 +23,7 @@ export async function getUserFavorites(userId) {
     prisma.userChapterRead.findMany({
       where: { userId, chapter: { seriesId: { in: seriesIds } } },
       select: { chapter: { select: { seriesId: true, number: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 200,
+      orderBy: { chapter: { number: "desc" } },
     }),
     prisma.chapter.groupBy({
       by: ["seriesId"],
