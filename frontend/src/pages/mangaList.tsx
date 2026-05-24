@@ -539,7 +539,7 @@ export default function MangaList() {
                         />
                     ))}
                 </div>
-                <div className="mt-12 mb-8 pt-8">
+                <div className="mt-8">
                     <MangaPagination
                         page={page}
                         totalPages={data?.meta.totalPages ?? 1}
