@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import { useEffect, useState, useMemo, memo, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
@@ -422,6 +423,11 @@ export default function FavoritesList() {
 
     return (
         <>
+            <SEO
+                title="Mis Favoritos"
+                description="Gestiona tu lista de mangas y manhwas favoritos en Mangalovers. Sigue tu progreso y descubre nuevos capítulos."
+                canonicalPath="/favoritos"
+            />
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">

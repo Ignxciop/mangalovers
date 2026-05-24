@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -119,7 +120,9 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
     };
 
     return (
-        <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <>
+            <SEO title="Iniciar Sesión" description="Accede a tu cuenta de Mangalovers para gestionar tus favoritos y seguir tu progreso de lectura." noIndex />
+            <div className={cn("flex flex-col gap-6", className)} {...props}>
             <div className="text-center">
                 <a
                     href="/"
@@ -230,5 +233,6 @@ export function Login({ className, ...props }: React.ComponentProps<"div">) {
                 </Alert>
             )}
         </div>
+        </>
     );
 }

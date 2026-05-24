@@ -121,6 +121,8 @@ Skills instalados en `.agents/skills/` y `.opencode/skills/`. Se cargan automát
 
 Cada modificación al proyecto debe hacerse en una **rama nueva** desde `main`. Nunca se trabaja directo en `main`.
 
+> **Regla de rama por cambio**: cada petición de cambio (bugfix, feature, refactor) crea su propia rama independiente. Si la rama actual es `fix/logout` y el usuario pide algo de home.tsx sin relación, se crea `fix/otra-cosa` desde `main` y se trabaja allá. No mezclar cambios no relacionados en una misma rama.
+
 ### Nomenclatura de ramas
 
 | Tipo | Prefijo | Ejemplo |

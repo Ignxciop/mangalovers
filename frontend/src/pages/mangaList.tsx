@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import { Search, SlidersHorizontal, BookOpen, Eye, Heart } from "lucide-react";
 import { CoverImage } from "@/components/coverImage";
 import { Input } from "@/components/ui/input";
@@ -220,7 +221,13 @@ export default function MangaList() {
     ].filter(Boolean).length;
 
     return (
-        <div className="min-h-screen bg-background">
+        <>
+            <SEO
+                title="Catálogo de Manga y Manhwa"
+                description="Explora cientos de mangas, manhwas y manhuas en Mangalovers. Filtra por género, estado y tipo para encontrar tu próxima lectura."
+                canonicalPath="/mangas"
+            />
+            <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
                     <SidebarTrigger />
@@ -532,7 +539,9 @@ export default function MangaList() {
                 </div>
             </main>
         </div>
+        </>
     );
 }
+
 
 

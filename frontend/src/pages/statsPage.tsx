@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -461,7 +462,9 @@ export default function StatsPage() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-background">
+        <>
+            <SEO title="Mis Estadísticas" description="Revisa tus estadísticas de lectura en Mangalovers: capítulos leídos, rachas, géneros favoritos y más." canonicalPath="/estadisticas" />
+            <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
                     <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
                         <SidebarTrigger />
@@ -676,5 +679,6 @@ export default function StatsPage() {
                 )}
             </main>
         </div>
+        </>
     );
 }
