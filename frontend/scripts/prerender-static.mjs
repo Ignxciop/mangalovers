@@ -14,6 +14,16 @@ const routes = [
         description:
             "Explora cientos de mangas, manhwas y manhuas en Mangalovers. Filtra por género, estado y tipo para encontrar tu próxima lectura.",
         canonical: `${SITE_URL}/mangas`,
+        jsonLd: [
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": `${SITE_URL}/` },
+                    { "@type": "ListItem", "position": 2, "name": "Catálogo", "item": `${SITE_URL}/mangas` },
+                ],
+            },
+        ],
     },
     {
         path: "terminos",
@@ -21,6 +31,16 @@ const routes = [
         description:
             "Términos de Servicio de Mangalovers. Conoce las condiciones de uso de la plataforma.",
         canonical: `${SITE_URL}/terminos`,
+        jsonLd: [
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": `${SITE_URL}/` },
+                    { "@type": "ListItem", "position": 2, "name": "Términos de Servicio", "item": `${SITE_URL}/terminos` },
+                ],
+            },
+        ],
     },
     {
         path: "privacidad",
@@ -28,6 +48,16 @@ const routes = [
         description:
             "Política de Privacidad de Mangalovers. Conoce cómo manejamos tus datos personales.",
         canonical: `${SITE_URL}/privacidad`,
+        jsonLd: [
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": `${SITE_URL}/` },
+                    { "@type": "ListItem", "position": 2, "name": "Política de Privacidad", "item": `${SITE_URL}/privacidad` },
+                ],
+            },
+        ],
     },
 ];
 
@@ -72,6 +102,13 @@ for (const route of routes) {
         /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/,
         `<meta property="og:url" content="${route.canonical}" />`,
     );
+
+    if (route.jsonLd) {
+        const jsonLdHtml = route.jsonLd
+            .map((schema) => `  <script type="application/ld+json">${JSON.stringify(schema)}</script>`)
+            .join("\n");
+        out = out.replace("</head>", `${jsonLdHtml}\n</head>`);
+    }
 
     writeFileSync(join(dir, "index.html"), out, "utf-8");
     console.log(`  ✓ prerendered /${route.path}`);

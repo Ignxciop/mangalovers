@@ -1,4 +1,5 @@
 import { SEO } from "@/components/seo";
+import { JsonLd } from "@/components/jsonld";
 import { ChevronLeft } from "lucide-react";
 
 export default function PrivacyPolicy() {
@@ -7,6 +8,14 @@ export default function PrivacyPolicy() {
     return (
         <>
             <SEO title="Política de Privacidad" description="Política de Privacidad de Mangalovers. Conoce cómo manejamos tus datos personales." canonicalPath="/privacidad" />
+            <JsonLd schema={{
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://mangalovers.josenunez.cl/" },
+                    { "@type": "ListItem", "position": 2, "name": "Política de Privacidad", "item": "https://mangalovers.josenunez.cl/privacidad" },
+                ],
+            }} />
             <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-12 max-w-3xl">
                 <a
