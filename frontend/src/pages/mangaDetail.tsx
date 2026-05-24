@@ -1,4 +1,5 @@
 import { SEO } from "@/components/seo";
+import { JsonLd } from "@/components/jsonld";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { Badge } from "@/components/ui/badge";
@@ -282,6 +283,31 @@ export default function MangaDetail() {
 
     const ogImage = series.cover ?? undefined;
 
+    const jsonLdSeries = {
+        "@context": "https://schema.org",
+        "@type": "CreativeWorkSeries",
+        "name": series.name,
+        "description": series.summary?.slice(0, 300) ?? `${series.name} - Lee en Mangalovers`,
+        "image": ogImage ?? "https://mangalovers.josenunez.cl/icon-512.png",
+        "genre": series.genres,
+        ...(series.status && { "status": series.status }),
+        "dateModified": series.chapters.length > 0
+            ? series.chapters[0].publishedAt
+            : undefined,
+        "numberOfEpisodes": series.chapters.length,
+        "url": `https://mangalovers.josenunez.cl/manga/${slug}`,
+    };
+
+    const jsonLdBreadcrumb = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://mangalovers.josenunez.cl/" },
+            { "@type": "ListItem", "position": 2, "name": "Catálogo", "item": "https://mangalovers.josenunez.cl/mangas" },
+            { "@type": "ListItem", "position": 3, "name": series.name, "item": `https://mangalovers.josenunez.cl/manga/${slug}` },
+        ],
+    };
+
     return (
         <>
             <SEO
@@ -291,6 +317,8 @@ export default function MangaDetail() {
                 ogType="website"
                 canonicalPath={`/manga/${slug}`}
             />
+            <JsonLd schema={jsonLdSeries} />
+            <JsonLd schema={jsonLdBreadcrumb} />
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">

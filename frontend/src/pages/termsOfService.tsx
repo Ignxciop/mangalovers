@@ -1,4 +1,5 @@
 import { SEO } from "@/components/seo";
+import { JsonLd } from "@/components/jsonld";
 import { ChevronLeft } from "lucide-react";
 
 export default function TermsOfService() {
@@ -7,6 +8,14 @@ export default function TermsOfService() {
     return (
         <>
             <SEO title="Términos de Servicio" description="Términos de Servicio de Mangalovers. Conoce las condiciones de uso de la plataforma." canonicalPath="/terminos" />
+            <JsonLd schema={{
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://mangalovers.josenunez.cl/" },
+                    { "@type": "ListItem", "position": 2, "name": "Términos de Servicio", "item": "https://mangalovers.josenunez.cl/terminos" },
+                ],
+            }} />
             <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-12 max-w-3xl">
                 <a

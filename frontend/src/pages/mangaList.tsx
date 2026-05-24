@@ -1,4 +1,5 @@
 import { SEO } from "@/components/seo";
+import { JsonLd } from "@/components/jsonld";
 import { Search, SlidersHorizontal, BookOpen, Eye, Heart } from "lucide-react";
 import { CoverImage } from "@/components/coverImage";
 import { Input } from "@/components/ui/input";
@@ -227,6 +228,14 @@ export default function MangaList() {
                 description="Explora cientos de mangas, manhwas y manhuas en Mangalovers. Filtra por género, estado y tipo para encontrar tu próxima lectura."
                 canonicalPath="/mangas"
             />
+            <JsonLd schema={{
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://mangalovers.josenunez.cl/" },
+                    { "@type": "ListItem", "position": 2, "name": "Catálogo", "item": "https://mangalovers.josenunez.cl/mangas" },
+                ],
+            }} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
