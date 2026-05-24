@@ -16,6 +16,7 @@ import { initScraperCron } from "./src/jobs/scraperCron.js";
 import { initCleanupCron } from "./src/jobs/cleanupCron.js";
 import { seedProviders } from "./src/scripts/seed.js";
 import notificationRoutes from "./src/notifications/notificationRoutes.js";
+import sitemapRoutes from "./src/sitemap/sitemapRoutes.js";
 
 const app = express();
 const PORT = config.PORT;
@@ -106,6 +107,7 @@ app.use("/api/manga", mangaRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/reads", readRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api", sitemapRoutes);
 
 app.use(errorHandler);
 
