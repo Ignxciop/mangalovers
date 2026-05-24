@@ -64,8 +64,7 @@ const routes = [
 const html = readFileSync(join(dist, "index.html"), "utf-8");
 
 for (const route of routes) {
-    const dir = join(dist, route.path);
-    mkdirSync(dir, { recursive: true });
+    const filePath = join(dist, route.path + ".html");
 
     let out = html;
 
@@ -110,7 +109,7 @@ for (const route of routes) {
         out = out.replace("</head>", `${jsonLdHtml}\n</head>`);
     }
 
-    writeFileSync(join(dir, "index.html"), out, "utf-8");
+    writeFileSync(filePath, out, "utf-8");
     console.log(`  ✓ prerendered /${route.path}`);
 }
 
