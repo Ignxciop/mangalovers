@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mangalovers.josenunez.cl/sitemap.xml

@@ -1,10 +1,13 @@
+import { SEO } from "@/components/seo";
 import { ChevronLeft } from "lucide-react";
 
 export default function TermsOfService() {
     const lastUpdated = "26 de febrero de 2026";
 
     return (
-        <div className="min-h-screen bg-background">
+        <>
+            <SEO title="Términos de Servicio" description="Términos de Servicio de Mangalovers. Conoce las condiciones de uso de la plataforma." canonicalPath="/terminos" />
+            <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-12 max-w-3xl">
                 <a
                     href="/"
@@ -183,5 +186,6 @@ export default function TermsOfService() {
                 </div>
             </div>
         </div>
+        </>
     );
 }

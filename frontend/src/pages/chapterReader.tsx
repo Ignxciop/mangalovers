@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useChapterPages } from "@/hooks/useChapterPages";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -356,7 +357,13 @@ export default function ChapterReader() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b] flex flex-col items-center py-10 gap-4 px-4">
+            <>
+                <SEO
+                    title={chapter ? `${chapter.series.name} — Cap. ${chapter.name}` : "Cargando..."}
+                    description={chapter ? `Lee el capítulo ${chapter.name} de ${chapter.series.name} en Mangalovers.` : undefined}
+                    canonicalPath={chapter ? `/manga/${slug}/capitulo/${chapterId}` : undefined}
+                />
+                <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b] flex flex-col items-center py-10 gap-4 px-4">
                 <Skeleton className="h-5 w-40 mb-6" />
                 {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton
@@ -365,12 +372,15 @@ export default function ChapterReader() {
                     />
                 ))}
             </div>
+        </>
         );
     }
 
     if (error || !chapter) {
         return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center px-4">
+            <>
+                <SEO title="Capítulo no encontrado" noIndex />
+                <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center px-4">
                 <h2 className="text-xl font-bold">Capítulo no encontrado</h2>
                 <button
                     onClick={() =>
@@ -381,11 +391,17 @@ export default function ChapterReader() {
                     Volver a la serie
                 </button>
             </div>
+        </>
         );
     }
 
     return (
         <>
+            <SEO
+                title={`${chapter.series.name} — Cap. ${chapter.name}`}
+                description={`Lee el capítulo ${chapter.name} de ${chapter.series.name} en Mangalovers.`}
+                canonicalPath={`/manga/${slug}/capitulo/${chapterId}`}
+            />
             <PullToRefresh pull={pull} refreshing={refreshing} />
 
             <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b]">

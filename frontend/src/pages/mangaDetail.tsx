@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { Badge } from "@/components/ui/badge";
@@ -279,8 +280,17 @@ export default function MangaDetail() {
         );
     }
 
+    const ogImage = series.cover ?? undefined;
+
     return (
         <>
+            <SEO
+                title={series.name}
+                description={series.summary?.slice(0, 160) ?? `Lee ${series.name} en Mangalovers. ${series.chapters.length} capítulos disponibles.`}
+                ogImage={ogImage}
+                ogType="website"
+                canonicalPath={`/manga/${slug}`}
+            />
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">

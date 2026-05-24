@@ -1,10 +1,13 @@
+import { SEO } from "@/components/seo";
 import { ChevronLeft } from "lucide-react";
 
 export default function PrivacyPolicy() {
     const lastUpdated = "26 de febrero de 2026";
 
     return (
-        <div className="min-h-screen bg-background">
+        <>
+            <SEO title="Política de Privacidad" description="Política de Privacidad de Mangalovers. Conoce cómo manejamos tus datos personales." canonicalPath="/privacidad" />
+            <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-12 max-w-3xl">
                 <a
                     href="/"
@@ -236,5 +239,6 @@ export default function PrivacyPolicy() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
