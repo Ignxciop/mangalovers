@@ -745,7 +745,7 @@ export default function FavoritesList() {
                                 ))}
                             </div>
 
-                            <div className="mt-12 mb-8 pt-8">
+                            <div className="mt-8">
                                 <MangaPagination
                                     page={page}
                                     totalPages={totalPages}
