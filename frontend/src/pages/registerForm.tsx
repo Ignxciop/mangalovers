@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -71,7 +72,9 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
     const displayError = passwordError || error;
 
     return (
-        <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <>
+            <SEO title="Crear Cuenta" description="Regístrate en Mangalovers y lleva el control de tus lecturas de manga y manhwa. Guarda tus favoritos y sigue tu progreso." noIndex />
+            <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card className="overflow-hidden p-0 border-brand/20 dark:border-brand/10 shadow-[0_0_30px_-10px] shadow-brand/20 dark:shadow-brand/10">
                 <CardContent className="grid p-0 md:grid-cols-2">
                     <form className="p-6 md:p-8" onSubmit={handleSubmit}>
@@ -243,5 +246,6 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
                 </Alert>
             )}
         </div>
+        </>
     );
 }

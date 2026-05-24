@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import { useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -595,7 +596,9 @@ export default function ProfilePage() {
     const { user } = useAuth();
 
     return (
-        <div className="min-h-screen bg-background">
+        <>
+            <SEO title="Mi Perfil" description="Administra tu perfil, cambia tu contraseña y gestiona las notificaciones en Mangalovers." canonicalPath="/perfil" />
+            <div className="min-h-screen bg-background">
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
                 <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
                     <SidebarTrigger />
@@ -630,5 +633,6 @@ export default function ProfilePage() {
                 <DeleteAccountSection />
             </main>
         </div>
+        </>
     );
 }

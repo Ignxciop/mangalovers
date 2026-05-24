@@ -1,3 +1,4 @@
+import { SEO } from "@/components/seo";
 import { useEffect, useState, memo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -298,6 +299,7 @@ export default function Home() {
 
     return (
         <>
+            <SEO />
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
