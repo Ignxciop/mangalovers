@@ -1,4 +1,5 @@
 import { SEO } from "@/components/seo";
+import { JsonLd } from "@/components/jsonld";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useChapterPages } from "@/hooks/useChapterPages";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -402,6 +403,15 @@ export default function ChapterReader() {
                 description={`Lee el capítulo ${chapter.name} de ${chapter.series.name} en Mangalovers.`}
                 canonicalPath={`/manga/${slug}/capitulo/${chapterId}`}
             />
+            <JsonLd schema={{
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://mangalovers.josenunez.cl/" },
+                    { "@type": "ListItem", "position": 2, "name": chapter.series.name, "item": `https://mangalovers.josenunez.cl/manga/${slug}` },
+                    { "@type": "ListItem", "position": 3, "name": `Cap. ${chapter.name}`, "item": `https://mangalovers.josenunez.cl/manga/${slug}/capitulo/${chapterId}` },
+                ],
+            }} />
             <PullToRefresh pull={pull} refreshing={refreshing} />
 
             <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b]">
