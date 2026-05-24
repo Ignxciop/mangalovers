@@ -1,3 +1,4 @@
+import { api } from "@/api/axios";
 import {
     Sidebar,
     SidebarContent,
@@ -113,8 +114,17 @@ const SidebarUserSection = memo(function SidebarUserSection({
 }) {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const user = useAuthStore((s) => s.user);
-    const logout = useAuthStore((s) => s.logout);
+    const storeLogout = useAuthStore((s) => s.logout);
     const { theme, setTheme } = useTheme();
+    const handleLogout = async () => {
+        try {
+            await api.post("/auth/logout");
+        } catch {
+            // Silenciar error del lado del servidor
+        }
+        storeLogout();
+        window.location.href = "/";
+    };
 
     return (
         <SidebarFooter className={cn("pb-4", collapsed ? "px-1" : "px-2")}>
@@ -276,7 +286,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
-                                            onSelect={logout}
+                                            onSelect={handleLogout}
                                             className="rounded-lg cursor-pointer gap-2.5 text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"
                                         >
                                             <LogOut className="h-4 w-4" />
