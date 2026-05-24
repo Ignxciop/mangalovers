@@ -266,7 +266,7 @@ export async function getFullStats(userId) {
       where: { userId },
       select: {
         createdAt: true,
-        chapter: { select: { seriesId: true, name: true } },
+        chapter: { select: { seriesId: true, name: true, number: true } },
       },
       orderBy: { chapter: { number: "desc" } },
     }),
