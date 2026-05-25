@@ -113,48 +113,6 @@ export async function logoutAll(req, res, next) {
   }
 }
 
-export async function login(req, res, next) {
-  try {
-    const { user, accessToken, refreshToken } = await AuthService.login(req.body);
-    setRefreshCookie(res, refreshToken);
-
-    res.status(200).json({
-      success: true,
-      message: "Inicio de sesión exitoso",
-      data: { user, accessToken },
-    });
-
-    ActivityLogService.logEvent(
-      user.id, "LOGIN",
-      { email: user.email },
-      req.ip, req.headers["user-agent"],
-    ).catch(() => {});
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function googleLogin(req, res, next) {
-  try {
-    const { user, accessToken, refreshToken } = await AuthService.googleLogin(req.body.idToken);
-    setRefreshCookie(res, refreshToken);
-
-    res.status(200).json({
-      success: true,
-      message: "Inicio de sesión con Google exitoso",
-      data: { user, accessToken },
-    });
-
-    ActivityLogService.logEvent(
-      user.id, "LOGIN",
-      { email: user.email, provider: "google" },
-      req.ip, req.headers["user-agent"],
-    ).catch(() => {});
-  } catch (error) {
-    next(error);
-  }
-}
-
 export async function refresh(req, res, next) {
   try {
     const { user, accessToken, refreshToken: newRefreshToken } = await AuthService.refreshAccessToken(req.cookies?.refreshToken);
@@ -165,35 +123,6 @@ export async function refresh(req, res, next) {
       message: "Token renovado exitosamente",
       data: { user, accessToken },
     });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function logout(req, res, next) {
-  try {
-    await AuthService.logout(req.cookies?.refreshToken);
-    clearRefreshCookie(res);
-
-    res.status(200).json({
-      success: true,
-      message: "Logout exitoso",
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function logoutAll(req, res, next) {
-  try {
-    await AuthService.logoutAll(req.user.userId);
-    res.status(200).json({ success: true, message: "Se han cerrado todas las sesiones" });
-
-    ActivityLogService.logEvent(
-      req.user.userId, "LOGOUT",
-      { allSessions: true },
-      req.ip, req.headers["user-agent"],
-    ).catch(() => {});
   } catch (error) {
     next(error);
   }
