@@ -13,7 +13,7 @@ export const errorHandler = (err, req, res, _next) => {
       req.user.userId, "API_ERROR",
       { method: req.method, route: req.originalUrl, statusCode, message: err.message },
       req.ip, req.headers["user-agent"],
-    ).catch(() => {});
+    ).catch((logErr) => logger.warn({ err: logErr }, "ActivityLog errorHandler error"));
   }
 
   const isProduction = config.ENVIRONMENT === "production";

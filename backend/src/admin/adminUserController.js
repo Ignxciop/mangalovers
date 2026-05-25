@@ -1,5 +1,6 @@
 import { AdminUserService } from "./adminUserService.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
+import logger from "../config/logger.js";
 
 export async function listUsers(req, res, next) {
   try {
@@ -28,7 +29,7 @@ export async function updateRole(req, res, next) {
       req.user.userId, "UPDATE_ROLE",
       { targetUserId, oldRole: user.role, newRole: role },
       req.ip, req.headers["user-agent"],
-    ).catch(() => {});
+    ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_ROLE" }, "ActivityLog error"));
   } catch (error) {
     next(error);
   }
@@ -45,7 +46,7 @@ export async function updateStatus(req, res, next) {
       req.user.userId, "UPDATE_USER_STATUS",
       { targetUserId, newStatus: status },
       req.ip, req.headers["user-agent"],
-    ).catch(() => {});
+    ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_USER_STATUS" }, "ActivityLog error"));
   } catch (error) {
     next(error);
   }

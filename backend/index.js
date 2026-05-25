@@ -21,6 +21,7 @@ import suggestionRoutes from "./src/suggestions/suggestionRoutes.js";
 import adminRoutes from "./src/admin/adminUserRoutes.js";
 import activityLogRoutes from "./src/activityLog/activityLogRoutes.js";
 import { ActivityLogService } from "./src/activityLog/activityLogService.js";
+import { prisma } from "./src/config/prisma.js";
 
 const app = express();
 const PORT = config.PORT;
@@ -135,6 +136,13 @@ app.use(errorHandler);
 
 async function startServer() {
     await seedProviders();
+
+    try {
+        await prisma.userActivity.count({ take: 1 });
+        logger.info("Tabla user_activities accesible");
+    } catch (e) {
+        logger.warn({ err: e.message }, "Tabla user_activities NO accesible - revisar migraciones");
+    }
 
     app.listen(PORT, () => {
         logger.info({ port: PORT }, "Servidor corriendo");

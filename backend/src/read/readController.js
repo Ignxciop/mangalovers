@@ -3,6 +3,7 @@ import {
   markChaptersUntil, getUserReadingStats, getFullStats,
 } from "./readService.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
+import logger from "../config/logger.js";
 
 export async function handleGetReadChapters(req, res, next) {
   try {
@@ -40,7 +41,7 @@ export async function handleMarkChaptersUntil(req, res, next) {
         count: result.updated,
       },
       req.ip, req.headers["user-agent"],
-    ).catch(() => {});
+    ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "MARK_READ" }, "ActivityLog error"));
   } catch (error) {
     next(error);
   }
