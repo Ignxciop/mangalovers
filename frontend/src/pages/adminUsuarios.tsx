@@ -314,7 +314,7 @@ export default function AdminUsuarios() {
     const activeFiltersCount = [roleFilter, statusFilter].filter(Boolean).length;
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Administrar usuarios" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">

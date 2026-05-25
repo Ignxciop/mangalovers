@@ -277,7 +277,7 @@ export default function SuggestionsAdmin() {
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Administrar sugerencias" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
