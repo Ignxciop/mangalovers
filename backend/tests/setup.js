@@ -8,6 +8,7 @@ process.env.DATABASE_URL = process.env.DATABASE_TEST_URL;
 import logger from "../src/config/logger.js";
 
 const TABLE_NAMES = [
+    "suggestions",
     "user_chapter_reads",
     "user_favorites",
     "push_subscriptions",

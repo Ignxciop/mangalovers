@@ -1,0 +1,50 @@
+import { SuggestionService } from "./suggestionService.js";
+
+export async function create(req, res, next) {
+  try {
+    const { type, title, description, image } = req.body;
+    const suggestion = await SuggestionService.create(req.user.userId, {
+      type, title, description, image,
+    });
+    res.status(201).json({ success: true, message: "Sugerencia enviada", data: suggestion });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getMySuggestions(req, res, next) {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const result = await SuggestionService.getUserSuggestions(req.user.userId, page, limit);
+    res.json({ success: true, data: result.data, meta: result.meta });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getAll(req, res, next) {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const filters = {};
+    if (req.query.type) filters.type = req.query.type;
+    if (req.query.status) filters.status = req.query.status;
+
+    const result = await SuggestionService.getAll(page, limit, filters);
+    res.json({ success: true, data: result.data, meta: result.meta });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateStatus(req, res, next) {
+  try {
+    const suggestionId = parseInt(req.params.id);
+    const { status } = req.body;
+    const suggestion = await SuggestionService.updateStatus(suggestionId, status);
+    res.json({ success: true, message: "Estado actualizado", data: suggestion });
+  } catch (error) {
+    next(error);
+  }
+}
