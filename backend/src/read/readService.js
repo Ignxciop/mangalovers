@@ -89,19 +89,25 @@ export async function markChaptersUntil(userId, chapterId) {
 
   if (!target) throw new NotFoundError("Chapter not found");
 
-  const chapters = await prisma.chapter.findMany({
-    where: { seriesId: target.seriesId, number: { lte: target.number } },
-    select: { id: true },
-  });
+  const [chapters, series] = await Promise.all([
+    prisma.chapter.findMany({
+      where: { seriesId: target.seriesId, number: { lte: target.number } },
+      select: { id: true },
+    }),
+    prisma.series.findUnique({
+      where: { id: target.seriesId },
+      select: { name: true },
+    }),
+  ]);
 
-  if (chapters.length === 0) return { updated: 0 };
+  if (chapters.length === 0) return { updated: 0, seriesId: target.seriesId, seriesName: series?.name };
 
   await prisma.userChapterRead.createMany({
     data: chapters.map((c) => ({ userId, chapterId: c.id })),
     skipDuplicates: true,
   });
 
-  return { updated: chapters.length };
+  return { updated: chapters.length, seriesId: target.seriesId, seriesName: series?.name };
 }
 
 export async function unmarkChaptersFrom(userId, chapterId) {

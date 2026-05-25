@@ -20,10 +20,11 @@ const TermsOfService = lazy(() => import("./pages/termsOfService.tsx"));
 const PrivacyPolicy = lazy(() => import("./pages/privacyPolicy.tsx"));
 const ProfilePage = lazy(() => import("./pages/profilePage.tsx"));
 const StatsPage = lazy(() => import("./pages/statsPage.tsx"));
-const SuggestionsAdmin = lazy(() => import("./pages/suggestionsAdmin.tsx"));
+const AdminSuggestions = lazy(() => import("./pages/adminSuggestions.tsx"));
 const AdminDashboard = lazy(() => import("./pages/adminDashboard.tsx"));
-const AdminUsuarios = lazy(() => import("./pages/adminUsuarios.tsx"));
-const AdminMetricas = lazy(() => import("./pages/adminMetricas.tsx"));
+const AdminUsers = lazy(() => import("./pages/adminUsers.tsx"));
+const AdminMetrics = lazy(() => import("./pages/adminMetrics.tsx"));
+const AdminActivityLogs = lazy(() => import("./pages/adminActivityLogs.tsx"));
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -109,15 +110,19 @@ function BootstrappedApp() {
                         />
                         <Route
                             path="/admin/usuarios"
-                            element={<AdminUsuarios />}
+                            element={<AdminUsers />}
                         />
                         <Route
                             path="/admin/sugerencias"
-                            element={<SuggestionsAdmin />}
+                            element={<AdminSuggestions />}
                         />
                         <Route
                             path="/admin/metricas"
-                            element={<AdminMetricas />}
+                            element={<AdminMetrics />}
+                        />
+                        <Route
+                            path="/admin/logs"
+                            element={<AdminActivityLogs />}
                         />
                     </Route>
                 </Route>

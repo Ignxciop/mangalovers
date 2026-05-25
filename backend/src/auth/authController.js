@@ -1,5 +1,7 @@
 import { AuthService } from "./authService.js";
 import { config } from "../config/env.js";
+import { ActivityLogService } from "../activityLog/activityLogService.js";
+import logger from "../config/logger.js";
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -30,6 +32,12 @@ export async function register(req, res, next) {
         accessToken: result.accessToken,
       },
     });
+
+    ActivityLogService.logEvent(
+      result.user.id, "REGISTER",
+      { email: result.user.email },
+      req.ip, req.headers["user-agent"],
+    ).catch((err) => logger.warn({ err, userId: result.user.id, event: "REGISTER" }, "ActivityLog error"));
   } catch (error) {
     next(error);
   }
@@ -45,6 +53,12 @@ export async function login(req, res, next) {
       message: "Inicio de sesión exitoso",
       data: { user, accessToken },
     });
+
+    ActivityLogService.logEvent(
+      user.id, "LOGIN",
+      { email: user.email },
+      req.ip, req.headers["user-agent"],
+    ).catch((err) => logger.warn({ err, userId: user.id, event: "LOGIN" }, "ActivityLog error"));
   } catch (error) {
     next(error);
   }
@@ -60,6 +74,40 @@ export async function googleLogin(req, res, next) {
       message: "Inicio de sesión con Google exitoso",
       data: { user, accessToken },
     });
+
+    ActivityLogService.logEvent(
+      user.id, "LOGIN",
+      { email: user.email, provider: "google" },
+      req.ip, req.headers["user-agent"],
+    ).catch((err) => logger.warn({ err, userId: user.id, event: "LOGIN" }, "ActivityLog error"));
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function logout(req, res, next) {
+  try {
+    await AuthService.logout(req.cookies?.refreshToken);
+    res.clearCookie("refreshToken", { path: "/api/auth" });
+    res.status(200).json({
+      success: true,
+      message: "Logout exitoso",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function logoutAll(req, res, next) {
+  try {
+    await AuthService.logoutAll(req.user.userId);
+    res.status(200).json({ success: true, message: "Se han cerrado todas las sesiones" });
+
+    ActivityLogService.logEvent(
+      req.user.userId, "LOGOUT",
+      { allSessions: true },
+      req.ip, req.headers["user-agent"],
+    ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "LOGOUT" }, "ActivityLog error"));
   } catch (error) {
     next(error);
   }
@@ -75,29 +123,6 @@ export async function refresh(req, res, next) {
       message: "Token renovado exitosamente",
       data: { user, accessToken },
     });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function logout(req, res, next) {
-  try {
-    await AuthService.logout(req.cookies?.refreshToken);
-    clearRefreshCookie(res);
-
-    res.status(200).json({
-      success: true,
-      message: "Logout exitoso",
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function logoutAll(req, res, next) {
-  try {
-    await AuthService.logoutAll(req.user.userId);
-    res.status(200).json({ success: true, message: "Se han cerrado todas las sesiones" });
   } catch (error) {
     next(error);
   }

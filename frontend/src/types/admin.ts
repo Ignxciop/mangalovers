@@ -66,3 +66,29 @@ export interface AdminMetricsResponse {
     success: boolean;
     data: AdminMetrics;
 }
+
+export interface ActivityLogEntry {
+    id: string;
+    userId: string;
+    event: string;
+    metadata: Record<string, unknown> | null;
+    ip: string | null;
+    userAgent: string | null;
+    createdAt: string;
+    user: {
+        name: string;
+        lastname: string;
+        email: string;
+    };
+}
+
+export interface ActivityLogResponse {
+    success: boolean;
+    data: ActivityLogEntry[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}

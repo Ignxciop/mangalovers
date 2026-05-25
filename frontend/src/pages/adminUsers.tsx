@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { getUsers, updateUserRole, updateUserStatus } from "@/api/admin";
-import type { AdminUser, UserRole, UserStatus } from "@/types/admin";
+import { getUsers, updateUserRole, updateUserStatus, getActivityLogs } from "@/api/admin";
+import type { AdminUser, UserRole, UserStatus, ActivityLogEntry } from "@/types/admin";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,9 +35,40 @@ import {
     MessageSquare,
     Bookmark,
     BookOpen,
+    ScrollText,
     SlidersHorizontal,
     ArrowLeft,
 } from "lucide-react";
+
+const EVENT_LABELS: Record<string, string> = {
+    REGISTER: "Registro",
+    LOGIN: "Inicio de sesión",
+    LOGOUT: "Cierre de sesión",
+    ADD_FAVORITE: "Añadir favorito",
+    REMOVE_FAVORITE: "Quitar favorito",
+    MARK_READ: "Marcar leído",
+    SEND_SUGGESTION: "Enviar sugerencia",
+    UPDATE_SUGGESTION_STATUS: "Estado sugerencia",
+    UPDATE_ROLE: "Cambio de rol",
+    UPDATE_USER_STATUS: "Cambio de estado",
+    API_ERROR: "Error de API",
+    RATE_LIMIT: "Límite excedido",
+};
+
+const EVENT_COLORS: Record<string, string> = {
+    REGISTER: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    LOGIN: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    LOGOUT: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    ADD_FAVORITE: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+    REMOVE_FAVORITE: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+    MARK_READ: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    SEND_SUGGESTION: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    UPDATE_SUGGESTION_STATUS: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    UPDATE_ROLE: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    UPDATE_USER_STATUS: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    API_ERROR: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+    RATE_LIMIT: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+};
 
 const STATUS_LABELS: Record<UserStatus, string> = {
     ACTIVE: "Activo",
@@ -71,6 +102,18 @@ function formatDateTime(iso: string | null) {
         hour: "2-digit",
         minute: "2-digit",
     });
+}
+
+function formatRelative(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "ahora";
+    if (mins < 60) return `hace ${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `hace ${hrs} h`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `hace ${days} día${days > 1 ? "s" : ""}`;
+    return formatDate(iso);
 }
 
 function StatusText({ status }: { status: UserStatus }) {
@@ -116,10 +159,12 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
     );
 }
 
-function DetailPanel({ user, onRoleChange, onStatusChange }: {
+function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: {
     user: AdminUser;
     onRoleChange: (userId: string, role: UserRole) => void;
     onStatusChange: (userId: string, status: UserStatus) => void;
+    logs: ActivityLogEntry[];
+    logsLoading: boolean;
 }) {
     return (
         <div className="space-y-4 text-sm">
@@ -196,16 +241,52 @@ function DetailPanel({ user, onRoleChange, onStatusChange }: {
                     </div>
                 </div>
             </div>
+
+            <div className="border-t border-border pt-3">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2">
+                    <ScrollText className="size-3" />
+                    Últimos eventos
+                </div>
+                {logsLoading ? (
+                    <div className="flex justify-center py-4">
+                        <div className="size-4 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
+                    </div>
+                ) : logs.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground/50 text-center py-4">Sin actividad registrada</p>
+                ) : (
+                    <div className="space-y-1.5">
+                        {logs.slice(0, 10).map((log) => (
+                            <div key={log.id} className="flex items-start gap-2 py-1.5 px-2 rounded bg-muted/20 border border-border/50">
+                                <div className="flex-1 min-w-0">
+                                    <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded border ${EVENT_COLORS[log.event] ?? "bg-muted text-muted-foreground border-border"}`}>
+                                        {EVENT_LABELS[log.event] ?? log.event}
+                                    </span>
+                                    {log.metadata && (
+                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
+                                            {JSON.stringify(log.metadata)}
+                                        </p>
+                                    )}
+                                </div>
+                                <time className="text-[10px] text-muted-foreground/50 shrink-0 pt-0.5">
+                                    {formatRelative(log.createdAt)}
+                                </time>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
 
-export default function AdminUsuarios() {
+export default function AdminUsers() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
     const [loading, setLoading] = useState(true);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [userLogs, setUserLogs] = useState<ActivityLogEntry[]>([]);
+    const [userLogsLoading, setUserLogsLoading] = useState(false);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const [sheetOpen, setSheetOpen] = useState(false);
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -254,6 +335,21 @@ export default function AdminUsuarios() {
             setSelectedId(null);
         }
     }, [users, selectedId]);
+
+    useEffect(() => {
+        if (!selectedId) {
+            setUserLogs([]);
+            return;
+        }
+        setUserLogsLoading(true);
+        getActivityLogs({ userId: selectedId, limit: 10 }).then((res) => {
+            setUserLogs(res.data);
+            setUserLogsLoading(false);
+        }).catch(() => {
+            setUserLogs([]);
+            setUserLogsLoading(false);
+        });
+    }, [selectedId]);
 
     const selected = users.find((u) => u.id === selectedId) ?? null;
 
@@ -439,7 +535,7 @@ export default function AdminUsuarios() {
                         <div className="hidden lg:block flex-1 min-w-0 border-l border-border pl-5">
                             {selected ? (
                                 <div className="sticky top-0">
-                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} />
+                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} />
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full min-h-[200px]">
@@ -458,7 +554,7 @@ export default function AdminUsuarios() {
                         <SheetTitle className="text-xs font-medium">Detalle</SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} />}
+                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} />}
                     </div>
                 </SheetContent>
             </Sheet>

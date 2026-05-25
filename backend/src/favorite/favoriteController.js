@@ -1,6 +1,8 @@
 import {
   getUserFavorites, getFavorite, upsertFavorite, deleteFavorite,
 } from "./favoriteService.js";
+import { ActivityLogService } from "../activityLog/activityLogService.js";
+import logger from "../config/logger.js";
 
 export async function handleGetFavorites(req, res, next) {
   try {
@@ -23,8 +25,17 @@ export async function handleGetFavorite(req, res, next) {
 export async function handleUpsertFavorite(req, res, next) {
   try {
     const { seriesId, status = "Siguiendo" } = req.body;
+    const existing = await getFavorite(req.user.userId, seriesId);
     const favorite = await upsertFavorite(req.user.userId, seriesId, status);
     res.json(favorite);
+
+    if (!existing) {
+      ActivityLogService.logEvent(
+        req.user.userId, "ADD_FAVORITE",
+        { seriesId: Number(seriesId) },
+        req.ip, req.headers["user-agent"],
+      ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "ADD_FAVORITE" }, "ActivityLog error"));
+    }
   } catch (error) {
     next(error);
   }
@@ -34,6 +45,12 @@ export async function handleDeleteFavorite(req, res, next) {
   try {
     await deleteFavorite(req.user.userId, req.params.seriesId);
     res.json({ success: true });
+
+    ActivityLogService.logEvent(
+      req.user.userId, "REMOVE_FAVORITE",
+      { seriesId: Number(req.params.seriesId) },
+      req.ip, req.headers["user-agent"],
+    ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "REMOVE_FAVORITE" }, "ActivityLog error"));
   } catch (error) {
     next(error);
   }

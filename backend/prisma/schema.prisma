@@ -51,6 +51,7 @@ model User {
   pushSubscriptions PushSubscription[]
   suggestions       Suggestion[]
   reviewedSuggestions Suggestion[] @relation("SuggestionReviewedBy")
+  activityLogs      UserActivity[]
 
   @@map("users")
 }
@@ -257,6 +258,23 @@ model UserChapterRead {
 
   @@unique([userId, chapterId])
   @@map("user_chapter_reads")
+}
+
+model UserActivity {
+  id        String   @id @default(uuid())
+  userId    String
+  event     String
+  metadata  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([event])
+  @@index([createdAt])
+  @@map("user_activities")
 }
 
 model PushSubscription {

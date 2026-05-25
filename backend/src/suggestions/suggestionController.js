@@ -1,4 +1,6 @@
 import { SuggestionService } from "./suggestionService.js";
+import { ActivityLogService } from "../activityLog/activityLogService.js";
+import logger from "../config/logger.js";
 
 export async function create(req, res, next) {
   try {
@@ -7,6 +9,12 @@ export async function create(req, res, next) {
       type, title, description, image,
     });
     res.status(201).json({ success: true, message: "Sugerencia enviada", data: suggestion });
+
+    ActivityLogService.logEvent(
+      req.user.userId, "SEND_SUGGESTION",
+      { suggestionId: suggestion.id, type, title },
+      req.ip, req.headers["user-agent"],
+    ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "SEND_SUGGESTION" }, "ActivityLog error"));
   } catch (error) {
     next(error);
   }
@@ -45,6 +53,12 @@ export async function updateStatus(req, res, next) {
     const { status } = req.body;
     const suggestion = await SuggestionService.updateStatus(suggestionId, status, req.user.userId);
     res.json({ success: true, message: "Estado actualizado", data: suggestion });
+
+    ActivityLogService.logEvent(
+      req.user.userId, "UPDATE_SUGGESTION_STATUS",
+      { suggestionId, newStatus: status },
+      req.ip, req.headers["user-agent"],
+    ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_SUGGESTION_STATUS" }, "ActivityLog error"));
   } catch (error) {
     next(error);
   }
