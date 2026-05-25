@@ -32,7 +32,7 @@ export class AuthService {
 
     const user = await prisma.user.create({
       data: { email, password: hashedPassword, name, lastname },
-      select: { id: true, email: true, name: true, lastname: true, role: true, createdAt: true },
+      select: { id: true, email: true, name: true, lastname: true, role: true, status: true, createdAt: true },
     });
 
     const accessToken = this.generateAccessToken(user);
@@ -55,6 +55,9 @@ export class AuthService {
     if (!user || !isValidPassword) {
       throw new UnauthorizedError("Credenciales inválidas");
     }
+
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    user.lastLoginAt = new Date();
 
     const accessToken = this.generateAccessToken(user);
     const refreshToken = await RefreshTokenService.createRefreshToken(user.id);
@@ -102,8 +105,10 @@ export class AuthService {
           lastname: family_name || "",
           password: "",
         },
-        select: { id: true, email: true, name: true, lastname: true, role: true, createdAt: true },
+        select: { id: true, email: true, name: true, lastname: true, role: true, status: true, createdAt: true },
       });
+    } else {
+      await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     }
 
     await prisma.user.update({

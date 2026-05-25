@@ -37,23 +37,13 @@ export interface UpdateRoleResponse {
         name: string;
         lastname: string;
         role: UserRole;
+        status: UserStatus;
+        lastLoginAt: string | null;
         createdAt: string;
     };
 }
 
-export interface UpdateStatusResponse {
-    success: boolean;
-    message: string;
-    data: {
-        id: string;
-        email: string;
-        name: string;
-        lastname: string;
-        role: UserRole;
-        status: UserStatus;
-        createdAt: string;
-    };
-}
+export type UpdateStatusResponse = UpdateRoleResponse;
 
 export interface AdminMetrics {
     users: {

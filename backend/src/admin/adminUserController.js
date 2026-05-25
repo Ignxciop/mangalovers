@@ -51,3 +51,14 @@ export async function updateStatus(req, res, next) {
     next(error);
   }
 }
+
+export async function updateStatus(req, res, next) {
+  try {
+    const targetUserId = req.params.id;
+    const { status } = req.body;
+    const user = await AdminUserService.updateStatus(targetUserId, status, req.user.userId);
+    res.json({ success: true, message: "Estado actualizado", data: user });
+  } catch (error) {
+    next(error);
+  }
+}
