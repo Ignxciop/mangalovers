@@ -149,7 +149,7 @@ function DetailPanel({
     );
 }
 
-export default function SuggestionsAdmin() {
+export default function AdminSuggestions() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
     const [meta, setMeta] = useState<{ total: number; page: number; limit: number; totalPages: number; counts?: MetaCounts }>({ total: 0, page: 1, limit: 20, totalPages: 0 });
@@ -277,7 +277,7 @@ export default function SuggestionsAdmin() {
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Administrar sugerencias" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">

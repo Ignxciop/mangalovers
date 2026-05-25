@@ -1,7 +1,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { BarChart3 } from "lucide-react";
 
-export default function AdminMetricas() {
+export default function AdminMetrics() {
     return (
         <div className="min-h-screen bg-background">
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
