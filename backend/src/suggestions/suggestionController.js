@@ -30,6 +30,7 @@ export async function getAll(req, res, next) {
     const filters = {};
     if (req.query.type) filters.type = req.query.type;
     if (req.query.status) filters.status = req.query.status;
+    if (req.query.search) filters.search = req.query.search;
 
     const result = await SuggestionService.getAll(page, limit, filters);
     res.json({ success: true, data: result.data, meta: result.meta });
@@ -42,7 +43,7 @@ export async function updateStatus(req, res, next) {
   try {
     const suggestionId = parseInt(req.params.id);
     const { status } = req.body;
-    const suggestion = await SuggestionService.updateStatus(suggestionId, status);
+    const suggestion = await SuggestionService.updateStatus(suggestionId, status, req.user.userId);
     res.json({ success: true, message: "Estado actualizado", data: suggestion });
   } catch (error) {
     next(error);

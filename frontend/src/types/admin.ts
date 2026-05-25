@@ -1,0 +1,61 @@
+export type UserRole = "ADMIN" | "USER";
+
+export interface AdminUser {
+    id: string;
+    email: string;
+    name: string;
+    lastname: string;
+    role: UserRole;
+    createdAt: string;
+    _count: {
+        suggestions: number;
+        favorites: number;
+        chapterReads: number;
+    };
+}
+
+export interface AdminUserListResponse {
+    success: boolean;
+    data: AdminUser[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+
+export interface UpdateRoleResponse {
+    success: boolean;
+    message: string;
+    data: {
+        id: string;
+        email: string;
+        name: string;
+        lastname: string;
+        role: UserRole;
+        createdAt: string;
+    };
+}
+
+export interface AdminMetrics {
+    users: {
+        total: number;
+        regular: number;
+        admins: number;
+    };
+    content: {
+        series: number;
+        chapters: number;
+    };
+    suggestions: {
+        total: number;
+        today: number;
+        byStatus: Record<string, number>;
+    };
+}
+
+export interface AdminMetricsResponse {
+    success: boolean;
+    data: AdminMetrics;
+}

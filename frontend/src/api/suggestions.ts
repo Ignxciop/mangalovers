@@ -25,6 +25,7 @@ export async function getAllSuggestions(params?: {
     limit?: number;
     type?: SuggestionType;
     status?: SuggestionStatus;
+    search?: string;
 }) {
     const { data } = await api.get<SuggestionListResponse>("/suggestions", { params });
     return data;

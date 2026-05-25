@@ -7,6 +7,7 @@ import favoriteRoutes from "../../src/favorite/favoriteRoutes.js";
 import readRoutes from "../../src/read/readRoutes.js";
 import notificationRoutes from "../../src/notifications/notificationRoutes.js";
 import suggestionRoutes from "../../src/suggestions/suggestionRoutes.js";
+import adminRoutes from "../../src/admin/adminUserRoutes.js";
 
 export function buildApp() {
     const app = express();
@@ -22,6 +23,7 @@ export function buildApp() {
     app.use("/api/reads", readRoutes);
     app.use("/api/notifications", notificationRoutes);
     app.use("/api/suggestions", suggestionRoutes);
+    app.use("/api/admin", adminRoutes);
 
     app.use(errorHandler);
 

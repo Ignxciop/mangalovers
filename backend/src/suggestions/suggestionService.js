@@ -52,8 +52,22 @@ export class SuggestionService {
 
     if (filters.type) where.type = filters.type;
     if (filters.status) where.status = filters.status;
+    if (filters.search) {
+      where.OR = [
+        { title: { contains: filters.search, mode: "insensitive" } },
+        { description: { contains: filters.search, mode: "insensitive" } },
+        { user: { name: { contains: filters.search, mode: "insensitive" } } },
+        { user: { lastname: { contains: filters.search, mode: "insensitive" } } },
+        { user: { email: { contains: filters.search, mode: "insensitive" } } },
+      ];
+    }
 
-    const [data, total] = await Promise.all([
+    const STATUSES = ["OPEN", "REVIEWING", "RESOLVED", "REJECTED", "CLOSED"];
+
+    const countWhere = { ...where };
+    delete countWhere.status;
+
+    const [data, total, ...countsArr] = await Promise.all([
       prisma.suggestion.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -69,33 +83,48 @@ export class SuggestionService {
           createdAt: true,
           updatedAt: true,
           userId: true,
+          reviewedById: true,
           user: {
+            select: { name: true, lastname: true, email: true },
+          },
+          reviewedBy: {
             select: { name: true, lastname: true, email: true },
           },
         },
       }),
       prisma.suggestion.count({ where }),
+      ...STATUSES.map((s) => prisma.suggestion.count({ where: { ...countWhere, status: s } })),
     ]);
+
+    const counts = { total: 0 };
+    STATUSES.forEach((s, i) => {
+      counts[s] = countsArr[i];
+      counts.total += countsArr[i];
+    });
 
     return {
       data,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit), counts },
     };
   }
 
-  static async updateStatus(suggestionId, status) {
+  static async updateStatus(suggestionId, status, adminUserId) {
     const suggestion = await prisma.suggestion.findUnique({ where: { id: suggestionId } });
     if (!suggestion) throw new NotFoundError("Sugerencia no encontrada");
 
     return prisma.suggestion.update({
       where: { id: suggestionId },
-      data: { status },
+      data: { status, reviewedById: adminUserId },
       select: {
         id: true,
         type: true,
         title: true,
         status: true,
         updatedAt: true,
+        reviewedById: true,
+        reviewedBy: {
+          select: { name: true, lastname: true },
+        },
       },
     });
   }
