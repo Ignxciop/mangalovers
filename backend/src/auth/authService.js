@@ -9,8 +9,8 @@ import { validateEmail } from "../config/emailAllowed.js";
 import { ConflictError, UnauthorizedError, NotFoundError, ValidationError } from "../utils/errors.js";
 
 export class AuthService {
-  static generateAccessToken(userId) {
-    return jwt.sign({ userId }, config.JWT_SECRET, {
+  static generateAccessToken(user) {
+    return jwt.sign({ userId: user.id, role: user.role }, config.JWT_SECRET, {
       expiresIn: config.JWT_EXPIRES_IN,
     });
   }
@@ -32,10 +32,10 @@ export class AuthService {
 
     const user = await prisma.user.create({
       data: { email, password: hashedPassword, name, lastname },
-      select: { id: true, email: true, name: true, lastname: true, createdAt: true },
+      select: { id: true, email: true, name: true, lastname: true, role: true, createdAt: true },
     });
 
-    const accessToken = this.generateAccessToken(user.id);
+    const accessToken = this.generateAccessToken(user);
     const refreshToken = await RefreshTokenService.createRefreshToken(user.id);
 
     logger.info({ event: "REGISTER", userId: user.id, email: user.email }, "Usuario registrado");
@@ -56,7 +56,7 @@ export class AuthService {
       throw new UnauthorizedError("Credenciales inválidas");
     }
 
-    const accessToken = this.generateAccessToken(user.id);
+    const accessToken = this.generateAccessToken(user);
     const refreshToken = await RefreshTokenService.createRefreshToken(user.id);
 
     const userWithoutPassword = { ...user };
@@ -97,17 +97,17 @@ export class AuthService {
           lastname: family_name || "",
           password: "",
         },
-        select: { id: true, email: true, name: true, lastname: true, createdAt: true },
+        select: { id: true, email: true, name: true, lastname: true, role: true, createdAt: true },
       });
     }
 
-    const accessToken = this.generateAccessToken(user.id);
+    const accessToken = this.generateAccessToken(user);
     const refreshToken = await RefreshTokenService.createRefreshToken(user.id);
 
     logger.info({ event: "GOOGLE_LOGIN", userId: user.id, email: user.email }, "Login con Google");
 
     return {
-      user: { id: user.id, email: user.email, name: user.name, lastname: user.lastname },
+      user: { id: user.id, email: user.email, name: user.name, lastname: user.lastname, role: user.role },
       accessToken,
       refreshToken: refreshToken.token,
     };
@@ -120,7 +120,7 @@ export class AuthService {
 
     const refreshToken = await RefreshTokenService.validateRefreshToken(refreshTokenString);
 
-    const accessToken = this.generateAccessToken(refreshToken.userId);
+    const accessToken = this.generateAccessToken(refreshToken.user);
     const newRefreshTokenToken = RefreshTokenService.generateRefreshToken();
     const daysToExpire = parseInt(config.JWT_REFRESH_EXPIRES_IN.replace("d", ""));
     const expiresAt = new Date();
@@ -154,7 +154,7 @@ export class AuthService {
   static async getMe(userId) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, lastname: true, createdAt: true, updatedAt: true },
+      select: { id: true, email: true, name: true, lastname: true, role: true, createdAt: true, updatedAt: true },
     });
 
     if (!user) throw new NotFoundError("Usuario no encontrado");
@@ -186,7 +186,7 @@ export class AuthService {
     const user = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: { id: true, email: true, name: true, lastname: true },
+      select: { id: true, email: true, name: true, lastname: true, role: true },
     });
 
     logger.info({ event: "UPDATE_PROFILE", userId, changes: Object.keys(updateData) }, "Perfil actualizado");

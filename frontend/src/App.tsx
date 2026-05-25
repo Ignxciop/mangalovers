@@ -3,7 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AuthLayout from "./components/layouts/authLayout.tsx";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ProtectedRoute, GuestRoute } from "@/components/protectedRoutes.tsx";
+import { AdminRoute } from "@/components/adminRoute.tsx";
 import MainLayout from "./components/layouts/mainLayout.tsx";
+import AdminLayout from "./components/layouts/adminLayout.tsx";
 import { useAuthStore } from "./store/authStore.ts";
 
 const Login = lazy(() => import("./pages/loginForm.tsx").then((m) => ({ default: m.Login })));
@@ -17,6 +19,10 @@ const TermsOfService = lazy(() => import("./pages/termsOfService.tsx"));
 const PrivacyPolicy = lazy(() => import("./pages/privacyPolicy.tsx"));
 const ProfilePage = lazy(() => import("./pages/profilePage.tsx"));
 const StatsPage = lazy(() => import("./pages/statsPage.tsx"));
+const SuggestionsAdmin = lazy(() => import("./pages/suggestionsAdmin.tsx"));
+const AdminDashboard = lazy(() => import("./pages/adminDashboard.tsx"));
+const AdminUsuarios = lazy(() => import("./pages/adminUsuarios.tsx"));
+const AdminMetricas = lazy(() => import("./pages/adminMetricas.tsx"));
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -89,6 +95,28 @@ function BootstrappedApp() {
                         <Route
                             path="/estadisticas"
                             element={<StatsPage />}
+                        />
+                    </Route>
+
+                </Route>
+
+                <Route element={<AdminRoute />}>
+                    <Route element={<AdminLayout />}>
+                        <Route
+                            path="/admin/dashboard"
+                            element={<AdminDashboard />}
+                        />
+                        <Route
+                            path="/admin/usuarios"
+                            element={<AdminUsuarios />}
+                        />
+                        <Route
+                            path="/admin/sugerencias"
+                            element={<SuggestionsAdmin />}
+                        />
+                        <Route
+                            path="/admin/metricas"
+                            element={<AdminMetricas />}
                         />
                     </Route>
                 </Route>

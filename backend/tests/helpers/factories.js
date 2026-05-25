@@ -12,6 +12,7 @@ export async function createUser(overrides = {}) {
             password: await bcrypt.hash(plainPassword || "Password123!", 10),
             name: "Test",
             lastname: "User",
+            role: "USER",
             ...rest,
             email,
         },

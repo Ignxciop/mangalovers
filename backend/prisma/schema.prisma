@@ -7,20 +7,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  USER
+}
+
+enum SuggestionType {
+  BUG
+  SUGGESTION
+  CONTENT_ERROR
+  TECHNICAL_PROBLEM
+  OTHER
+}
+
+enum SuggestionStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  REJECTED
+  CLOSED
+}
+
 model User {
   id                String             @id @default(uuid())
   email             String             @unique
   password          String
   name              String
   lastname          String
+  role              Role               @default(USER)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   refreshTokens     RefreshToken[]
   favorites         UserFavorite[]
   chapterReads      UserChapterRead[]
   pushSubscriptions PushSubscription[]
+  suggestions       Suggestion[]
 
   @@map("users")
+}
+
+model Suggestion {
+  id          Int              @id @default(autoincrement())
+  userId      String
+  type        SuggestionType
+  title       String
+  description String
+  image       String?
+  status      SuggestionStatus @default(OPEN)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
+  @@map("suggestions")
 }
 
 model RefreshToken {
