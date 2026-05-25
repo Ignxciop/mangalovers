@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { getUsers, updateUserRole } from "@/api/admin";
 import type { AdminUser, UserRole } from "@/types/admin";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
     Select,
     SelectContent,
@@ -12,6 +11,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetClose,
+} from "@/components/ui/sheet";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { MangaPagination } from "@/components/MangaPagination";
 import { SEO } from "@/components/seo";
@@ -21,12 +27,12 @@ import {
     Search,
     X,
     Shield,
-    UserRound,
     Mail,
-    CalendarDays,
+    Calendar,
     MessageSquare,
     Bookmark,
     BookOpen,
+    ArrowLeft,
 } from "lucide-react";
 
 function formatDate(iso: string) {
@@ -37,25 +43,19 @@ function formatDate(iso: string) {
     });
 }
 
-function RoleBadge({ role }: { role: UserRole }) {
-    const isAdmin = role === "ADMIN";
+function RoleText({ role }: { role: UserRole }) {
     return (
-        <Badge
-            variant={isAdmin ? "default" : "outline"}
-            className={cn(
-                "text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                isAdmin
-                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700"
-                    : "text-muted-foreground border-border",
-            )}
-        >
-            <Shield className={cn("size-2.5 mr-1", isAdmin ? "text-amber-500" : "text-muted-foreground/50")} />
-            {isAdmin ? "Admin" : "Usuario"}
-        </Badge>
+        <span className={cn(
+            "text-[11px] font-medium",
+            role === "ADMIN" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+        )}>
+            <Shield className="size-2.5 inline mr-0.5 align-text-top" />
+            {role === "ADMIN" ? "Admin" : "Usuario"}
+        </span>
     );
 }
 
-function UserCard({
+function UserRow({
     user,
     isSelected,
     onClick,
@@ -64,42 +64,39 @@ function UserCard({
     isSelected: boolean;
     onClick: () => void;
 }) {
-    const initial = user.name[0].toUpperCase();
     return (
         <button
             onClick={onClick}
             className={cn(
-                "w-full text-left rounded-lg border transition-all duration-150 px-3 py-3",
-                isSelected
-                    ? "border-primary/40 bg-muted/80 shadow-sm"
-                    : "border-border bg-card hover:bg-muted/50",
+                "w-full text-left px-3 py-2.5 rounded transition-colors",
+                isSelected ? "bg-muted" : "hover:bg-muted/50",
             )}
         >
-            <div className="flex items-center gap-3">
-                <div className="size-9 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-sm font-bold text-muted-foreground">
-                    {initial}
+            <div className="flex items-center gap-2.5">
+                <div className="size-7 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[10px] font-bold text-muted-foreground">
+                    {user.name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">
+                        <span className="text-xs font-medium truncate">
                             {user.name} {user.lastname}
                         </span>
-                        <RoleBadge role={user.role} />
+                        <RoleText role={user.role} />
                     </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{user.email}</p>
+                    <p className="text-[11px] text-muted-foreground/60 truncate">{user.email}</p>
                 </div>
             </div>
-            <div className="flex items-center gap-3 mt-2.5 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground/50">
                 <span className="flex items-center gap-1">
-                    <MessageSquare className="size-3" />
+                    <MessageSquare className="size-2.5" />
                     {user._count.suggestions}
                 </span>
                 <span className="flex items-center gap-1">
-                    <Bookmark className="size-3" />
+                    <Bookmark className="size-2.5" />
                     {user._count.favorites}
                 </span>
                 <span className="flex items-center gap-1">
-                    <BookOpen className="size-3" />
+                    <BookOpen className="size-2.5" />
                     {user._count.chapterReads}
                 </span>
             </div>
@@ -107,36 +104,33 @@ function UserCard({
     );
 }
 
-function UserDetailPanel({
+function DetailPanel({
     user,
     onRoleChange,
 }: {
     user: AdminUser;
     onRoleChange: (userId: string, role: UserRole) => void;
 }) {
-    const initial = user.name[0].toUpperCase();
     return (
-        <div className="space-y-5">
+        <div className="space-y-4 text-sm">
             <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <div className="size-12 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-lg font-bold text-muted-foreground">
-                        {initial}
+                <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
+                        {user.name[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                        <h2 className="text-lg font-bold leading-snug">
+                        <h2 className="text-sm font-semibold leading-snug">
                             {user.name} {user.lastname}
                         </h2>
-                        <div className="flex items-center gap-2 mt-0.5">
-                            <RoleBadge role={user.role} />
-                        </div>
+                        <RoleText role={user.role} />
                     </div>
                 </div>
                 <Select
                     value={user.role}
                     onValueChange={(v) => onRoleChange(user.id, v as UserRole)}
                 >
-                    <SelectTrigger className="w-28 h-8 text-xs shrink-0">
-                        <Shield className="size-3 mr-1.5 shrink-0" />
+                    <SelectTrigger className="min-w-[7rem] h-7 text-xs shrink-0">
+                        <Shield className="size-3 mr-1 shrink-0" />
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -146,35 +140,30 @@ function UserDetailPanel({
                 </Select>
             </div>
 
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                    <Mail className="size-4 text-muted-foreground shrink-0" />
+            <div className="border-t border-border pt-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Mail className="size-3.5 shrink-0" />
                     <span>{user.email}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                    <CalendarDays className="size-4 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Calendar className="size-3.5 shrink-0" />
                     <span>Registrado el {formatDate(user.createdAt)}</span>
                 </div>
             </div>
 
-            <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                    Actividad
-                </p>
-                <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-muted/30 rounded-lg border border-border p-3 text-center">
-                        <MessageSquare className="size-4 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-lg font-bold">{user._count.suggestions}</p>
+            <div className="border-t border-border pt-3">
+                <p className="text-[11px] font-medium text-muted-foreground mb-2">Actividad</p>
+                <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-muted/20 rounded border border-border p-2 text-center">
+                        <p className="text-sm font-semibold">{user._count.suggestions}</p>
                         <p className="text-[10px] text-muted-foreground">Sugerencias</p>
                     </div>
-                    <div className="bg-muted/30 rounded-lg border border-border p-3 text-center">
-                        <Bookmark className="size-4 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-lg font-bold">{user._count.favorites}</p>
+                    <div className="bg-muted/20 rounded border border-border p-2 text-center">
+                        <p className="text-sm font-semibold">{user._count.favorites}</p>
                         <p className="text-[10px] text-muted-foreground">Favoritos</p>
                     </div>
-                    <div className="bg-muted/30 rounded-lg border border-border p-3 text-center">
-                        <BookOpen className="size-4 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-lg font-bold">{user._count.chapterReads}</p>
+                    <div className="bg-muted/20 rounded border border-border p-2 text-center">
+                        <p className="text-sm font-semibold">{user._count.chapterReads}</p>
                         <p className="text-[10px] text-muted-foreground">Lecturas</p>
                     </div>
                 </div>
@@ -190,6 +179,8 @@ export default function AdminUsuarios() {
     const [loading, setLoading] = useState(true);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -213,6 +204,14 @@ export default function AdminUsuarios() {
             setLoading(false);
         }
     }, [page, roleFilter, searchQuery]);
+
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 1023px)");
+        setIsMobile(mq.matches);
+        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+        mq.addEventListener("change", handler);
+        return () => mq.removeEventListener("change", handler);
+    }, []);
 
     useEffect(() => {
         fetchUsers();
@@ -268,49 +267,51 @@ export default function AdminUsuarios() {
         }
     };
 
+    const handleSelectUser = (id: string) => {
+        setSelectedId(id);
+        if (isMobile) setSheetOpen(true);
+    };
+
     const tabs = [
-        { value: "", label: "Todos", color: "" },
-        { value: "USER" as const, label: "Usuarios", color: "text-blue-500" },
-        { value: "ADMIN" as const, label: "Administradores", color: "text-amber-500" },
+        { value: "", label: "Todos" },
+        { value: "USER" as const, label: "Usuarios" },
+        { value: "ADMIN" as const, label: "Administradores" },
     ];
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
             <SEO title="Administrar usuarios" />
 
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
+            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
+                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
-                    <div className="flex justify-center min-w-0">
-                        <div className="flex items-center gap-2 sm:gap-4 min-w-0 w-full max-w-xl">
-                            <div className="hidden sm:flex items-center gap-2 shrink-0">
-                                <Users className="h-4 w-4 text-blue-500" />
-                                <span className="text-sm font-semibold text-foreground tracking-wide">Usuarios</span>
-                            </div>
-                            <div className="relative flex-1 max-w-md">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                <Input
-                                    ref={searchInputRef}
-                                    placeholder="Buscar por nombre o email..."
-                                    className="pl-8 pr-9 w-full bg-secondary/50 h-8 text-xs sm:h-9 sm:text-sm"
-                                    value={searchText}
-                                    onChange={(e) => handleSearchChange(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            if (debounceRef.current) clearTimeout(debounceRef.current);
-                                            updateFilter("search", searchText);
-                                        }
-                                    }}
-                                />
-                                {searchText && (
-                                    <button
-                                        onClick={clearSearch}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                    >
-                                        <X className="size-3.5" />
-                                    </button>
-                                )}
-                            </div>
+                    <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
+                        <span className="text-xs font-medium text-muted-foreground shrink-0 hidden sm:block">
+                            Usuarios
+                        </span>
+                        <div className="relative flex-1 max-w-sm">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                            <Input
+                                ref={searchInputRef}
+                                placeholder="Buscar..."
+                                className="pl-7 pr-7 h-7 text-xs bg-muted/40 border-none"
+                                value={searchText}
+                                onChange={(e) => handleSearchChange(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        if (debounceRef.current) clearTimeout(debounceRef.current);
+                                        updateFilter("search", searchText);
+                                    }
+                                }}
+                            />
+                            {searchText && (
+                                <button
+                                    onClick={clearSearch}
+                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="size-3" />
+                                </button>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -319,10 +320,10 @@ export default function AdminUsuarios() {
                                 key={tab.value}
                                 onClick={() => updateFilter("role", roleFilter === tab.value ? "" : tab.value)}
                                 className={cn(
-                                    "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                                    "px-2.5 py-1 text-[11px] font-medium rounded transition-colors",
                                     roleFilter === tab.value
-                                        ? "bg-primary text-primary-foreground"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                                        ? "bg-muted text-foreground"
+                                        : "text-muted-foreground hover:text-foreground",
                                 )}
                             >
                                 {tab.label}
@@ -332,46 +333,36 @@ export default function AdminUsuarios() {
                 </div>
             </header>
 
-            <main className="container mx-auto px-4 py-6 flex-1 flex flex-col min-h-0">
-                {!loading && users.length > 0 && meta.totalPages > 1 && (
-                    <div className="mb-4">
-                        <MangaPagination
-                            page={meta.page}
-                            totalPages={meta.totalPages}
-                            setPage={(p) => updateFilter("page", String(p))}
-                        />
-                    </div>
-                )}
-
+            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 {loading ? (
                     <div className="flex justify-center py-16">
-                        <div className="size-7 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+                        <div className="size-5 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
                     </div>
                 ) : users.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
-                        <Users className="h-12 w-12 text-muted-foreground/30" />
-                        <p className="text-muted-foreground text-sm">
+                    <div className="flex flex-col items-center justify-center py-24 gap-3 text-center flex-1">
+                        <Users className="size-8 text-muted-foreground/30" />
+                        <p className="text-xs text-muted-foreground">
                             {roleFilter || searchQuery
                                 ? "No hay usuarios con estos filtros"
                                 : "No hay usuarios registrados"}
                         </p>
                     </div>
                 ) : (
-                    <div className="flex gap-6 flex-1 min-h-0">
-                        <div className="flex flex-col w-full lg:w-[380px] xl:w-[420px] lg:shrink-0 min-h-0">
-                            <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+                    <div className="flex gap-5 flex-1 min-h-0">
+                        <div className="flex flex-col w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 min-h-0">
+                            <div className="flex-1 overflow-y-auto space-y-px">
                                 {users.map((u) => (
-                                    <UserCard
+                                    <UserRow
                                         key={u.id}
                                         user={u}
                                         isSelected={selectedId === u.id}
-                                        onClick={() => setSelectedId(u.id)}
+                                        onClick={() => handleSelectUser(u.id)}
                                     />
                                 ))}
                             </div>
 
                             {meta.totalPages > 1 && (
-                                <div className="pt-4 shrink-0 border-t border-border mt-3">
+                                <div className="pt-3 shrink-0 border-t border-border mt-2">
                                     <MangaPagination
                                         page={meta.page}
                                         totalPages={meta.totalPages}
@@ -381,19 +372,18 @@ export default function AdminUsuarios() {
                             )}
                         </div>
 
-                        <div className="hidden lg:block flex-1 min-w-0 border-l border-border pl-6">
+                        <div className="hidden lg:block flex-1 min-w-0 border-l border-border pl-5">
                             {selected ? (
                                 <div className="sticky top-0">
-                                    <UserDetailPanel
+                                    <DetailPanel
                                         user={selected}
                                         onRoleChange={handleRoleChange}
                                     />
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-3 text-center">
-                                    <UserRound className="h-10 w-10 text-muted-foreground/20" />
-                                    <p className="text-sm text-muted-foreground">
-                                        Seleccioná un usuario para ver sus detalles
+                                <div className="flex items-center justify-center h-full min-h-[200px]">
+                                    <p className="text-xs text-muted-foreground/50">
+                                        Seleccioná un usuario
                                     </p>
                                 </div>
                             )}
@@ -401,6 +391,28 @@ export default function AdminUsuarios() {
                     </div>
                 )}
             </main>
+
+            <Sheet open={sheetOpen} onOpenChange={(open) => {
+                setSheetOpen(open);
+                if (!open) setSelectedId(null);
+            }}>
+                <SheetContent side="bottom" className="rounded-t-lg max-h-[80vh] flex flex-col gap-0 p-0">
+                    <SheetHeader className="px-4 py-2.5 border-b border-border shrink-0 flex-row items-center gap-2">
+                        <SheetClose className="shrink-0">
+                            <ArrowLeft className="size-4" />
+                        </SheetClose>
+                        <SheetTitle className="text-xs font-medium">Detalle</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        {selected && (
+                            <DetailPanel
+                                user={selected}
+                                onRoleChange={handleRoleChange}
+                            />
+                        )}
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }
