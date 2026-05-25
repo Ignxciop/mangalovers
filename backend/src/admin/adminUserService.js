@@ -18,6 +18,10 @@ export class AdminUserService {
       where.role = filters.role;
     }
 
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
     const [data, total] = await Promise.all([
       prisma.user.findMany({
         where,
@@ -30,6 +34,8 @@ export class AdminUserService {
           name: true,
           lastname: true,
           role: true,
+          status: true,
+          lastLoginAt: true,
           createdAt: true,
           _count: {
             select: {
@@ -66,6 +72,32 @@ export class AdminUserService {
         name: true,
         lastname: true,
         role: true,
+        status: true,
+        lastLoginAt: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  static async updateStatus(targetUserId, newStatus, adminUserId) {
+    if (targetUserId === adminUserId) {
+      throw new ValidationError("No puedes cambiar tu propio estado");
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!user) throw new NotFoundError("Usuario no encontrado");
+
+    return prisma.user.update({
+      where: { id: targetUserId },
+      data: { status: newStatus },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        lastname: true,
+        role: true,
+        status: true,
+        lastLoginAt: true,
         createdAt: true,
       },
     });
