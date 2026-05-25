@@ -42,6 +42,7 @@ model User {
   chapterReads      UserChapterRead[]
   pushSubscriptions PushSubscription[]
   suggestions       Suggestion[]
+  reviewedSuggestions Suggestion[] @relation("SuggestionReviewedBy")
 
   @@map("users")
 }
@@ -57,10 +58,14 @@ model Suggestion {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
+  reviewedById String?
+  reviewedBy   User?            @relation("SuggestionReviewedBy", fields: [reviewedById], references: [id])
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([userId])
+  @@index([reviewedById])
   @@map("suggestions")
 }
 

@@ -35,6 +35,10 @@ export const listSuggestionsValidator = [
     .optional()
     .isIn(["OPEN", "REVIEWING", "RESOLVED", "REJECTED", "CLOSED"])
     .withMessage("Estado inválido"),
+  query("search")
+    .optional()
+    .trim()
+    .isString().withMessage("Búsqueda inválida"),
   query("page")
     .optional()
     .toInt()
