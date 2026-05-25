@@ -1,4 +1,5 @@
 export type UserRole = "ADMIN" | "USER";
+export type UserStatus = "ACTIVE" | "BANNED" | "SUSPENDED";
 
 export interface AdminUser {
     id: string;
@@ -6,6 +7,8 @@ export interface AdminUser {
     name: string;
     lastname: string;
     role: UserRole;
+    status: UserStatus;
+    lastLoginAt: string | null;
     createdAt: string;
     _count: {
         suggestions: number;
@@ -34,9 +37,13 @@ export interface UpdateRoleResponse {
         name: string;
         lastname: string;
         role: UserRole;
+        status: UserStatus;
+        lastLoginAt: string | null;
         createdAt: string;
     };
 }
+
+export type UpdateStatusResponse = UpdateRoleResponse;
 
 export interface AdminMetrics {
     users: {

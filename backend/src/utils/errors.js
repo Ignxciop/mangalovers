@@ -26,6 +26,12 @@ export class NotFoundError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message = "Acceso denegado") {
+    super(message, 403);
+  }
+}
+
 export class ConflictError extends AppError {
   constructor(message = "Conflicto") {
     super(message, 409);

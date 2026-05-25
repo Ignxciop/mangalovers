@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
-import { UnauthorizedError } from "../utils/errors.js";
+import { UnauthorizedError, ForbiddenError } from "../utils/errors.js";
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -15,9 +16,19 @@ export const authenticate = async (req, res, next) => {
     const token = parts[1];
     const decoded = jwt.verify(token, config.JWT_SECRET);
     req.user = { userId: decoded.userId, role: decoded.role };
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { status: true },
+    });
+
+    if (user && user.status === "BANNED") {
+      throw new ForbiddenError("Tu cuenta ha sido suspendida");
+    }
+
     next();
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return next(error);
     }
     if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
