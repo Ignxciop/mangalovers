@@ -18,6 +18,7 @@ interface AuthData {
         name: string;
         lastname: string;
         email: string;
+        role: "ADMIN" | "USER";
     };
 }
 
