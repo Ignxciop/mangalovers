@@ -11,11 +11,17 @@ export interface Suggestion {
     createdAt: string;
     updatedAt: string;
     userId?: string;
+    reviewedById?: string | null;
     user?: {
         name: string;
         lastname: string;
         email: string;
     };
+    reviewedBy?: {
+        name: string;
+        lastname: string;
+        email: string;
+    } | null;
 }
 
 export interface SuggestionListResponse {
@@ -26,5 +32,6 @@ export interface SuggestionListResponse {
         page: number;
         limit: number;
         totalPages: number;
+        counts?: Record<string, number> & { total: number };
     };
 }
