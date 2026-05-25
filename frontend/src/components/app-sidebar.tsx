@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
-import { memo } from "react";
+import { SuggestionForm } from "@/components/suggestion-form";
+import { memo, useState } from "react";
 import {
     UserRound,
     EllipsisVertical,
@@ -39,6 +40,8 @@ import {
     ChevronRight,
     Settings,
     BarChart3,
+    MessageCirclePlus,
+    Shield,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useLocation } from "react-router-dom";
@@ -109,8 +112,10 @@ function NavItem({
 
 const SidebarUserSection = memo(function SidebarUserSection({
     collapsed,
+    onOpenSuggestions,
 }: {
     collapsed: boolean;
+    onOpenSuggestions: () => void;
 }) {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const user = useAuthStore((s) => s.user);
@@ -266,14 +271,13 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                     )}
                                     <span>
                                         {theme === "light"
-                                            ? "Modo Oscuro"
-                                            : "Modo Claro"}
+                                            ? "Modo oscuro"
+                                            : "Modo claro"}
                                     </span>
                                 </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                            <div className="p-1">
                                 {isAuthenticated ? (
                                     <>
+                                        <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             onSelect={() =>
                                                 (window.location.href =
@@ -284,6 +288,25 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                             <Settings className="h-4 w-4 text-muted-foreground" />
                                             <span>Mi perfil</span>
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onSelect={onOpenSuggestions}
+                                            className="rounded-lg cursor-pointer gap-2.5"
+                                        >
+                                            <MessageCirclePlus className="h-4 w-4 text-muted-foreground" />
+                                            <span>Enviar sugerencia</span>
+                                        </DropdownMenuItem>
+                                        {user?.role === "ADMIN" && (
+                                            <DropdownMenuItem
+                                                onSelect={() =>
+                                                    (                                                    window.location.href =
+                                                        "/admin/dashboard")
+                                                }
+                                                className="rounded-lg cursor-pointer gap-2.5"
+                                            >
+                                                <Shield className="h-4 w-4 text-muted-foreground" />
+                                                <span>Admin</span>
+                                            </DropdownMenuItem>
+                                        )}
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             onSelect={handleLogout}
@@ -294,17 +317,21 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                         </DropdownMenuItem>
                                     </>
                                 ) : (
-                                    <DropdownMenuItem
-                                        onSelect={() =>
-                                            (window.location.href = "/acceso")
-                                        }
-                                        className="rounded-lg cursor-pointer gap-2.5 text-primary focus:text-primary focus:bg-primary/10"
-                                    >
-                                        <LogIn className="h-4 w-4" />
-                                        <span>Iniciar Sesión</span>
-                                    </DropdownMenuItem>
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                (window.location.href =
+                                                    "/acceso")
+                                            }
+                                            className="rounded-lg cursor-pointer gap-2.5 text-primary focus:text-primary focus:bg-primary/10"
+                                        >
+                                            <LogIn className="h-4 w-4" />
+                                            <span>Iniciar Sesión</span>
+                                        </DropdownMenuItem>
+                                    </>
                                 )}
-                            </div>
+                            </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </SidebarMenuItem>
@@ -317,8 +344,14 @@ export function AppSidebar() {
     const { isAuthenticated } = useAuth();
     const { state, isMobile } = useSidebar();
     const collapsed = !isMobile && state === "collapsed";
+    const [showSuggestionForm, setShowSuggestionForm] = useState(false);
 
     return (
+        <>
+        <SuggestionForm
+            open={showSuggestionForm}
+            onClose={() => setShowSuggestionForm(false)}
+        />
         <Sidebar collapsible="icon">
             <SidebarHeader
                 className={cn("py-5", collapsed ? "items-center px-2" : "px-4")}
@@ -379,7 +412,11 @@ export function AppSidebar() {
                 </SidebarGroup>
             </SidebarContent>
 
-            <SidebarUserSection collapsed={collapsed} />
+            <SidebarUserSection
+                collapsed={collapsed}
+                onOpenSuggestions={() => setShowSuggestionForm(true)}
+            />
         </Sidebar>
+        </>
     );
 }

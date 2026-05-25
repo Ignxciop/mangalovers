@@ -14,7 +14,7 @@ export const authenticate = async (req, res, next) => {
 
     const token = parts[1];
     const decoded = jwt.verify(token, config.JWT_SECRET);
-    req.user = { userId: decoded.userId };
+    req.user = { userId: decoded.userId, role: decoded.role };
     next();
   } catch (error) {
     if (error instanceof UnauthorizedError) {
@@ -43,7 +43,7 @@ export const optionalAuthenticate = async (req, res, next) => {
 
     const token = parts[1];
     const decoded = jwt.verify(token, config.JWT_SECRET);
-    req.user = { userId: decoded.userId };
+    req.user = { userId: decoded.userId, role: decoded.role };
     next();
   } catch {
     req.user = null;
