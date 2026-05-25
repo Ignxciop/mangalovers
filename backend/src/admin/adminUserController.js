@@ -8,6 +8,7 @@ export async function listUsers(req, res, next) {
     const filters = {};
     if (req.query.search) filters.search = req.query.search;
     if (req.query.role) filters.role = req.query.role;
+    if (req.query.status) filters.status = req.query.status;
 
     const result = await AdminUserService.listUsers(page, limit, filters);
     res.json({ success: true, data: result.data, meta: result.meta });

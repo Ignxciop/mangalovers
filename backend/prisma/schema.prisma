@@ -12,6 +12,12 @@ enum Role {
   USER
 }
 
+enum UserStatus {
+  ACTIVE
+  BANNED
+  SUSPENDED
+}
+
 enum SuggestionType {
   BUG
   SUGGESTION
@@ -35,6 +41,8 @@ model User {
   name              String
   lastname          String
   role              Role               @default(USER)
+  status            UserStatus         @default(ACTIVE)
+  lastLoginAt       DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   refreshTokens     RefreshToken[]

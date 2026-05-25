@@ -9,6 +9,10 @@ export const listUsersValidator = [
     .optional()
     .isIn(["ADMIN", "USER"])
     .withMessage("Rol inválido"),
+  query("status")
+    .optional()
+    .isIn(["ACTIVE", "BANNED", "SUSPENDED"])
+    .withMessage("Estado inválido"),
   query("page")
     .optional()
     .toInt()
