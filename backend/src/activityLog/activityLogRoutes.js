@@ -6,6 +6,6 @@ import { handleGetUserLogs, handleGetAllLogs } from "./activityLogController.js"
 const router = Router();
 
 router.get("/users/:id/activity", authenticate, authorize("ADMIN"), handleGetUserLogs);
-router.get("/activity", authenticate, authorize("ADMIN"), handleGetAllLogs);
+router.get("/logs", authenticate, authorize("ADMIN"), handleGetAllLogs);
 
 export default router;
