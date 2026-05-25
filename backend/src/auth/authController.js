@@ -1,5 +1,6 @@
 import { AuthService } from "./authService.js";
 import { config } from "../config/env.js";
+import { ActivityLogService } from "../activityLog/activityLogService.js";
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -30,6 +31,12 @@ export async function register(req, res, next) {
         accessToken: result.accessToken,
       },
     });
+
+    ActivityLogService.logEvent(
+      result.user.id, "REGISTER",
+      { email: result.user.email },
+      req.ip, req.headers["user-agent"],
+    ).catch(() => {});
   } catch (error) {
     next(error);
   }
@@ -45,6 +52,12 @@ export async function login(req, res, next) {
       message: "Inicio de sesión exitoso",
       data: { user, accessToken },
     });
+
+    ActivityLogService.logEvent(
+      user.id, "LOGIN",
+      { email: user.email },
+      req.ip, req.headers["user-agent"],
+    ).catch(() => {});
   } catch (error) {
     next(error);
   }
@@ -60,6 +73,12 @@ export async function googleLogin(req, res, next) {
       message: "Inicio de sesión con Google exitoso",
       data: { user, accessToken },
     });
+
+    ActivityLogService.logEvent(
+      user.id, "LOGIN",
+      { email: user.email, provider: "google" },
+      req.ip, req.headers["user-agent"],
+    ).catch(() => {});
   } catch (error) {
     next(error);
   }
@@ -98,6 +117,12 @@ export async function logoutAll(req, res, next) {
   try {
     await AuthService.logoutAll(req.user.userId);
     res.status(200).json({ success: true, message: "Se han cerrado todas las sesiones" });
+
+    ActivityLogService.logEvent(
+      req.user.userId, "LOGOUT",
+      { allSessions: true },
+      req.ip, req.headers["user-agent"],
+    ).catch(() => {});
   } catch (error) {
     next(error);
   }

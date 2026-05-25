@@ -2,6 +2,7 @@ import {
   getReadChapterIds, toggleChapterRead,
   markChaptersUntil, getUserReadingStats, getFullStats,
 } from "./readService.js";
+import { ActivityLogService } from "../activityLog/activityLogService.js";
 
 export async function handleGetReadChapters(req, res, next) {
   try {
@@ -29,6 +30,17 @@ export async function handleMarkChaptersUntil(req, res, next) {
     const { chapterId } = req.params;
     const result = await markChaptersUntil(req.user.userId, chapterId);
     res.json(result);
+
+    ActivityLogService.logEvent(
+      req.user.userId, "MARK_READ",
+      {
+        chapterId: Number(chapterId),
+        seriesId: result.seriesId,
+        seriesName: result.seriesName,
+        count: result.updated,
+      },
+      req.ip, req.headers["user-agent"],
+    ).catch(() => {});
   } catch (error) {
     next(error);
   }

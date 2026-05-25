@@ -1,4 +1,5 @@
 import { AdminUserService } from "./adminUserService.js";
+import { ActivityLogService } from "../activityLog/activityLogService.js";
 
 export async function listUsers(req, res, next) {
   try {
@@ -21,6 +22,29 @@ export async function updateRole(req, res, next) {
     const { role } = req.body;
     const user = await AdminUserService.updateRole(targetUserId, role, req.user.userId);
     res.json({ success: true, message: "Rol actualizado", data: user });
+
+    ActivityLogService.logEvent(
+      req.user.userId, "UPDATE_ROLE",
+      { targetUserId, oldRole: user.role, newRole: role },
+      req.ip, req.headers["user-agent"],
+    ).catch(() => {});
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateStatus(req, res, next) {
+  try {
+    const targetUserId = req.params.id;
+    const { status } = req.body;
+    const user = await AdminUserService.updateStatus(targetUserId, status, req.user.userId);
+    res.json({ success: true, message: "Estado actualizado", data: user });
+
+    ActivityLogService.logEvent(
+      req.user.userId, "UPDATE_USER_STATUS",
+      { targetUserId, newStatus: status },
+      req.ip, req.headers["user-agent"],
+    ).catch(() => {});
   } catch (error) {
     next(error);
   }

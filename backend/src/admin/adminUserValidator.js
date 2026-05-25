@@ -27,3 +27,12 @@ export const updateRoleValidator = [
     .isIn(["ADMIN", "USER"])
     .withMessage("Rol inválido"),
 ];
+
+export const updateStatusValidator = [
+  param("id")
+    .notEmpty()
+    .isString().withMessage("ID de usuario inválido"),
+  body("status")
+    .isIn(["ACTIVE", "BANNED", "SUSPENDED"])
+    .withMessage("Estado inválido"),
+];
