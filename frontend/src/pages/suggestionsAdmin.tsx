@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { getAllSuggestions, updateSuggestionStatus } from "@/api/suggestions";
 import type { Suggestion, SuggestionType, SuggestionStatus } from "@/types/suggestion";
 import {
@@ -302,8 +303,11 @@ export default function SuggestionsAdmin() {
         try {
             await updateSuggestionStatus(id, newStatus);
             fetchSuggestions();
+            toast.success("Estado actualizado", {
+                description: `Sugerencia #${id} marcada como ${STATUS_LABELS[newStatus].toLowerCase()}`,
+            });
         } catch {
-            // Silenciar
+            toast.error("Error al actualizar el estado");
         }
     };
 
