@@ -27,6 +27,7 @@ import {
     Users,
     MessageSquare,
     BarChart3,
+    ScrollText,
     Shield,
     ChevronRight,
     UserRound,
@@ -315,6 +316,13 @@ export function AdminSidebar() {
                                     href="/admin/sugerencias"
                                     icon={MessageSquare}
                                     label="Sugerencias"
+                                />
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <NavItem
+                                    href="/admin/logs"
+                                    icon={ScrollText}
+                                    label="Actividad"
                                 />
                             </SidebarMenuItem>
                             <SidebarMenuItem>

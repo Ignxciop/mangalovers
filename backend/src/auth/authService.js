@@ -62,6 +62,11 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user);
     const refreshToken = await RefreshTokenService.createRefreshToken(user.id);
 
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
     const userWithoutPassword = { ...user };
     delete userWithoutPassword.password;
 
@@ -105,6 +110,11 @@ export class AuthService {
     } else {
       await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
 
     const accessToken = this.generateAccessToken(user);
     const refreshToken = await RefreshTokenService.createRefreshToken(user.id);

@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import { authenticate } from "../middlewares/auth.js";
 import { authorize } from "../middlewares/authorize.js";
 import { validate } from "../utils/validate.js";
+import { ActivityLogService } from "../activityLog/activityLogService.js";
 import {
   createSuggestionValidator,
   updateStatusValidator,
@@ -20,7 +21,18 @@ const createLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: "Demasiadas sugerencias, intenta de nuevo más tarde" },
+  handler: async (req, res) => {
+    if (req.user?.userId) {
+      try {
+        await ActivityLogService.logEvent(
+          req.user.userId, "RATE_LIMIT",
+          { route: req.originalUrl, method: req.method },
+          req.ip, req.headers["user-agent"],
+        );
+      } catch { /* ignore */ }
+    }
+    res.status(429).json({ success: false, message: "Demasiadas sugerencias, intenta de nuevo más tarde" });
+  },
 });
 
 const router = Router();

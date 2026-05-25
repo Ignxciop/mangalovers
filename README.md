@@ -187,7 +187,7 @@ backend/
 
 frontend/
 ├── src/
-│   ├── pages/                  # ChapterReader, MangaDetail, MangaList, etc.
+│   ├── pages/                  # adminDashboard, adminUsers, adminMetrics, adminSuggestions, etc.
 │   ├── hooks/                  # Custom hooks para datos y UI
 │   ├── api/                    # Cliente Axios con interceptor JWT
 │   ├── store/                  # Zustand store (auth)
