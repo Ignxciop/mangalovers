@@ -1,4 +1,5 @@
 import { prisma } from "../config/prisma.js";
+import logger from "../config/logger.js";
 
 const VALID_EVENTS = new Set([
   "LOGIN", "LOGOUT", "REGISTER",
@@ -12,12 +13,20 @@ const VALID_EVENTS = new Set([
 export class ActivityLogService {
   static async logEvent(userId, event, metadata = null, ip = null, userAgent = null) {
     if (!VALID_EVENTS.has(event)) {
+      logger.warn({ event }, "ActivityLog: evento inválido");
       throw new Error(`Invalid activity event: ${event}`);
     }
 
-    return prisma.userActivity.create({
-      data: { userId, event, metadata, ip, userAgent },
-    });
+    try {
+      const result = await prisma.userActivity.create({
+        data: { userId, event, metadata, ip, userAgent },
+      });
+      logger.info({ userId, event, id: result.id }, "ActivityLog: evento guardado");
+      return result;
+    } catch (error) {
+      logger.error({ err: error.message, userId, event }, "ActivityLog: error al guardar");
+      throw error;
+    }
   }
 
   static async getUserLogs(userId, page = 1, limit = 20, filters = {}) {

@@ -122,6 +122,16 @@ app.use("/api/favorites", favoriteLimiter);
 app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "OK", message: "Server está activo" });
 });
+app.get("/api/debug/log-test", async (req, res) => {
+    try {
+        const { userId, event = "LOGIN" } = req.query;
+        if (!userId) return res.status(400).json({ error: "Falta userId" });
+        const result = await ActivityLogService.logEvent(userId, event, { test: true }, req.ip, req.headers["user-agent"]);
+        res.json({ success: true, data: result });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/manga", mangaRoutes);
 app.use("/api/favorites", favoriteRoutes);
