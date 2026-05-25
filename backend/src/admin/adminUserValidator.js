@@ -9,6 +9,10 @@ export const listUsersValidator = [
     .optional()
     .isIn(["ADMIN", "USER"])
     .withMessage("Rol inválido"),
+  query("status")
+    .optional()
+    .isIn(["ACTIVE", "BANNED", "SUSPENDED"])
+    .withMessage("Estado inválido"),
   query("page")
     .optional()
     .toInt()
@@ -26,4 +30,13 @@ export const updateRoleValidator = [
   body("role")
     .isIn(["ADMIN", "USER"])
     .withMessage("Rol inválido"),
+];
+
+export const updateStatusValidator = [
+  param("id")
+    .notEmpty()
+    .isString().withMessage("ID de usuario inválido"),
+  body("status")
+    .isIn(["ACTIVE", "BANNED", "SUSPENDED"])
+    .withMessage("Estado inválido"),
 ];
