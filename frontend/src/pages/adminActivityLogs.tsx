@@ -73,6 +73,23 @@ function EventBadge({ event }: { event: string }) {
     );
 }
 
+function formatMetadata(event: string, metadata: Record<string, unknown> | null): string {
+    if (!metadata) return "";
+    switch (event) {
+        case "MARK_READ":
+            return (metadata.seriesName ? String(metadata.seriesName) + " - " : "") + "Cap. " + (metadata.chapterName ?? metadata.chapterId);
+        case "ADD_FAVORITE":
+        case "REMOVE_FAVORITE":
+            if (metadata.seriesName) return `"${metadata.seriesName}"`;
+            return JSON.stringify(metadata).slice(0, 60);
+        case "SEND_SUGGESTION":
+            if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
+            return JSON.stringify(metadata).slice(0, 60);
+        default:
+            return JSON.stringify(metadata).slice(0, 60);
+    }
+}
+
 const VALID_EVENTS = Object.keys(EVENT_LABELS);
 
 export default function AdminActivityLogs() {
@@ -258,13 +275,9 @@ export default function AdminActivityLogs() {
                                                     <EventBadge event={log.event} />
                                                 </td>
                                                 <td className="px-3 py-2.5">
-                                                    <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                                        {log.metadata && Object.entries(log.metadata).slice(0, 3).map(([key, val]) => (
-                                                            <span key={key} className="text-[10px] text-muted-foreground/70 bg-muted/40 rounded px-1 py-0.5">
-                                                                {key}: {String(val).slice(0, 30)}
-                                                            </span>
-                                                        ))}
-                                                    </div>
+                                                    <span className="text-[10px] text-muted-foreground/70">
+                                                        {formatMetadata(log.event, log.metadata)}
+                                                    </span>
                                                 </td>
                                                 <td className="px-3 py-2.5 hidden md:table-cell">
                                                     <span className="text-[10px] text-muted-foreground/50 font-mono">{log.ip ?? "—"}</span>

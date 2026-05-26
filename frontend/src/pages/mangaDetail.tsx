@@ -212,7 +212,7 @@ export default function MangaDetail() {
         save: saveFav,
         remove: removeFav,
     } = useFavorite(series?.id ?? 0);
-    const { readIds, toggle: toggleRead } = useReadChapters(
+    const { readIds, toggle: toggleRead, markUntil } = useReadChapters(
         series?.id ?? 0,
         series?.chapters ?? [],
     );
@@ -437,12 +437,13 @@ export default function MangaDetail() {
 
                                 {nextChapter && readIds.size > 0 && (
                                     <button
-                                        onClick={() =>
+                                        onClick={() => {
+                                            markUntil(nextChapter.id);
                                             navigate(
                                                 `/manga/${slug}/capitulo/${nextChapter.id}`,
                                                 { state: { from: backUrl } },
-                                            )
-                                        }
+                                            );
+                                        }}
                                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-semibold hover:bg-secondary/80 transition-colors border border-border"
                                     >
                                         <PlayCircle className="h-4 w-4" />
