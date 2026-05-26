@@ -155,13 +155,11 @@ function ChapterNav({
     prev,
     next,
     from,
-    onNext,
 }: {
     slug: string;
     prev: { id: number; name: string } | null;
     next: { id: number; name: string } | null;
     from: string;
-    onNext?: (chapterId: number) => void;
 }) {
     const navigate = useNavigate();
 
@@ -185,13 +183,8 @@ function ChapterNav({
 
             <Button
                 disabled={!next}
-                onClick={async () => {
+                onClick={() => {
                     if (!next) return;
-
-                    if (onNext) {
-                        await onNext(next.id);
-                    }
-
                     navigate(`/manga/${slug}/capitulo/${next.id}`, {
                         state: { from },
                     });
@@ -471,7 +464,6 @@ export default function ChapterReader() {
                     prev={chapter.prev}
                     next={chapter.next}
                     from={from}
-                    onNext={markUntil}
                 />
 
                 {prefs.mode === "cascade" ? (
@@ -519,7 +511,6 @@ export default function ChapterReader() {
                     prev={chapter.prev}
                     next={chapter.next}
                     from={from}
-                    onNext={markUntil}
                 />
 
                 <div className="text-center py-6 text-muted-foreground text-sm">
