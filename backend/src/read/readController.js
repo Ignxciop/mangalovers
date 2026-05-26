@@ -21,6 +21,19 @@ export async function handleToggleChapterRead(req, res, next) {
     const chapterId = Number(req.params.chapterId);
     const result = await toggleChapterRead(userId, chapterId);
     res.json(result);
+
+    if (result.seriesName) {
+      ActivityLogService.logEvent(
+        userId, "MARK_READ",
+        {
+          chapterId,
+          seriesId: result.seriesId,
+          seriesName: result.seriesName,
+          count: result.updated,
+        },
+        req.ip, req.headers["user-agent"],
+      ).catch((err) => logger.warn({ err, userId, event: "MARK_READ" }, "ActivityLog error"));
+    }
   } catch (error) {
     next(error);
   }
