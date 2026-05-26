@@ -76,14 +76,8 @@ function EventBadge({ event }: { event: string }) {
 function formatMetadata(event: string, metadata: Record<string, unknown> | null): string {
     if (!metadata) return "";
     switch (event) {
-        case "MARK_READ": {
-            const parts: string[] = [];
-            if (metadata.seriesName) parts.push(String(metadata.seriesName));
-            if (metadata.chapterId) parts.push("Cap. " + metadata.chapterId);
-            const count = Number(metadata.count);
-            if (count > 1) parts.push(count + " marcados");
-            return parts.join(" · ");
-        }
+        case "MARK_READ":
+            return (metadata.seriesName ? String(metadata.seriesName) + " - " : "") + "Cap. " + (metadata.chapterName ?? metadata.chapterId);
         case "ADD_FAVORITE":
         case "REMOVE_FAVORITE":
             if (metadata.seriesName) return `"${metadata.seriesName}"`;

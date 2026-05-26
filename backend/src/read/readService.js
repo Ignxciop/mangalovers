@@ -92,7 +92,7 @@ export async function markChaptersUntil(userId, chapterId) {
   const [chapters, series] = await Promise.all([
     prisma.chapter.findMany({
       where: { seriesId: target.seriesId, number: { lte: target.number } },
-      select: { id: true },
+      select: { id: true, name: true },
     }),
     prisma.series.findUnique({
       where: { id: target.seriesId },
@@ -100,14 +100,28 @@ export async function markChaptersUntil(userId, chapterId) {
     }),
   ]);
 
-  if (chapters.length === 0) return { updated: 0, seriesId: target.seriesId, seriesName: series?.name };
+  if (chapters.length === 0) return { updated: 0, seriesId: target.seriesId, seriesName: series?.name, newChapters: [] };
 
-  await prisma.userChapterRead.createMany({
-    data: chapters.map((c) => ({ userId, chapterId: c.id })),
-    skipDuplicates: true,
+  const existing = await prisma.userChapterRead.findMany({
+    where: { userId, chapter: { seriesId: target.seriesId } },
+    select: { chapterId: true },
   });
 
-  return { updated: chapters.length, seriesId: target.seriesId, seriesName: series?.name };
+  const existingIds = new Set(existing.map((e) => e.chapterId));
+  const toCreate = chapters.filter((c) => !existingIds.has(c.id));
+
+  if (toCreate.length > 0) {
+    await prisma.userChapterRead.createMany({
+      data: toCreate.map((c) => ({ userId, chapterId: c.id })),
+    });
+  }
+
+  return {
+    updated: chapters.length,
+    seriesId: target.seriesId,
+    seriesName: series?.name,
+    newChapters: toCreate.map((c) => ({ id: c.id, name: c.name })),
+  };
 }
 
 export async function unmarkChaptersFrom(userId, chapterId) {
