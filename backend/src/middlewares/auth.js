@@ -3,6 +3,8 @@ import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
 import { UnauthorizedError, ForbiddenError } from "../utils/errors.js";
 
+const lastLoginCache = new Map();
+
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -27,6 +29,16 @@ export const authenticate = async (req, res, next) => {
     }
 
     next();
+
+    const now = Date.now();
+    const last = lastLoginCache.get(req.user.userId);
+    if (!last || now - last > 3600000) {
+      lastLoginCache.set(req.user.userId, now);
+      prisma.user.update({
+        where: { id: req.user.userId },
+        data: { lastLoginAt: new Date() },
+      }).catch(() => {});
+    }
   } catch (error) {
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return next(error);

@@ -14,7 +14,6 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { ChapterImage } from "@/components/chapterImage";
-import { useAuthStore } from "@/store/authStore";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { useReadChapters } from "@/hooks/useReadChapters";
 import { Progress } from "@/components/ui/progress";
@@ -186,13 +185,9 @@ function ChapterNav({
 
             <Button
                 disabled={!next}
-                onClick={async () => {
+                onClick={() => {
                     if (!next) return;
-
-                    if (onNext) {
-                        await onNext(next.id);
-                    }
-
+                    onNext?.(next.id);
                     navigate(`/manga/${slug}/capitulo/${next.id}`, {
                         state: { from },
                     });
@@ -279,10 +274,9 @@ export default function ChapterReader() {
         chapterId ? Number(chapterId) : null,
     );
 
-    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const { series } = useSeriesDetail(slug ?? "");
     const chapters = useMemo(() => series?.chapters ?? [], [series]);
-    const { markUntil, refetch } = useReadChapters(series?.id ?? 0, chapters);
+    const { readIds, markUntil, refetch } = useReadChapters(series?.id ?? 0, chapters);
     const prevChapterIdRef = useRef(chapterId);
 
     useEffect(() => {
@@ -301,14 +295,23 @@ export default function ChapterReader() {
     });
 
     const markUntilRef = useRef(markUntil);
+    const pendingMarkRef = useRef<number | null>(null);
     useEffect(() => {
         markUntilRef.current = markUntil;
     });
 
     useEffect(() => {
-        if (isAuthenticated || !chapter || !series) return;
-        markUntilRef.current(chapter.chapterId);
-    }, [chapter, isAuthenticated, series]);
+        if (!chapter || !series) return;
+        if (readIds.has(chapter.chapterId)) return;
+        if (pendingMarkRef.current === chapter.chapterId) return;
+
+        pendingMarkRef.current = chapter.chapterId;
+        markUntilRef.current(chapter.chapterId).finally(() => {
+            if (pendingMarkRef.current === chapter.chapterId) {
+                pendingMarkRef.current = null;
+            }
+        });
+    }, [chapter, series, readIds]);
 
     function updateMode(mode: ReadMode) {
         const updated = { ...prefs, mode };

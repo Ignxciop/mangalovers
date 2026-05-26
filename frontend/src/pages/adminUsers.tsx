@@ -108,12 +108,29 @@ function formatRelative(iso: string) {
     const diff = Date.now() - new Date(iso).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "ahora";
-    if (mins < 60) return `hace ${mins} min`;
+    if (mins < 60) return "hace " + mins + " min";
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `hace ${hrs} h`;
+    if (hrs < 24) return "hace " + hrs + " h";
     const days = Math.floor(hrs / 24);
-    if (days < 7) return `hace ${days} día${days > 1 ? "s" : ""}`;
+    if (days < 7) return "hace " + days + (days > 1 ? " dias" : " dia");
     return formatDate(iso);
+}
+
+function formatLogMetadata(event: string, metadata: Record<string, unknown> | null): string {
+    if (!metadata) return "";
+    switch (event) {
+        case "MARK_READ":
+            return (metadata.seriesName ? String(metadata.seriesName) + " - " : "") + "Cap. " + (metadata.chapterName ?? metadata.chapterId);
+        case "ADD_FAVORITE":
+        case "REMOVE_FAVORITE":
+            if (metadata.seriesName) return '"' + metadata.seriesName + '"';
+            return JSON.stringify(metadata).slice(0, 60);
+        case "SEND_SUGGESTION":
+            if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
+            return JSON.stringify(metadata).slice(0, 60);
+        default:
+            return JSON.stringify(metadata).slice(0, 60);
+    }
 }
 
 function StatusText({ status }: { status: UserStatus }) {
@@ -263,7 +280,7 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                                     </span>
                                     {log.metadata && (
                                         <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
-                                            {JSON.stringify(log.metadata)}
+                                            {formatLogMetadata(log.event, log.metadata)}
                                         </p>
                                     )}
                                 </div>

@@ -21,6 +21,20 @@ export async function handleToggleChapterRead(req, res, next) {
     const chapterId = Number(req.params.chapterId);
     const result = await toggleChapterRead(userId, chapterId);
     res.json(result);
+
+    if (result.newChapters && result.newChapters.length > 0) {
+      for (const ch of result.newChapters) {
+        try {
+          await ActivityLogService.logEvent(
+            userId, "MARK_READ",
+            { chapterId: ch.id, chapterName: ch.name, seriesId: result.seriesId, seriesName: result.seriesName },
+            req.ip, req.headers["user-agent"],
+          );
+        } catch (err) {
+          logger.warn({ err, userId, event: "MARK_READ" }, "ActivityLog error");
+        }
+      }
+    }
   } catch (error) {
     next(error);
   }
@@ -32,16 +46,19 @@ export async function handleMarkChaptersUntil(req, res, next) {
     const result = await markChaptersUntil(req.user.userId, chapterId);
     res.json(result);
 
-    ActivityLogService.logEvent(
-      req.user.userId, "MARK_READ",
-      {
-        chapterId: Number(chapterId),
-        seriesId: result.seriesId,
-        seriesName: result.seriesName,
-        count: result.updated,
-      },
-      req.ip, req.headers["user-agent"],
-    ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "MARK_READ" }, "ActivityLog error"));
+    if (result.newChapters && result.newChapters.length > 0) {
+      for (const ch of result.newChapters) {
+        try {
+          await ActivityLogService.logEvent(
+            req.user.userId, "MARK_READ",
+            { chapterId: ch.id, chapterName: ch.name, seriesId: result.seriesId, seriesName: result.seriesName },
+            req.ip, req.headers["user-agent"],
+          );
+        } catch (err) {
+          logger.warn({ err, userId: req.user.userId, event: "MARK_READ" }, "ActivityLog error");
+        }
+      }
+    }
   } catch (error) {
     next(error);
   }
