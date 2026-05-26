@@ -93,6 +93,7 @@ export async function markChaptersUntil(userId, chapterId) {
     prisma.chapter.findMany({
       where: { seriesId: target.seriesId, number: { lte: target.number } },
       select: { id: true, name: true },
+      orderBy: { number: "asc" },
     }),
     prisma.series.findUnique({
       where: { id: target.seriesId },
