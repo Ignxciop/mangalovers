@@ -77,8 +77,8 @@ export async function toggleChapterRead(
 
 export async function markChapterUntil(
     chapterId: number,
-): Promise<{ updated: number }> {
-    const { data } = await api.post<{ updated: number }>(
+): Promise<{ updated: number; seriesId: number; seriesName: string; newChapters: { id: number; name: string }[] }> {
+    const { data } = await api.post<{ updated: number; seriesId: number; seriesName: string; newChapters: { id: number; name: string }[] }>(
         `/reads/chapter/${chapterId}/mark-until`,
     );
     return data;
