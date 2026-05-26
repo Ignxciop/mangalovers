@@ -123,7 +123,8 @@ function formatLogMetadata(event: string, metadata: Record<string, unknown> | nu
             const parts: string[] = [];
             if (metadata.seriesName) parts.push(String(metadata.seriesName));
             if (metadata.chapterId) parts.push("Cap. " + metadata.chapterId);
-            if (metadata.count) parts.push("(" + metadata.count + ")");
+            const count = Number(metadata.count);
+            if (count > 1) parts.push(count + " marcados");
             return parts.join(" · ");
         }
         case "ADD_FAVORITE":

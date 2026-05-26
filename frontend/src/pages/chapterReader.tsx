@@ -292,6 +292,7 @@ export default function ChapterReader() {
     });
 
     const markUntilRef = useRef(markUntil);
+    const pendingMarkRef = useRef<number | null>(null);
     useEffect(() => {
         markUntilRef.current = markUntil;
     });
@@ -299,7 +300,14 @@ export default function ChapterReader() {
     useEffect(() => {
         if (!chapter || !series) return;
         if (readIds.has(chapter.chapterId)) return;
-        markUntilRef.current(chapter.chapterId);
+        if (pendingMarkRef.current === chapter.chapterId) return;
+
+        pendingMarkRef.current = chapter.chapterId;
+        markUntilRef.current(chapter.chapterId).finally(() => {
+            if (pendingMarkRef.current === chapter.chapterId) {
+                pendingMarkRef.current = null;
+            }
+        });
     }, [chapter, series, readIds]);
 
     function updateMode(mode: ReadMode) {
