@@ -42,6 +42,7 @@ model User {
   lastname          String
   role              Role               @default(USER)
   status            UserStatus         @default(ACTIVE)
+  suspendedUntil    DateTime?
   lastLoginAt       DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt

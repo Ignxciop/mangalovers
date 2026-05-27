@@ -8,6 +8,7 @@ export interface AdminUser {
     lastname: string;
     role: UserRole;
     status: UserStatus;
+    suspendedUntil: string | null;
     lastLoginAt: string | null;
     createdAt: string;
     _count: {
@@ -38,12 +39,39 @@ export interface UpdateRoleResponse {
         lastname: string;
         role: UserRole;
         status: UserStatus;
+        suspendedUntil: string | null;
         lastLoginAt: string | null;
         createdAt: string;
     };
 }
 
-export type UpdateStatusResponse = UpdateRoleResponse;
+export interface UpdateStatusResponse {
+    success: boolean;
+    message: string;
+    data: {
+        id: string;
+        email: string;
+        name: string;
+        lastname: string;
+        role: UserRole;
+        status: UserStatus;
+        suspendedUntil: string | null;
+        lastLoginAt: string | null;
+        createdAt: string;
+    };
+}
+
+export interface UserStatusHistory {
+    suspensionCount: number;
+    lastSuspension: string | null;
+    banCount: number;
+    lastBan: string | null;
+}
+
+export interface UserStatusHistoryResponse {
+    success: boolean;
+    data: UserStatusHistory;
+}
 
 export interface AdminMetrics {
     users: {

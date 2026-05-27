@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ValidationError } from "../utils/errors.js";
+import logger from "../config/logger.js";
 
 export class AdminUserService {
   static async listUsers(page = 1, limit = 20, filters = {}) {
@@ -35,6 +36,7 @@ export class AdminUserService {
           lastname: true,
           role: true,
           status: true,
+          suspendedUntil: true,
           lastLoginAt: true,
           createdAt: true,
           _count: {
@@ -73,13 +75,21 @@ export class AdminUserService {
         lastname: true,
         role: true,
         status: true,
+        suspendedUntil: true,
         lastLoginAt: true,
         createdAt: true,
       },
     });
   }
 
-  static async updateStatus(targetUserId, newStatus, adminUserId) {
+  static async getUserBasicInfo(id) {
+    return prisma.user.findUnique({
+      where: { id },
+      select: { name: true, lastname: true, role: true, status: true, suspendedUntil: true },
+    });
+  }
+
+  static async updateStatus(targetUserId, status, adminUserId, suspendedUntil) {
     if (targetUserId === adminUserId) {
       throw new ValidationError("No puedes cambiar tu propio estado");
     }
@@ -87,9 +97,16 @@ export class AdminUserService {
     const user = await prisma.user.findUnique({ where: { id: targetUserId } });
     if (!user) throw new NotFoundError("Usuario no encontrado");
 
+    const updateData = { status };
+    if (status === "SUSPENDED" && suspendedUntil) {
+      updateData.suspendedUntil = new Date(suspendedUntil);
+    } else if (status !== "SUSPENDED") {
+      updateData.suspendedUntil = null;
+    }
+
     return prisma.user.update({
       where: { id: targetUserId },
-      data: { status: newStatus },
+      data: updateData,
       select: {
         id: true,
         email: true,
@@ -97,32 +114,36 @@ export class AdminUserService {
         lastname: true,
         role: true,
         status: true,
+        suspendedUntil: true,
         lastLoginAt: true,
         createdAt: true,
       },
     });
   }
 
-  static async updateStatus(targetUserId, status, adminUserId) {
-    if (targetUserId === adminUserId) {
-      throw new ValidationError("No puedes cambiar tu propio estado");
+  static async getStatusHistory(userId) {
+    try {
+      const logs = await prisma.userActivity.findMany({
+        where: {
+          event: "UPDATE_USER_STATUS",
+          metadata: { path: ["targetUserId"], equals: userId },
+        },
+        orderBy: { createdAt: "desc" },
+        select: { metadata: true, createdAt: true },
+      });
+
+      const suspensions = logs.filter((l) => l.metadata?.newStatus === "SUSPENDED");
+      const bans = logs.filter((l) => l.metadata?.newStatus === "BANNED");
+
+      return {
+        suspensionCount: suspensions.length,
+        lastSuspension: suspensions[0]?.createdAt ?? null,
+        banCount: bans.length,
+        lastBan: bans[0]?.createdAt ?? null,
+      };
+    } catch (error) {
+      logger.warn({ err: error, userId }, "Error fetching status history");
+      return { suspensionCount: 0, lastSuspension: null, banCount: 0, lastBan: null };
     }
-
-    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
-    if (!user) throw new NotFoundError("Usuario no encontrado");
-
-    return prisma.user.update({
-      where: { id: targetUserId },
-      data: { status },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        lastname: true,
-        role: true,
-        status: true,
-        createdAt: true,
-      },
-    });
   }
 }
