@@ -83,20 +83,20 @@ function DetailPanel({
         <div className="space-y-4 text-sm">
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1">
-                    <span className={cn("text-xs font-medium", STATUS_COLORS[suggestion.status])}>
+                    <span className={cn("text-sm font-medium", STATUS_COLORS[suggestion.status])}>
                         {STATUS_LABELS[suggestion.status]}
                     </span>
-                    <h2 className="text-base font-semibold leading-snug break-words">
+                    <h2 className="text-lg font-semibold leading-snug break-words">
                         {suggestion.title}
                     </h2>
-                    <span className="text-xs text-muted-foreground">{TYPE_LABELS[suggestion.type]}</span>
+                    <span className="text-sm text-muted-foreground">{TYPE_LABELS[suggestion.type]}</span>
                 </div>
                 <Select
                     value={suggestion.status}
                     onValueChange={(v) => onStatusChange(suggestion.id, v as SuggestionStatus)}
                 >
-                    <SelectTrigger className="min-w-[8rem] h-7 text-xs shrink-0">
-                        <RefreshCw className="size-3 mr-1 shrink-0" />
+                    <SelectTrigger className="min-w-[9rem] h-9 text-sm shrink-0">
+                        <RefreshCw className="size-4 mr-1 shrink-0" />
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -107,7 +107,7 @@ function DetailPanel({
                 </Select>
             </div>
 
-            <div className="bg-muted/10 rounded-lg border border-border/60 p-3 text-xs leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+            <div className="bg-muted/10 rounded-lg border border-border/60 p-4 text-sm leading-relaxed whitespace-pre-wrap max-h-[240px] overflow-y-auto">
                 {suggestion.description}
             </div>
 
@@ -116,30 +116,30 @@ function DetailPanel({
                     href={suggestion.image}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground underline underline-offset-2"
                 >
                     Ver captura
                 </a>
             )}
 
-            <div className="border-t border-border pt-3 space-y-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <User className="size-3.5 shrink-0" />
+            <div className="border-t border-border pt-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <User className="size-4 shrink-0" />
                     <span>
                         {suggestion.user?.name
                             ? `${suggestion.user.name} ${suggestion.user.lastname}`
                             : suggestion.user?.email ?? "—"}
                     </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="size-3.5 shrink-0" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="size-4 shrink-0" />
                     <span>{new Date(suggestion.createdAt).toLocaleDateString("es-ES", {
                         year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
                     })}</span>
                 </div>
                 {suggestion.reviewedBy && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Tag className="size-3.5 shrink-0" />
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Tag className="size-4 shrink-0" />
                         <span>
                             Revisado por {suggestion.reviewedBy.name} {suggestion.reviewedBy.lastname}
                         </span>
@@ -285,15 +285,15 @@ export default function AdminSuggestions() {
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-xs font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <span className="text-sm font-medium text-muted-foreground shrink-0 hidden sm:block">
                             Sugerencias
                         </span>
                         <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 ref={searchInputRef}
                                 placeholder="Buscar..."
-                                className="pl-7 pr-7 h-7 text-xs bg-muted/40 border-none"
+                                className="pl-9 pr-8 h-9 text-sm bg-muted/40 border-none"
                                 value={searchText}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 onKeyDown={(e) => {
@@ -306,34 +306,34 @@ export default function AdminSuggestions() {
                             {searchText && (
                                 <button
                                     onClick={clearSearch}
-                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                 >
-                                    <X className="size-3" />
+                                    <X className="size-4" />
                                 </button>
                             )}
                         </div>
                     </div>
                     <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
                         <SheetTrigger asChild>
-                            <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar por tipo">
-                                <SlidersHorizontal className="size-3.5" />
+                            <button className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar por tipo">
+                                <SlidersHorizontal className="size-4" />
                                 {activeFiltersCount > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-primary text-primary-foreground text-[6px] flex items-center justify-center font-bold">
+                                    <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-primary text-primary-foreground text-[7px] flex items-center justify-center font-bold">
                                         {activeFiltersCount}
                                     </span>
                                 )}
                             </button>
                         </SheetTrigger>
-                        <SheetContent side="right" className="w-64">
-                            <SheetHeader className="pb-3">
-                                <SheetTitle className="text-xs font-medium">Filtrar por tipo</SheetTitle>
+                        <SheetContent side="right" className="w-72">
+                            <SheetHeader className="pb-4">
+                                <SheetTitle className="text-sm font-medium">Filtrar por tipo</SheetTitle>
                             </SheetHeader>
-                            <div className="flex flex-wrap gap-1.5">
+                            <div className="flex flex-wrap gap-2">
                                 {VALID_TYPES.map((t) => (
                                     <Badge
                                         key={t}
                                         variant={typeFilter === t ? "default" : "outline"}
-                                        className="cursor-pointer text-[10px] px-2 py-0.5"
+                                        className="cursor-pointer text-xs px-3 py-1"
                                         onClick={() => {
                                             updateFilter("type", typeFilter === t ? "" : t);
                                             setFilterSheetOpen(false);
@@ -363,35 +363,35 @@ export default function AdminSuggestions() {
                     </div>
                 ) : suggestions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
-                        <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
-                            <MessageSquare className="size-6 text-muted-foreground/30" />
+                        <div className="size-14 rounded-full bg-muted/30 flex items-center justify-center">
+                            <MessageSquare className="size-7 text-muted-foreground/30" />
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium text-muted-foreground/70">
+                        <div className="space-y-1.5">
+                            <p className="text-base font-medium text-muted-foreground/70">
                                 {activeFiltersCount > 0 || searchQuery ? "Sin resultados" : "No hay sugerencias"}
                             </p>
-                            <p className="text-xs text-muted-foreground/50">
-                                {activeFiltersCount > 0 || searchQuery ? "Probá con otros filtros o búsqueda" : "Las sugerencias de los usuarios aparecerán aquí"}
+                            <p className="text-sm text-muted-foreground/50">
+                                {activeFiltersCount > 0 || searchQuery ? "Prueba con otros filtros o búsqueda" : "Las sugerencias de los usuarios aparecerán aquí"}
                             </p>
                         </div>
                     </div>
                 ) : (
                     <div className="flex gap-5 flex-1 min-h-0">
                         <div className="flex flex-col w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 min-h-0">
-                            <div className="flex items-center gap-1 pb-2 shrink-0 border-b border-border mb-2 overflow-x-auto">
+                            <div className="flex items-center gap-1 pb-2 shrink-0 border-b border-border mb-3 overflow-x-auto">
                                 {tabs.map((tab) => (
                                     <button
                                         key={tab.value}
                                         onClick={() => updateFilter("status", tab.value)}
                                         className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-md transition-all shrink-0",
+                                            "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shrink-0",
                                             statusFilter === tab.value
                                                 ? "bg-muted text-foreground shadow-sm"
                                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/40",
                                         )}
                                     >
                                         {tab.label}
-                                        <span className="text-[10px] text-muted-foreground/50">{tab.count}</span>
+                                        <span className="text-xs text-muted-foreground/50 ml-1">{tab.count}</span>
                                     </button>
                                 ))}
                             </div>
@@ -412,21 +412,21 @@ export default function AdminSuggestions() {
                                                 resolved && !isSelected && "opacity-50",
                                             )}
                                         >
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <span className={cn("text-[11px] font-medium", STATUS_COLORS[s.status])}>
-                                                    {STATUS_LABELS[s.status]}
-                                                </span>
-                                                <span className="text-[10px] text-muted-foreground/50">
-                                                    {TYPE_LABELS[s.type]}
-                                                </span>
-                                            </div>
-                                            <p className={cn(
-                                                "text-xs leading-snug truncate",
-                                                resolved ? "text-muted-foreground" : "text-foreground",
-                                            )}>
-                                                {s.title}
-                                            </p>
-                                            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground/50">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <span className={cn("text-xs font-medium", STATUS_COLORS[s.status])}>
+                                                {STATUS_LABELS[s.status]}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground/50">
+                                                {TYPE_LABELS[s.type]}
+                                            </span>
+                                        </div>
+                                        <p className={cn(
+                                            "text-sm leading-snug truncate",
+                                            resolved ? "text-muted-foreground" : "text-foreground",
+                                        )}>
+                                            {s.title}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground/50">
                                                 <span>{s.user?.name ?? s.user?.email ?? "—"}</span>
                                                 <span>·</span>
                                                 <span>{timeAgo(s.createdAt)}</span>
@@ -457,9 +457,9 @@ export default function AdminSuggestions() {
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full min-h-[200px]">
-                                    <p className="text-xs text-muted-foreground/50">
-                                        Seleccioná una sugerencia
-                                    </p>
+                                        <p className="text-sm text-muted-foreground/50">
+                                            Selecciona una sugerencia
+                                        </p>
                                 </div>
                             )}
                         </div>
@@ -471,14 +471,14 @@ export default function AdminSuggestions() {
                 setSheetOpen(open);
                 if (!open) setSelectedId(null);
             }}>
-                <SheetContent side="bottom" className="rounded-t-lg max-h-[80vh] flex flex-col gap-0 p-0">
-                    <SheetHeader className="px-4 py-2.5 border-b border-border shrink-0 flex-row items-center gap-2">
+                <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] flex flex-col gap-0 p-0">
+                    <SheetHeader className="px-6 py-5 border-b border-border flex-row items-center gap-2">
                         <SheetClose className="shrink-0">
-                            <ArrowLeft className="size-4" />
+                            <ArrowLeft className="size-5" />
                         </SheetClose>
-                        <SheetTitle className="text-xs font-medium">Detalle</SheetTitle>
+                        <SheetTitle className="text-base">Detalle</SheetTitle>
                     </SheetHeader>
-                    <div className="flex-1 overflow-y-auto p-4">
+                    <div className="flex-1 overflow-y-auto px-6 py-5">
                         {selected && (
                             <DetailPanel
                                 suggestion={selected}

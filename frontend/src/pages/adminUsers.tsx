@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { getUsers, updateUserRole, updateUserStatus, getActivityLogs } from "@/api/admin";
-import type { AdminUser, UserRole, UserStatus, ActivityLogEntry } from "@/types/admin";
+import { getUsers, updateUserRole, updateUserStatus, getActivityLogs, getUserStatusHistory } from "@/api/admin";
+import type { AdminUser, UserRole, UserStatus, ActivityLogEntry, UserStatusHistory } from "@/types/admin";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -124,18 +124,28 @@ function formatLogMetadata(event: string, metadata: Record<string, unknown> | nu
             return (metadata.seriesName ? String(metadata.seriesName) + " - " : "") + "Cap. " + (metadata.chapterName ?? metadata.chapterId);
         case "ADD_FAVORITE":
         case "REMOVE_FAVORITE":
-            if (metadata.seriesName) return '"' + metadata.seriesName + '"';
+            if (metadata.seriesName) return String(metadata.seriesName);
             return JSON.stringify(metadata).slice(0, 60);
         case "SEND_SUGGESTION":
             if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
             return JSON.stringify(metadata).slice(0, 60);
+        case "UPDATE_ROLE":
+            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
+        case "UPDATE_SUGGESTION_STATUS":
+            return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
+        case "UPDATE_USER_STATUS": {
+            const usMeta = metadata.targetUserName ? String(metadata.targetUserName) + ": " : "";
+            const usChange = String(metadata.oldStatus) + " → " + String(metadata.newStatus);
+            const usUntil = metadata.suspendedUntil ? " (hasta " + new Date(String(metadata.suspendedUntil)).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + ")" : "";
+            return usMeta + usChange + usUntil;
+        }
         default:
             return JSON.stringify(metadata).slice(0, 60);
     }
 }
 
 function StatusText({ status }: { status: UserStatus }) {
-    return <span className={cn("text-[11px] font-medium", STATUS_COLORS[status])}>{STATUS_LABELS[status]}</span>;
+    return <span className={cn("text-xs font-medium", STATUS_COLORS[status])}>{STATUS_LABELS[status]}</span>;
 }
 
 function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: boolean; onClick: () => void }) {
@@ -149,29 +159,29 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
                     : "hover:bg-muted/40 border border-transparent",
             )}
         >
-            <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[11px] font-bold text-muted-foreground">
+            <div className="flex items-center gap-3">
+                <div className="size-9 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
                     {user.name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium truncate">{user.name} {user.lastname}</span>
+                        <span className="text-sm font-medium truncate">{user.name} {user.lastname}</span>
                         <StatusText status={user.status} />
                     </div>
-                    <p className="text-[11px] text-muted-foreground/60 truncate">{user.email}</p>
+                    <p className="text-xs text-muted-foreground/60 truncate">{user.email}</p>
                 </div>
             </div>
-            <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground/50">
+            <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground/50">
                 <span className="flex items-center gap-1">
-                    <MessageSquare className="size-2.5" />
+                    <MessageSquare className="size-3" />
                     {user._count.suggestions}
                 </span>
                 <span className="flex items-center gap-1">
-                    <Bookmark className="size-2.5" />
+                    <Bookmark className="size-3" />
                     {user._count.favorites}
                 </span>
                 <span className="flex items-center gap-1">
-                    <BookOpen className="size-2.5" />
+                    <BookOpen className="size-3" />
                     {user._count.chapterReads}
                 </span>
             </div>
@@ -179,26 +189,27 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
     );
 }
 
-function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: {
+function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, statusHistory }: {
     user: AdminUser;
     onRoleChange: (userId: string, role: UserRole) => void;
     onStatusChange: (userId: string, status: UserStatus) => void;
     logs: ActivityLogEntry[];
     logsLoading: boolean;
+    statusHistory: UserStatusHistory | null;
 }) {
     return (
-        <div className="space-y-4 text-sm">
+        <div className="space-y-5">
             <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                    <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
+                <div className="flex items-center gap-3">
+                    <div className="size-10 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-sm font-bold text-muted-foreground">
                         {user.name[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                        <h2 className="text-sm font-semibold leading-snug">{user.name} {user.lastname}</h2>
+                        <h2 className="text-base font-semibold leading-snug">{user.name} {user.lastname}</h2>
                         <div className="flex items-center gap-2">
                             <StatusText status={user.status} />
-                            <span className="text-[10px] text-muted-foreground/50">·</span>
-                            <span className="text-[10px] text-muted-foreground/60">
+                            <span className="text-xs text-muted-foreground/50">·</span>
+                            <span className="text-xs text-muted-foreground/60">
                                 {user.role === "ADMIN" ? "Admin" : "Usuario"}
                             </span>
                         </div>
@@ -208,88 +219,96 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
 
             <div className="flex items-center gap-2">
                 <Select value={user.role} onValueChange={(v) => onRoleChange(user.id, v as UserRole)}>
-                    <SelectTrigger className="min-w-[7rem] h-7 text-xs shrink-0">
-                        <Shield className="size-3 mr-1 shrink-0" />
+                    <SelectTrigger className="min-w-[8rem] h-9 text-sm shrink-0">
+                        <Shield className="size-4 mr-1 shrink-0" />
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="USER">Usuario</SelectItem>
-                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem className="text-sm" value="USER">Usuario</SelectItem>
+                        <SelectItem className="text-sm" value="ADMIN">Admin</SelectItem>
                     </SelectContent>
                 </Select>
                 <Select value={user.status} onValueChange={(v) => onStatusChange(user.id, v as UserStatus)}>
-                    <SelectTrigger className="min-w-[7rem] h-7 text-xs shrink-0">
+                    <SelectTrigger className="min-w-[8rem] h-9 text-sm shrink-0">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="ACTIVE">Activo</SelectItem>
-                        <SelectItem value="SUSPENDED">Suspendido</SelectItem>
-                        <SelectItem value="BANNED">Baneado</SelectItem>
+                        <SelectItem className="text-sm" value="ACTIVE">Activo</SelectItem>
+                        <SelectItem className="text-sm" value="SUSPENDED">Suspendido</SelectItem>
+                        <SelectItem className="text-sm" value="BANNED">Baneado</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
 
-            <div className="border-t border-border pt-3 space-y-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Mail className="size-3.5 shrink-0" />
+            <div className="border-t border-border pt-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="size-4 shrink-0" />
                     <span>{user.email}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="size-3.5 shrink-0" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="size-4 shrink-0" />
                     <span>Registrado el {formatDate(user.createdAt)}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="size-3.5 shrink-0" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="size-4 shrink-0" />
                     <span>Última conexión: {formatDateTime(user.lastLoginAt)}</span>
                 </div>
             </div>
 
-            <div className="border-t border-border pt-3">
-                <p className="text-[11px] font-medium text-muted-foreground mb-2">Actividad</p>
-                <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-muted/20 rounded border border-border p-2 text-center">
-                        <p className="text-sm font-semibold">{user._count.suggestions}</p>
-                        <p className="text-[10px] text-muted-foreground">Sugerencias</p>
+            <div className="border-t border-border pt-4">
+                <p className="text-xs font-medium text-muted-foreground mb-3">Actividad</p>
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-muted/20 rounded-lg border border-border p-3 text-center">
+                        <p className="text-lg font-semibold">{user._count.suggestions}</p>
+                        <p className="text-xs text-muted-foreground">Sugerencias</p>
                     </div>
-                    <div className="bg-muted/20 rounded border border-border p-2 text-center">
-                        <p className="text-sm font-semibold">{user._count.favorites}</p>
-                        <p className="text-[10px] text-muted-foreground">Favoritos</p>
+                    <div className="bg-muted/20 rounded-lg border border-border p-3 text-center">
+                        <p className="text-lg font-semibold">{user._count.favorites}</p>
+                        <p className="text-xs text-muted-foreground">Favoritos</p>
                     </div>
-                    <div className="bg-muted/20 rounded border border-border p-2 text-center">
-                        <p className="text-sm font-semibold">{user._count.chapterReads}</p>
-                        <p className="text-[10px] text-muted-foreground">Lecturas</p>
+                    <div className="bg-muted/20 rounded-lg border border-border p-3 text-center">
+                        <p className="text-lg font-semibold">{user._count.chapterReads}</p>
+                        <p className="text-xs text-muted-foreground">Lecturas</p>
                     </div>
                 </div>
             </div>
 
-            <div className="border-t border-border pt-3">
-                <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2">
-                    <ScrollText className="size-3" />
+            <div className="border-t border-border pt-4">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-3">
+                    <ScrollText className="size-4" />
                     Últimos eventos
+                    {statusHistory && (statusHistory.suspensionCount > 0 || statusHistory.banCount > 0) && (
+                        <span className="text-muted-foreground/50 font-normal ml-auto">
+                            {statusHistory.suspensionCount > 0 && `${statusHistory.suspensionCount} susp.`}
+                            {statusHistory.suspensionCount > 0 && statusHistory.banCount > 0 && " · "}
+                            {statusHistory.banCount > 0 && `${statusHistory.banCount} ban.`}
+                            {user.status === "SUSPENDED" && user.suspendedUntil && ` · hasta ${new Date(user.suspendedUntil).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+                        </span>
+                    )}
                 </div>
                 {logsLoading ? (
                     <div className="space-y-2 py-2">
                         {Array.from({ length: 3 }).map((_, i) => (
-                            <Skeleton key={i} className="h-10 rounded-md" />
+                            <Skeleton key={i} className="h-12 rounded-md" />
                         ))}
                     </div>
                 ) : logs.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground/50 text-center py-6">Sin actividad registrada</p>
+                    <p className="text-xs text-muted-foreground/50 text-center py-6">Sin actividad registrada</p>
                 ) : (
                     <div className="space-y-1.5">
                         {logs.slice(0, 10).map((log) => (
-                            <div key={log.id} className="flex items-start gap-2 py-2 px-2.5 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors">
+                            <div key={log.id} className="flex items-start gap-3 py-2.5 px-3 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors">
                                 <div className="flex-1 min-w-0">
-                                    <span className={cn("inline-block text-[10px] font-medium px-1.5 py-0.5 rounded border", EVENT_COLORS[log.event] ?? "bg-muted text-muted-foreground border-border")}>
+                                    <span className={cn("inline-block text-xs font-medium px-2 py-0.5 rounded border", EVENT_COLORS[log.event] ?? "bg-muted text-muted-foreground border-border")}>
                                         {EVENT_LABELS[log.event] ?? log.event}
                                     </span>
                                     {log.metadata && (
-                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
+                                        <p className="text-xs text-muted-foreground/70 mt-1 truncate">
                                             {formatLogMetadata(log.event, log.metadata)}
                                         </p>
                                     )}
                                 </div>
-                                <time className="text-[10px] text-muted-foreground/50 shrink-0 pt-0.5">
+                                <time className="text-xs text-muted-foreground/50 shrink-0 pt-0.5">
                                     {formatRelative(log.createdAt)}
                                 </time>
                             </div>
@@ -309,6 +328,7 @@ export default function AdminUsers() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [userLogs, setUserLogs] = useState<ActivityLogEntry[]>([]);
     const [userLogsLoading, setUserLogsLoading] = useState(false);
+    const [statusHistory, setStatusHistory] = useState<UserStatusHistory | null>(null);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const [sheetOpen, setSheetOpen] = useState(false);
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -361,14 +381,20 @@ export default function AdminUsers() {
     useEffect(() => {
         if (!selectedId) {
             setUserLogs([]);
+            setStatusHistory(null);
             return;
         }
         setUserLogsLoading(true);
-        getActivityLogs({ userId: selectedId, limit: 10 }).then((res) => {
-            setUserLogs(res.data);
+        Promise.all([
+            getActivityLogs({ userId: selectedId, limit: 10 }),
+            getUserStatusHistory(selectedId),
+        ]).then(([logsRes, historyRes]) => {
+            setUserLogs(logsRes.data);
+            setStatusHistory(historyRes.data);
             setUserLogsLoading(false);
         }).catch(() => {
             setUserLogs([]);
+            setStatusHistory(null);
             setUserLogsLoading(false);
         });
     }, [selectedId]);
@@ -439,15 +465,15 @@ export default function AdminUsers() {
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-xs font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <span className="text-sm font-medium text-muted-foreground shrink-0 hidden sm:block">
                             Usuarios
                         </span>
                         <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 ref={searchInputRef}
                                 placeholder="Buscar..."
-                                className="pl-7 pr-7 h-7 text-xs bg-muted/40 border-none"
+                                className="pl-9 pr-8 h-9 text-sm bg-muted/40 border-none"
                                 value={searchText}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 onKeyDown={(e) => {
@@ -458,36 +484,36 @@ export default function AdminUsers() {
                                 }}
                             />
                             {searchText && (
-                                <button onClick={clearSearch} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                                    <X className="size-3" />
+                                <button onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                                    <X className="size-4" />
                                 </button>
                             )}
                         </div>
                     </div>
                     <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
                         <SheetTrigger asChild>
-                            <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar">
-                                <SlidersHorizontal className="size-3.5" />
+                            <button className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar">
+                                <SlidersHorizontal className="size-4" />
                                 {activeFiltersCount > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-primary text-primary-foreground text-[6px] flex items-center justify-center font-bold">
+                                    <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-primary text-primary-foreground text-[7px] flex items-center justify-center font-bold">
                                         {activeFiltersCount}
                                     </span>
                                 )}
                             </button>
                         </SheetTrigger>
-                        <SheetContent side="right" className="w-64">
-                            <SheetHeader className="pb-3">
-                                <SheetTitle className="text-xs font-medium">Filtros</SheetTitle>
+                        <SheetContent side="right" className="w-72">
+                            <SheetHeader className="pb-4">
+                                <SheetTitle className="text-sm font-medium">Filtros</SheetTitle>
                             </SheetHeader>
-                            <div className="space-y-4">
+                            <div className="space-y-5">
                                 <div>
-                                    <p className="text-[11px] font-medium text-muted-foreground mb-2">Rol</p>
-                                    <div className="flex flex-wrap gap-1.5">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">Rol</p>
+                                    <div className="flex flex-wrap gap-2">
                                         {VALID_ROLES.map((r) => (
                                             <Badge
                                                 key={r}
                                                 variant={roleFilter === r ? "default" : "outline"}
-                                                className="cursor-pointer text-[10px] px-2 py-0.5"
+                                                className="cursor-pointer text-xs px-3 py-1"
                                                 onClick={() => {
                                                     updateFilter("role", roleFilter === r ? "" : r);
                                                     setFilterSheetOpen(false);
@@ -499,13 +525,13 @@ export default function AdminUsers() {
                                     </div>
                                 </div>
                                 <div>
-                                    <p className="text-[11px] font-medium text-muted-foreground mb-2">Estado</p>
-                                    <div className="flex flex-wrap gap-1.5">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">Estado</p>
+                                    <div className="flex flex-wrap gap-2">
                                         {VALID_STATUSES.map((s) => (
                                             <Badge
                                                 key={s}
                                                 variant={statusFilter === s ? "default" : "outline"}
-                                                className="cursor-pointer text-[10px] px-2 py-0.5"
+                                                className="cursor-pointer text-xs px-3 py-1"
                                                 onClick={() => {
                                                     updateFilter("status", statusFilter === s ? "" : s);
                                                     setFilterSheetOpen(false);
@@ -536,15 +562,15 @@ export default function AdminUsers() {
                     </div>
                 ) : users.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
-                        <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
-                            <Users className="size-6 text-muted-foreground/30" />
+                        <div className="size-14 rounded-full bg-muted/30 flex items-center justify-center">
+                            <Users className="size-7 text-muted-foreground/30" />
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium text-muted-foreground/70">
+                        <div className="space-y-1.5">
+                            <p className="text-base font-medium text-muted-foreground/70">
                                 {activeFiltersCount > 0 || searchQuery ? "Sin resultados" : "No hay usuarios"}
                             </p>
-                            <p className="text-xs text-muted-foreground/50">
-                                {activeFiltersCount > 0 || searchQuery ? "Probá con otros filtros o búsqueda" : "Los usuarios nuevos aparecerán aquí"}
+                            <p className="text-sm text-muted-foreground/50">
+                                {activeFiltersCount > 0 || searchQuery ? "Prueba con otros filtros o búsqueda" : "Los usuarios nuevos aparecerán aquí"}
                             </p>
                         </div>
                     </div>
@@ -571,11 +597,11 @@ export default function AdminUsers() {
                         <div className="hidden lg:block flex-1 min-w-0 border-l border-border pl-5">
                             {selected ? (
                                 <div className="sticky top-0">
-                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} />
+                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full min-h-[200px]">
-                                    <p className="text-xs text-muted-foreground/50">Seleccioná un usuario</p>
+                                    <p className="text-sm text-muted-foreground/50">Selecciona un usuario</p>
                                 </div>
                             )}
                         </div>
@@ -584,13 +610,13 @@ export default function AdminUsers() {
             </main>
 
             <Sheet open={sheetOpen} onOpenChange={(open) => { setSheetOpen(open); if (!open) setSelectedId(null); }}>
-                <SheetContent side="bottom" className="rounded-t-lg max-h-[80vh] flex flex-col gap-0 p-0">
-                    <SheetHeader className="px-4 py-2.5 border-b border-border shrink-0 flex-row items-center gap-2">
-                        <SheetClose className="shrink-0"><ArrowLeft className="size-4" /></SheetClose>
-                        <SheetTitle className="text-xs font-medium">Detalle</SheetTitle>
+                <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] flex flex-col gap-0 p-0">
+                    <SheetHeader className="px-6 py-5 border-b border-border flex-row items-center gap-2">
+                        <SheetClose className="shrink-0"><ArrowLeft className="size-5" /></SheetClose>
+                        <SheetTitle className="text-base">Detalle</SheetTitle>
                     </SheetHeader>
-                    <div className="flex-1 overflow-y-auto p-4">
-                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} />}
+                    <div className="flex-1 overflow-y-auto px-6 py-5">
+                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />}
                     </div>
                 </SheetContent>
             </Sheet>

@@ -48,9 +48,9 @@ function StatCard({ icon: Icon, label, value, sub, accent }: {
                 <Icon className="size-4" />
             </div>
             <div className="min-w-0">
-                <p className="text-[11px] text-muted-foreground mb-0.5 leading-none">{label}</p>
-                <p className="text-xl font-bold leading-none tracking-tight tabular-nums">{value}</p>
-                {sub && <p className="text-[10px] text-muted-foreground/60 mt-1">{sub}</p>}
+                <p className="text-xs text-muted-foreground mb-1 leading-none">{label}</p>
+                <p className="text-2xl font-bold leading-none tracking-tight tabular-nums">{value}</p>
+                {sub && <p className="text-xs text-muted-foreground/60 mt-1.5">{sub}</p>}
             </div>
         </div>
     );
@@ -58,11 +58,11 @@ function StatCard({ icon: Icon, label, value, sub, accent }: {
 
 function MiniSection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <div className="border border-border rounded-md">
-            <div className="px-3 py-2 border-b border-border bg-muted/20">
-                <span className="text-[11px] font-medium text-muted-foreground">{title}</span>
+        <div className="border border-border rounded-lg">
+            <div className="px-4 py-2.5 border-b border-border bg-muted/20">
+                <span className="text-xs font-medium text-muted-foreground">{title}</span>
             </div>
-            <div className="p-3">{children}</div>
+            <div className="p-4">{children}</div>
         </div>
     );
 }
@@ -86,8 +86,8 @@ function Elapsed({ finishedAt }: { finishedAt: string | null }) {
 function ScraperStatus({ scraper }: { scraper: OverviewMetrics["scraper"] }) {
     if (!scraper) {
         return (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Clock className="size-3.5" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="size-4" />
                 Sin ejecuciones registradas
             </div>
         );
@@ -111,16 +111,16 @@ function ScraperStatus({ scraper }: { scraper: OverviewMetrics["scraper"] }) {
                         {isOk ? "Operativo" : "Falló"}
                     </span>
                 </div>
-                    <span className="text-[10px] text-muted-foreground"><Elapsed finishedAt={scraper.finishedAt} /></span>
+                    <span className="text-xs text-muted-foreground"><Elapsed finishedAt={scraper.finishedAt} /></span>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-[10px] text-muted-foreground">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span>Series: {scraper.seriesProcessed}</span>
                 <span>Capítulos: {scraper.chaptersCreated}</span>
                 <span>Páginas: {scraper.pagesScraped}</span>
                 <span>Errores: {scraper.errors}</span>
             </div>
             {scraper.errorMessage && (
-                <p className="text-[10px] text-rose-500/70 break-words">{scraper.errorMessage}</p>
+                <p className="text-xs text-rose-500/70 break-words mt-1">{scraper.errorMessage}</p>
             )}
         </div>
     );
@@ -136,12 +136,12 @@ function SuggestionBar({ status, count, total }: { status: string; count: number
         CLOSED: "bg-muted-foreground/50",
     };
     return (
-        <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground w-16 shrink-0">{STATUS_LABELS[status] ?? status}</span>
-            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+        <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground w-20 shrink-0">{STATUS_LABELS[status] ?? status}</span>
+            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                 <div className={cn("h-full rounded-full transition-all", barColor[status as keyof typeof barColor] ?? "bg-muted-foreground/30")} style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-[10px] text-muted-foreground w-6 text-right tabular-nums">{count}</span>
+            <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">{count}</span>
         </div>
     );
 }
@@ -193,8 +193,8 @@ export default function AdminDashboard() {
                     </div>
                 ) : !metrics ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
-                        <AlertCircle className="size-8 text-muted-foreground/30" />
-                        <p className="text-xs text-muted-foreground">No se pudieron cargar las métricas</p>
+                        <AlertCircle className="size-10 text-muted-foreground/30" />
+                        <p className="text-sm text-muted-foreground">No se pudieron cargar las métricas</p>
                     </div>
                 ) : (
                     <div className="space-y-6">
@@ -239,11 +239,11 @@ export default function AdminDashboard() {
                                             link.accent === "violet" && "bg-violet-500/15 text-violet-600 dark:text-violet-400",
                                             link.accent === "primary" && "bg-brand/15 text-brand",
                                         )}>
-                                            <link.icon className="size-3.5" />
+                                            <link.icon className="size-4" />
                                         </div>
-                                        <span className="text-xs font-medium">{link.label}</span>
+                                        <span className="text-sm font-medium">{link.label}</span>
                                     </div>
-                                    <ArrowRight className="size-3 text-muted-foreground" />
+                                    <ArrowRight className="size-4 text-muted-foreground" />
                                 </button>
                             ))}
                         </div>

@@ -66,7 +66,7 @@ function formatDateTime(iso: string) {
 function EventBadge({ event }: { event: string }) {
     return (
         <span className={cn(
-            "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border",
+            "inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium border",
             EVENT_COLORS[event] ?? "bg-muted text-muted-foreground border-border",
         )}>
             {EVENT_LABELS[event] ?? event}
@@ -81,11 +81,21 @@ function formatMetadata(event: string, metadata: Record<string, unknown> | null)
             return (metadata.seriesName ? String(metadata.seriesName) + " - " : "") + "Cap. " + (metadata.chapterName ?? metadata.chapterId);
         case "ADD_FAVORITE":
         case "REMOVE_FAVORITE":
-            if (metadata.seriesName) return `"${metadata.seriesName}"`;
+            if (metadata.seriesName) return String(metadata.seriesName);
             return JSON.stringify(metadata).slice(0, 60);
         case "SEND_SUGGESTION":
             if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
             return JSON.stringify(metadata).slice(0, 60);
+        case "UPDATE_ROLE":
+            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
+        case "UPDATE_SUGGESTION_STATUS":
+            return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
+        case "UPDATE_USER_STATUS": {
+            const usMeta = metadata.targetUserName ? String(metadata.targetUserName) + ": " : "";
+            const usChange = String(metadata.oldStatus) + " → " + String(metadata.newStatus);
+            const usUntil = metadata.suspendedUntil ? " (hasta " + new Date(String(metadata.suspendedUntil)).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + ")" : "";
+            return usMeta + usChange + usUntil;
+        }
         default:
             return JSON.stringify(metadata).slice(0, 60);
     }
@@ -163,15 +173,15 @@ export default function AdminActivityLogs() {
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-xs font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <span className="text-sm font-medium text-muted-foreground shrink-0 hidden sm:block">
                             Actividad
                         </span>
                         <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 ref={searchInputRef}
                                 placeholder="Buscar por usuario..."
-                                className="pl-7 pr-7 h-7 text-xs bg-muted/40 border-none"
+                                className="pl-9 pr-8 h-9 text-sm bg-muted/40 border-none"
                                 value={searchText}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 onKeyDown={(e) => {
@@ -182,36 +192,36 @@ export default function AdminActivityLogs() {
                                 }}
                             />
                             {searchText && (
-                                <button onClick={clearSearch} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                                    <X className="size-3" />
+                                <button onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                                    <X className="size-4" />
                                 </button>
                             )}
                         </div>
                     </div>
                     <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
                         <SheetTrigger asChild>
-                            <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar">
-                                <SlidersHorizontal className="size-3.5" />
+                            <button className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar">
+                                <SlidersHorizontal className="size-4" />
                                 {hasActiveFilter && (
-                                    <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-primary text-primary-foreground text-[6px] flex items-center justify-center font-bold">
+                                    <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-primary text-primary-foreground text-[7px] flex items-center justify-center font-bold">
                                         1
                                     </span>
                                 )}
                             </button>
                         </SheetTrigger>
-                        <SheetContent side="right" className="w-64">
-                            <SheetHeader className="pb-3">
-                                <SheetTitle className="text-xs font-medium">Filtrar por evento</SheetTitle>
+                        <SheetContent side="right" className="w-72">
+                            <SheetHeader className="pb-4">
+                                <SheetTitle className="text-sm font-medium">Filtrar por evento</SheetTitle>
                             </SheetHeader>
                             <div className="space-y-4">
                                 <div>
-                                    <p className="text-[11px] font-medium text-muted-foreground mb-2">Evento</p>
-                                    <div className="flex flex-wrap gap-1.5">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">Evento</p>
+                                    <div className="flex flex-wrap gap-2">
                                         {VALID_EVENTS.map((evt) => (
                                             <Badge
                                                 key={evt}
                                                 variant={eventFilter === evt ? "default" : "outline"}
-                                                className="cursor-pointer text-[10px] px-2 py-0.5"
+                                                className="cursor-pointer text-xs px-3 py-1"
                                                 onClick={() => {
                                                     updateFilter("event", eventFilter === evt ? "" : evt);
                                                     setFilterSheetOpen(false);
@@ -238,15 +248,15 @@ export default function AdminActivityLogs() {
                     </div>
                 ) : logs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
-                        <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
-                            <ScrollText className="size-6 text-muted-foreground/30" />
+                        <div className="size-14 rounded-full bg-muted/30 flex items-center justify-center">
+                            <ScrollText className="size-7 text-muted-foreground/30" />
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium text-muted-foreground/70">
+                        <div className="space-y-1.5">
+                            <p className="text-base font-medium text-muted-foreground/70">
                                 {eventFilter || searchQuery ? "Sin resultados" : "Sin actividad"}
                             </p>
-                            <p className="text-xs text-muted-foreground/50">
-                                {eventFilter || searchQuery ? "Probá con otros filtros o búsqueda" : "El registro de actividad estará disponible cuando los usuarios interactúen"}
+                            <p className="text-sm text-muted-foreground/50">
+                                {eventFilter || searchQuery ? "Prueba con otros filtros o búsqueda" : "El registro de actividad estará disponible cuando los usuarios interactúen"}
                             </p>
                         </div>
                     </div>
@@ -254,47 +264,43 @@ export default function AdminActivityLogs() {
                     <div className="flex-1 flex flex-col min-h-0">
                         <div className="border border-border rounded-lg overflow-hidden bg-card">
                             <div className="overflow-x-auto">
-                                <table className="w-full text-xs">
+                                <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border bg-muted/20">
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Usuario</th>
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Evento</th>
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Detalle</th>
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider hidden md:table-cell">IP</th>
-                                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Fecha</th>
+                                            <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Usuario</th>
+                                            <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Evento</th>
+                                            <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Detalle</th>
+                                            <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Fecha</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
                                         {logs.map((log) => (
                                             <tr key={log.id} className="hover:bg-muted/30 transition-colors">
-                                                <td className="px-3 py-2.5">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="size-6 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[9px] font-bold text-muted-foreground">
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
                                                             {log.user.name[0].toUpperCase()}
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="text-[11px] font-medium truncate max-w-[140px]">
+                                                            <p className="text-sm font-medium truncate max-w-[160px]">
                                                                 {log.user.name} {log.user.lastname}
                                                             </p>
-                                                            <p className="text-[10px] text-muted-foreground/60 truncate max-w-[140px]">
+                                                            <p className="text-xs text-muted-foreground/60 truncate max-w-[160px]">
                                                                 {log.user.email}
                                                             </p>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-2.5">
+                                                <td className="px-4 py-3">
                                                     <EventBadge event={log.event} />
                                                 </td>
-                                                <td className="px-3 py-2.5">
-                                                    <span className="text-[10px] text-muted-foreground/70">
+                                                <td className="px-4 py-3">
+                                                    <span className="text-sm text-muted-foreground/70">
                                                         {formatMetadata(log.event, log.metadata)}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-2.5 hidden md:table-cell">
-                                                    <span className="text-[10px] text-muted-foreground/50 font-mono">{log.ip ?? "—"}</span>
-                                                </td>
-                                                <td className="px-3 py-2.5 text-right">
-                                                    <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap">{formatDateTime(log.createdAt)}</span>
+                                                <td className="px-4 py-3 text-right">
+                                                    <span className="text-sm text-muted-foreground/70 whitespace-nowrap">{formatDateTime(log.createdAt)}</span>
                                                 </td>
                                             </tr>
                                         ))}
