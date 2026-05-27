@@ -1,5 +1,4 @@
 import { SuggestionService } from "./suggestionService.js";
-import { AdminAuditService } from "../admin/adminAuditService.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 import logger from "../config/logger.js";
 
@@ -61,12 +60,6 @@ export async function updateStatus(req, res, next) {
       { suggestionId, title: existing?.title, newStatus: status, oldStatus: existing?.status },
       req.ip, req.headers["user-agent"],
     ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_SUGGESTION_STATUS" }, "ActivityLog error"));
-
-    AdminAuditService.log(req.user.userId, "UPDATE_SUGGESTION_STATUS", {
-      targetId: String(suggestionId),
-      targetType: "Suggestion",
-      metadata: { title: existing?.title, oldStatus: existing?.status, newStatus: status },
-    });
   } catch (error) {
     next(error);
   }

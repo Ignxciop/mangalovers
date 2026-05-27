@@ -29,7 +29,6 @@ import {
     BarChart3,
     ScrollText,
     Shield,
-    ShieldAlert,
     ChevronRight,
     UserRound,
     EllipsisVertical,
@@ -324,13 +323,6 @@ export function AdminSidebar() {
                                     href="/admin/logs"
                                     icon={ScrollText}
                                     label="Actividad"
-                                />
-                            </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <NavItem
-                                    href="/admin/auditoria"
-                                    icon={ShieldAlert}
-                                    label="Auditoría"
                                 />
                             </SidebarMenuItem>
                             <SidebarMenuItem>

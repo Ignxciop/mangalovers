@@ -25,7 +25,6 @@ const AdminDashboard = lazy(() => import("./pages/adminDashboard.tsx"));
 const AdminUsers = lazy(() => import("./pages/adminUsers.tsx"));
 const AdminMetrics = lazy(() => import("./pages/adminMetrics.tsx"));
 const AdminActivityLogs = lazy(() => import("./pages/adminActivityLogs.tsx"));
-const AdminAuditLogs = lazy(() => import("./pages/adminAuditLogs.tsx"));
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -124,10 +123,6 @@ function BootstrappedApp() {
                         <Route
                             path="/admin/logs"
                             element={<AdminActivityLogs />}
-                        />
-                        <Route
-                            path="/admin/auditoria"
-                            element={<AdminAuditLogs />}
                         />
                     </Route>
                 </Route>

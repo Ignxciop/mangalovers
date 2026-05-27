@@ -3,7 +3,7 @@ import type {
     AdminUserListResponse, UpdateRoleResponse, UpdateStatusResponse,
     AdminMetricsResponse, ActivityLogResponse, UserRole, UserStatus,
     OverviewResponse, ScraperMetricsResponse, UserMetricsResponse,
-    ContentMetricsResponse, SystemMetricsResponse, AdminAuditLogResponse,
+    ContentMetricsResponse, SystemMetricsResponse,
 } from "@/types/admin";
 
 export async function getUsers(params?: {
@@ -65,16 +65,5 @@ export async function getActivityLogs(params?: {
     search?: string;
 }) {
     const { data } = await api.get<ActivityLogResponse>("/admin/logs", { params });
-    return data;
-}
-
-export async function getAdminAuditLogs(params?: {
-    page?: number;
-    limit?: number;
-    action?: string;
-    adminId?: string;
-    targetType?: string;
-}) {
-    const { data } = await api.get<AdminAuditLogResponse>("/admin/audit-logs", { params });
     return data;
 }

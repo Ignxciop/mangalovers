@@ -262,29 +262,3 @@ export interface ActivityLogResponse {
     };
 }
 
-export interface AdminAuditLogEntry {
-    id: string;
-    adminId: string;
-    action: string;
-    targetId: string | null;
-    targetType: string | null;
-    metadata: Record<string, unknown> | null;
-    createdAt: string;
-    admin: {
-        id: string;
-        name: string;
-        lastname: string;
-        email: string;
-    };
-}
-
-export interface AdminAuditLogResponse {
-    success: boolean;
-    data: AdminAuditLogEntry[];
-    meta: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    };
-}
