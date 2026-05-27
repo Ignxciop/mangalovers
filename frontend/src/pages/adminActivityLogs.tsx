@@ -4,23 +4,16 @@ import { getActivityLogs } from "@/api/admin";
 import type { ActivityLogEntry } from "@/types/admin";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from "@/components/ui/sheet";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import { SEO } from "@/components/seo";
 import { cn } from "@/lib/utils";
 import {
     ScrollText,
     Search,
     X,
-    SlidersHorizontal,
 } from "lucide-react";
 
 const EVENT_LABELS: Record<string, string> = {
@@ -198,43 +191,26 @@ export default function AdminActivityLogs() {
                             )}
                         </div>
                     </div>
-                    <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-                        <SheetTrigger asChild>
-                            <button className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar">
-                                <SlidersHorizontal className="size-4" />
-                                {hasActiveFilter && (
-                                    <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-primary text-primary-foreground text-[7px] flex items-center justify-center font-bold">
-                                        1
-                                    </span>
-                                )}
-                            </button>
-                        </SheetTrigger>
-                        <SheetContent side="right" className="w-72">
-                            <SheetHeader className="pb-4">
-                                <SheetTitle className="text-sm font-medium">Filtrar por evento</SheetTitle>
-                            </SheetHeader>
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="text-xs font-medium text-muted-foreground mb-2">Evento</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {VALID_EVENTS.map((evt) => (
-                                            <Badge
-                                                key={evt}
-                                                variant={eventFilter === evt ? "default" : "outline"}
-                                                className="cursor-pointer text-xs px-3 py-1"
-                                                onClick={() => {
-                                                    updateFilter("event", eventFilter === evt ? "" : evt);
-                                                    setFilterSheetOpen(false);
-                                                }}
-                                            >
-                                                {EVENT_LABELS[evt]}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
+                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtrar por evento" activeFiltersCount={hasActiveFilter ? 1 : 0}>
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Evento</p>
+                            <div className="flex flex-wrap gap-2">
+                                {VALID_EVENTS.map((evt) => (
+                                    <Badge
+                                        key={evt}
+                                        variant={eventFilter === evt ? "default" : "outline"}
+                                        className="cursor-pointer text-xs px-3 py-1"
+                                        onClick={() => {
+                                            updateFilter("event", eventFilter === evt ? "" : evt);
+                                            setFilterSheetOpen(false);
+                                        }}
+                                    >
+                                        {EVENT_LABELS[evt]}
+                                    </Badge>
+                                ))}
                             </div>
-                        </SheetContent>
-                    </Sheet>
+                        </div>
+                    </FilterDrawer>
                 </div>
             </header>
 

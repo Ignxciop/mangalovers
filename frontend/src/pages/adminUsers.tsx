@@ -18,11 +18,11 @@ import {
     SheetHeader,
     SheetTitle,
     SheetClose,
-    SheetTrigger,
 } from "@/components/ui/sheet";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import { SEO } from "@/components/seo";
 import { cn } from "@/lib/utils";
 import {
@@ -37,7 +37,6 @@ import {
     Bookmark,
     BookOpen,
     ScrollText,
-    SlidersHorizontal,
     ArrowLeft,
 } from "lucide-react";
 
@@ -490,61 +489,44 @@ export default function AdminUsers() {
                             )}
                         </div>
                     </div>
-                    <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-                        <SheetTrigger asChild>
-                            <button className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar">
-                                <SlidersHorizontal className="size-4" />
-                                {activeFiltersCount > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-primary text-primary-foreground text-[7px] flex items-center justify-center font-bold">
-                                        {activeFiltersCount}
-                                    </span>
-                                )}
-                            </button>
-                        </SheetTrigger>
-                        <SheetContent side="right" className="w-72">
-                            <SheetHeader className="pb-4">
-                                <SheetTitle className="text-sm font-medium">Filtros</SheetTitle>
-                            </SheetHeader>
-                            <div className="space-y-5">
-                                <div>
-                                    <p className="text-xs font-medium text-muted-foreground mb-2">Rol</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {VALID_ROLES.map((r) => (
-                                            <Badge
-                                                key={r}
-                                                variant={roleFilter === r ? "default" : "outline"}
-                                                className="cursor-pointer text-xs px-3 py-1"
-                                                onClick={() => {
-                                                    updateFilter("role", roleFilter === r ? "" : r);
-                                                    setFilterSheetOpen(false);
-                                                }}
-                                            >
-                                                {r === "ADMIN" ? "Admin" : "Usuario"}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-medium text-muted-foreground mb-2">Estado</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {VALID_STATUSES.map((s) => (
-                                            <Badge
-                                                key={s}
-                                                variant={statusFilter === s ? "default" : "outline"}
-                                                className="cursor-pointer text-xs px-3 py-1"
-                                                onClick={() => {
-                                                    updateFilter("status", statusFilter === s ? "" : s);
-                                                    setFilterSheetOpen(false);
-                                                }}
-                                            >
-                                                {STATUS_LABELS[s]}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
+                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount}>
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Rol</p>
+                            <div className="flex flex-wrap gap-2">
+                                {VALID_ROLES.map((r) => (
+                                    <Badge
+                                        key={r}
+                                        variant={roleFilter === r ? "default" : "outline"}
+                                        className="cursor-pointer text-xs px-3 py-1"
+                                        onClick={() => {
+                                            updateFilter("role", roleFilter === r ? "" : r);
+                                            setFilterSheetOpen(false);
+                                        }}
+                                    >
+                                        {r === "ADMIN" ? "Admin" : "Usuario"}
+                                    </Badge>
+                                ))}
                             </div>
-                        </SheetContent>
-                    </Sheet>
+                        </div>
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Estado</p>
+                            <div className="flex flex-wrap gap-2">
+                                {VALID_STATUSES.map((s) => (
+                                    <Badge
+                                        key={s}
+                                        variant={statusFilter === s ? "default" : "outline"}
+                                        className="cursor-pointer text-xs px-3 py-1"
+                                        onClick={() => {
+                                            updateFilter("status", statusFilter === s ? "" : s);
+                                            setFilterSheetOpen(false);
+                                        }}
+                                    >
+                                        {STATUS_LABELS[s]}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    </FilterDrawer>
                 </div>
             </header>
 

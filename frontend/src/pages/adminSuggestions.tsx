@@ -18,11 +18,11 @@ import {
     SheetHeader,
     SheetTitle,
     SheetClose,
-    SheetTrigger,
 } from "@/components/ui/sheet";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import { SEO } from "@/components/seo";
 import { timeAgo } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,6 @@ import {
     Search,
     X,
     RefreshCw,
-    SlidersHorizontal,
     ArrowLeft,
     User,
     Calendar,
@@ -313,21 +312,9 @@ export default function AdminSuggestions() {
                             )}
                         </div>
                     </div>
-                    <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-                        <SheetTrigger asChild>
-                            <button className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar por tipo">
-                                <SlidersHorizontal className="size-4" />
-                                {activeFiltersCount > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full bg-primary text-primary-foreground text-[7px] flex items-center justify-center font-bold">
-                                        {activeFiltersCount}
-                                    </span>
-                                )}
-                            </button>
-                        </SheetTrigger>
-                        <SheetContent side="right" className="w-72">
-                            <SheetHeader className="pb-4">
-                                <SheetTitle className="text-sm font-medium">Filtrar por tipo</SheetTitle>
-                            </SheetHeader>
+                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtrar por tipo" activeFiltersCount={activeFiltersCount}>
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Tipo</p>
                             <div className="flex flex-wrap gap-2">
                                 {VALID_TYPES.map((t) => (
                                     <Badge
@@ -343,8 +330,8 @@ export default function AdminSuggestions() {
                                     </Badge>
                                 ))}
                             </div>
-                        </SheetContent>
-                    </Sheet>
+                        </div>
+                    </FilterDrawer>
                 </div>
             </header>
 
