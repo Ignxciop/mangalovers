@@ -191,9 +191,9 @@ export default function AdminActivityLogs() {
                             )}
                         </div>
                     </div>
-                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtrar por evento" activeFiltersCount={hasActiveFilter ? 1 : 0}>
+                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={hasActiveFilter ? 1 : 0}>
                         <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-medium text-muted-foreground mb-2">Evento</p>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evento</p>
                             <div className="flex flex-wrap gap-2">
                                 {VALID_EVENTS.map((evt) => (
                                     <Badge

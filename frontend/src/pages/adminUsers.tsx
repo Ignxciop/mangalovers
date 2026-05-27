@@ -491,7 +491,7 @@ export default function AdminUsers() {
                     </div>
                     <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount}>
                         <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-medium text-muted-foreground mb-2">Rol</p>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rol</p>
                             <div className="flex flex-wrap gap-2">
                                 {VALID_ROLES.map((r) => (
                                     <Badge
@@ -509,7 +509,7 @@ export default function AdminUsers() {
                             </div>
                         </div>
                         <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-medium text-muted-foreground mb-2">Estado</p>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Estado</p>
                             <div className="flex flex-wrap gap-2">
                                 {VALID_STATUSES.map((s) => (
                                     <Badge

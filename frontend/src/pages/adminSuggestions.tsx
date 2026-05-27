@@ -312,9 +312,9 @@ export default function AdminSuggestions() {
                             )}
                         </div>
                     </div>
-                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtrar por tipo" activeFiltersCount={activeFiltersCount}>
+                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount}>
                         <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-medium text-muted-foreground mb-2">Tipo</p>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tipo</p>
                             <div className="flex flex-wrap gap-2">
                                 {VALID_TYPES.map((t) => (
                                     <Badge
