@@ -74,11 +74,16 @@ function formatMetadata(event: string, metadata: Record<string, unknown> | null)
             return (metadata.seriesName ? String(metadata.seriesName) + " - " : "") + "Cap. " + (metadata.chapterName ?? metadata.chapterId);
         case "ADD_FAVORITE":
         case "REMOVE_FAVORITE":
-            if (metadata.seriesName) return `"${metadata.seriesName}"`;
-            return JSON.stringify(metadata).slice(0, 60);
+            if (metadata.seriesName) return String(metadata.seriesName);
+            return "Serie #" + String(metadata.seriesId);
         case "SEND_SUGGESTION":
-            if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
-            return JSON.stringify(metadata).slice(0, 60);
+            return String(metadata.title ?? metadata.type ?? "");
+        case "UPDATE_SUGGESTION_STATUS":
+            return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
+        case "UPDATE_ROLE":
+            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
+        case "UPDATE_USER_STATUS":
+            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldStatus) + " → " + String(metadata.newStatus);
         default:
             return JSON.stringify(metadata).slice(0, 60);
     }
@@ -152,18 +157,18 @@ export default function AdminActivityLogs() {
             <SEO title="Registro de actividad" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
+                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-xs font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <span className="text-sm font-semibold shrink-0 hidden sm:block">
                             Actividad
                         </span>
                         <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 ref={searchInputRef}
                                 placeholder="Buscar por usuario..."
-                                className="pl-7 pr-7 h-7 text-xs bg-muted/40 border-none"
+                                className="pl-9 bg-secondary/50 border-none"
                                 value={searchText}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 onKeyDown={(e) => {
@@ -185,14 +190,14 @@ export default function AdminActivityLogs() {
                         title="Filtrar por evento"
                         admin
                     >
-                        <div>
-                            <p className="text-[11px] font-medium text-muted-foreground mb-2">Evento</p>
-                            <div className="flex flex-wrap gap-1.5">
+                        <div className="px-6 py-5">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evento</p>
+                            <div className="flex flex-wrap gap-2">
                                 {VALID_EVENTS.map((evt) => (
                                     <Badge
                                         key={evt}
                                         variant={eventFilter === evt ? "default" : "outline"}
-                                        className="cursor-pointer text-[10px] px-2 py-0.5"
+                                        className="cursor-pointer px-3 py-1 text-xs"
                                         onClick={() => updateFilter("event", eventFilter === evt ? "" : evt)}
                                     >
                                         {EVENT_LABELS[evt]}
@@ -233,11 +238,10 @@ export default function AdminActivityLogs() {
                                 <table className="w-full text-xs">
                                     <thead>
                                         <tr className="border-b border-border bg-muted/20">
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Usuario</th>
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Evento</th>
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Detalle</th>
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider hidden md:table-cell">IP</th>
-                                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Fecha</th>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">Usuario</th>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">Evento</th>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">Detalle</th>
+                                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">Fecha</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
@@ -249,10 +253,10 @@ export default function AdminActivityLogs() {
                                                             {log.user.name[0].toUpperCase()}
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="text-[11px] font-medium truncate max-w-[140px]">
+                                                            <p className="text-xs font-medium truncate max-w-[140px]">
                                                                 {log.user.name} {log.user.lastname}
                                                             </p>
-                                                            <p className="text-[10px] text-muted-foreground/60 truncate max-w-[140px]">
+                                                            <p className="text-xs text-muted-foreground/60 truncate max-w-[140px]">
                                                                 {log.user.email}
                                                             </p>
                                                         </div>
@@ -262,15 +266,12 @@ export default function AdminActivityLogs() {
                                                     <EventBadge event={log.event} />
                                                 </td>
                                                 <td className="px-3 py-2.5">
-                                                    <span className="text-[10px] text-muted-foreground/70">
+                                                    <span className="text-xs text-muted-foreground/70">
                                                         {formatMetadata(log.event, log.metadata)}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-2.5 hidden md:table-cell">
-                                                    <span className="text-[10px] text-muted-foreground/50 font-mono">{log.ip ?? "—"}</span>
-                                                </td>
                                                 <td className="px-3 py-2.5 text-right">
-                                                    <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap">{formatDateTime(log.createdAt)}</span>
+                                                    <span className="text-xs text-muted-foreground/70 whitespace-nowrap">{formatDateTime(log.createdAt)}</span>
                                                 </td>
                                             </tr>
                                         ))}

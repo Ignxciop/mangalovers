@@ -123,18 +123,23 @@ function formatLogMetadata(event: string, metadata: Record<string, unknown> | nu
             return (metadata.seriesName ? String(metadata.seriesName) + " - " : "") + "Cap. " + (metadata.chapterName ?? metadata.chapterId);
         case "ADD_FAVORITE":
         case "REMOVE_FAVORITE":
-            if (metadata.seriesName) return '"' + metadata.seriesName + '"';
-            return JSON.stringify(metadata).slice(0, 60);
+            if (metadata.seriesName) return String(metadata.seriesName);
+            return "Serie #" + String(metadata.seriesId);
         case "SEND_SUGGESTION":
-            if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
-            return JSON.stringify(metadata).slice(0, 60);
+            return String(metadata.title ?? metadata.type ?? "");
+        case "UPDATE_SUGGESTION_STATUS":
+            return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
+        case "UPDATE_ROLE":
+            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
+        case "UPDATE_USER_STATUS":
+            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldStatus) + " → " + String(metadata.newStatus);
         default:
             return JSON.stringify(metadata).slice(0, 60);
     }
 }
 
 function StatusText({ status }: { status: UserStatus }) {
-    return <span className={cn("text-[11px] font-medium", STATUS_COLORS[status])}>{STATUS_LABELS[status]}</span>;
+    return <span className={cn("text-xs font-medium", STATUS_COLORS[status])}>{STATUS_LABELS[status]}</span>;
 }
 
 function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: boolean; onClick: () => void }) {
@@ -149,7 +154,7 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
             )}
         >
             <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[11px] font-bold text-muted-foreground">
+                <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
                     {user.name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -157,10 +162,10 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
                         <span className="text-xs font-medium truncate">{user.name} {user.lastname}</span>
                         <StatusText status={user.status} />
                     </div>
-                    <p className="text-[11px] text-muted-foreground/60 truncate">{user.email}</p>
+                    <p className="text-xs text-muted-foreground/60 truncate">{user.email}</p>
                 </div>
             </div>
-            <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground/50">
+            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground/50">
                 <span className="flex items-center gap-1">
                     <MessageSquare className="size-2.5" />
                     {user._count.suggestions}
@@ -196,8 +201,8 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                         <h2 className="text-sm font-semibold leading-snug">{user.name} {user.lastname}</h2>
                         <div className="flex items-center gap-2">
                             <StatusText status={user.status} />
-                            <span className="text-[10px] text-muted-foreground/50">·</span>
-                            <span className="text-[10px] text-muted-foreground/60">
+                            <span className="text-xs text-muted-foreground/50">·</span>
+                            <span className="text-xs text-muted-foreground/60">
                                 {user.role === "ADMIN" ? "Admin" : "Usuario"}
                             </span>
                         </div>
@@ -244,25 +249,25 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
             </div>
 
             <div className="border-t border-border pt-3">
-                <p className="text-[11px] font-medium text-muted-foreground mb-2">Actividad</p>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Actividad</p>
                 <div className="grid grid-cols-3 gap-2">
                     <div className="bg-muted/20 rounded border border-border p-2 text-center">
                         <p className="text-sm font-semibold">{user._count.suggestions}</p>
-                        <p className="text-[10px] text-muted-foreground">Sugerencias</p>
+                        <p className="text-xs text-muted-foreground">Sugerencias</p>
                     </div>
                     <div className="bg-muted/20 rounded border border-border p-2 text-center">
                         <p className="text-sm font-semibold">{user._count.favorites}</p>
-                        <p className="text-[10px] text-muted-foreground">Favoritos</p>
+                        <p className="text-xs text-muted-foreground">Favoritos</p>
                     </div>
                     <div className="bg-muted/20 rounded border border-border p-2 text-center">
                         <p className="text-sm font-semibold">{user._count.chapterReads}</p>
-                        <p className="text-[10px] text-muted-foreground">Lecturas</p>
+                        <p className="text-xs text-muted-foreground">Lecturas</p>
                     </div>
                 </div>
             </div>
 
             <div className="border-t border-border pt-3">
-                <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-2">
                     <ScrollText className="size-3" />
                     Últimos eventos
                 </div>
@@ -273,7 +278,7 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                         ))}
                     </div>
                 ) : logs.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground/50 text-center py-6">Sin actividad registrada</p>
+                    <p className="text-xs text-muted-foreground/50 text-center py-6">Sin actividad registrada</p>
                 ) : (
                     <div className="space-y-1.5">
                         {logs.slice(0, 10).map((log) => (
@@ -283,12 +288,12 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                                         {EVENT_LABELS[log.event] ?? log.event}
                                     </span>
                                     {log.metadata && (
-                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
+                                        <p className="text-xs text-muted-foreground/70 mt-0.5 truncate">
                                             {formatLogMetadata(log.event, log.metadata)}
                                         </p>
                                     )}
                                 </div>
-                                <time className="text-[10px] text-muted-foreground/50 shrink-0 pt-0.5">
+                                <time className="text-xs text-muted-foreground/50 shrink-0 pt-0.5">
                                     {formatRelative(log.createdAt)}
                                 </time>
                             </div>
@@ -434,18 +439,18 @@ export default function AdminUsers() {
             <SEO title="Administrar usuarios" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
+                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-xs font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <span className="text-sm font-semibold shrink-0 hidden sm:block">
                             Usuarios
                         </span>
                         <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 ref={searchInputRef}
                                 placeholder="Buscar..."
-                                className="pl-7 pr-7 h-7 text-xs bg-muted/40 border-none"
+                                className="pl-9 bg-secondary/50 border-none"
                                 value={searchText}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 onKeyDown={(e) => {
@@ -467,14 +472,14 @@ export default function AdminUsers() {
                         title="Filtros"
                         admin
                     >
-                        <div>
-                            <p className="text-[11px] font-medium text-muted-foreground mb-2">Rol</p>
-                            <div className="flex flex-wrap gap-1.5">
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rol</p>
+                            <div className="flex flex-wrap gap-2">
                                 {VALID_ROLES.map((r) => (
                                     <Badge
                                         key={r}
                                         variant={roleFilter === r ? "default" : "outline"}
-                                        className="cursor-pointer text-[10px] px-2 py-0.5"
+                                        className="cursor-pointer px-3 py-1 text-xs"
                                         onClick={() => updateFilter("role", roleFilter === r ? "" : r)}
                                     >
                                         {r === "ADMIN" ? "Admin" : "Usuario"}
@@ -482,14 +487,14 @@ export default function AdminUsers() {
                                 ))}
                             </div>
                         </div>
-                        <div>
-                            <p className="text-[11px] font-medium text-muted-foreground mb-2">Estado</p>
-                            <div className="flex flex-wrap gap-1.5">
+                        <div className="px-6 py-5">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Estado</p>
+                            <div className="flex flex-wrap gap-2">
                                 {VALID_STATUSES.map((s) => (
                                     <Badge
                                         key={s}
                                         variant={statusFilter === s ? "default" : "outline"}
-                                        className="cursor-pointer text-[10px] px-2 py-0.5"
+                                        className="cursor-pointer px-3 py-1 text-xs"
                                         onClick={() => updateFilter("status", statusFilter === s ? "" : s)}
                                     >
                                         {STATUS_LABELS[s]}

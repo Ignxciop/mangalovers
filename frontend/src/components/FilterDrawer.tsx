@@ -46,25 +46,30 @@ export function FilterDrawer({
         return (
             <Sheet open={open} onOpenChange={handleOpenChange}>
                 <SheetTrigger asChild>
-                    <button
-                        className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative"
-                        aria-label="Filtrar"
-                    >
-                        <SlidersHorizontal className="size-3.5" />
+                    <Button variant="outline" className="shrink-0 relative">
+                        <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        Filtros
                         {hasActive && (
-                            <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-primary text-primary-foreground text-[6px] flex items-center justify-center font-bold">
+                            <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
                                 {activeCount}
                             </span>
                         )}
-                    </button>
+                    </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-64">
-                    <SheetHeader className="pb-3">
-                        <SheetTitle className="text-xs font-medium">{title}</SheetTitle>
+                <SheetContent className="flex flex-col gap-0 p-0">
+                    <SheetHeader className="px-6 py-5 border-b border-border">
+                        <SheetTitle className="text-base">{title}</SheetTitle>
                     </SheetHeader>
-                    <div className="space-y-4">
+                    <div className="flex-1 overflow-y-auto">
                         {children}
                     </div>
+                    {onClear && (
+                        <div className="px-6 py-4 border-t border-border">
+                            <Button variant="outline" className="w-full" onClick={onClear}>
+                                Limpiar todos los filtros
+                            </Button>
+                        </div>
+                    )}
                 </SheetContent>
             </Sheet>
         );

@@ -58,14 +58,14 @@ export async function updateStatus(req, res, next) {
 
     ActivityLogService.logEvent(
       req.user.userId, "UPDATE_SUGGESTION_STATUS",
-      { suggestionId, newStatus: status },
+      { suggestionId, title: existing?.title, newStatus: status, oldStatus: existing?.status },
       req.ip, req.headers["user-agent"],
     ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_SUGGESTION_STATUS" }, "ActivityLog error"));
 
     AdminAuditService.log(req.user.userId, "UPDATE_SUGGESTION_STATUS", {
       targetId: String(suggestionId),
       targetType: "Suggestion",
-      metadata: { oldStatus: existing?.status, newStatus: status },
+      metadata: { title: existing?.title, oldStatus: existing?.status, newStatus: status },
     });
   } catch (error) {
     next(error);

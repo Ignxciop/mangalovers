@@ -79,30 +79,6 @@ export class AdminUserService {
     });
   }
 
-  static async updateStatus(targetUserId, newStatus, adminUserId) {
-    if (targetUserId === adminUserId) {
-      throw new ValidationError("No puedes cambiar tu propio estado");
-    }
-
-    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
-    if (!user) throw new NotFoundError("Usuario no encontrado");
-
-    return prisma.user.update({
-      where: { id: targetUserId },
-      data: { status: newStatus },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        lastname: true,
-        role: true,
-        status: true,
-        lastLoginAt: true,
-        createdAt: true,
-      },
-    });
-  }
-
   static async updateStatus(targetUserId, status, adminUserId) {
     if (targetUserId === adminUserId) {
       throw new ValidationError("No puedes cambiar tu propio estado");
@@ -121,6 +97,7 @@ export class AdminUserService {
         lastname: true,
         role: true,
         status: true,
+        lastLoginAt: true,
         createdAt: true,
       },
     });

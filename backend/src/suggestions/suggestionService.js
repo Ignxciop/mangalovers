@@ -111,7 +111,7 @@ export class SuggestionService {
   static async getById(id) {
     return prisma.suggestion.findUnique({
       where: { id },
-      select: { id: true, status: true },
+      select: { id: true, title: true, status: true },
     });
   }
 

@@ -26,21 +26,22 @@ export async function updateRole(req, res, next) {
     const { role } = req.body;
     const existing = await prisma.user.findUnique({
       where: { id: targetUserId },
-      select: { role: true },
+      select: { role: true, name: true, lastname: true },
     });
     const user = await AdminUserService.updateRole(targetUserId, role, req.user.userId);
     res.json({ success: true, message: "Rol actualizado", data: user });
 
+    const targetName = `${existing.name} ${existing.lastname}`;
     ActivityLogService.logEvent(
       req.user.userId, "UPDATE_ROLE",
-      { targetUserId, oldRole: existing?.role, newRole: role },
+      { targetUserId, targetUserName: targetName, oldRole: existing?.role, newRole: role },
       req.ip, req.headers["user-agent"],
     ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_ROLE" }, "ActivityLog error"));
 
     AdminAuditService.log(req.user.userId, "UPDATE_ROLE", {
       targetId: targetUserId,
       targetType: "User",
-      metadata: { oldRole: existing?.role, newRole: role },
+      metadata: { targetUserName: targetName, oldRole: existing?.role, newRole: role },
     });
   } catch (error) {
     next(error);
@@ -53,21 +54,22 @@ export async function updateStatus(req, res, next) {
     const { status } = req.body;
     const existing = await prisma.user.findUnique({
       where: { id: targetUserId },
-      select: { status: true },
+      select: { status: true, name: true, lastname: true },
     });
     const user = await AdminUserService.updateStatus(targetUserId, status, req.user.userId);
     res.json({ success: true, message: "Estado actualizado", data: user });
 
+    const targetName = `${existing.name} ${existing.lastname}`;
     ActivityLogService.logEvent(
       req.user.userId, "UPDATE_USER_STATUS",
-      { targetUserId, oldStatus: existing?.status, newStatus: status },
+      { targetUserId, targetUserName: targetName, oldStatus: existing?.status, newStatus: status },
       req.ip, req.headers["user-agent"],
     ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_USER_STATUS" }, "ActivityLog error"));
 
     AdminAuditService.log(req.user.userId, "UPDATE_USER_STATUS", {
       targetId: targetUserId,
       targetType: "User",
-      metadata: { oldStatus: existing?.status, newStatus: status },
+      metadata: { targetUserName: targetName, oldStatus: existing?.status, newStatus: status },
     });
   } catch (error) {
     next(error);
