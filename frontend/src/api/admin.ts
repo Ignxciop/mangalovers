@@ -1,5 +1,10 @@
 import { api } from "./axios";
-import type { AdminUserListResponse, UpdateRoleResponse, UpdateStatusResponse, AdminMetricsResponse, ActivityLogResponse, UserRole, UserStatus } from "@/types/admin";
+import type {
+    AdminUserListResponse, UpdateRoleResponse, UpdateStatusResponse,
+    AdminMetricsResponse, ActivityLogResponse, UserRole, UserStatus,
+    OverviewResponse, ScraperMetricsResponse, UserMetricsResponse,
+    ContentMetricsResponse, SystemMetricsResponse,
+} from "@/types/admin";
 
 export async function getUsers(params?: {
     page?: number;
@@ -24,6 +29,31 @@ export async function updateUserStatus(userId: string, status: UserStatus) {
 
 export async function getMetrics() {
     const { data } = await api.get<AdminMetricsResponse>("/admin/metrics");
+    return data;
+}
+
+export async function getMetricsOverview() {
+    const { data } = await api.get<OverviewResponse>("/admin/metrics/overview");
+    return data;
+}
+
+export async function getScraperMetrics() {
+    const { data } = await api.get<ScraperMetricsResponse>("/admin/metrics/scrapers");
+    return data;
+}
+
+export async function getUserMetrics() {
+    const { data } = await api.get<UserMetricsResponse>("/admin/metrics/users");
+    return data;
+}
+
+export async function getContentMetrics() {
+    const { data } = await api.get<ContentMetricsResponse>("/admin/metrics/content");
+    return data;
+}
+
+export async function getSystemMetrics() {
+    const { data } = await api.get<SystemMetricsResponse>("/admin/metrics/system");
     return data;
 }
 

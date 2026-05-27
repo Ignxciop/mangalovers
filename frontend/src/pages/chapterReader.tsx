@@ -150,7 +150,7 @@ function ReaderControls({
     );
 }
 
-function ChapterNav({
+export function ChapterNav({
     slug,
     prev,
     next,

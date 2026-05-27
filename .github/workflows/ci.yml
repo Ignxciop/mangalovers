@@ -86,6 +86,8 @@ jobs:
 
       - run: pnpm lint
 
+      - run: pnpm test
+
       - run: pnpm build
         env:
           VITE_API_URL: /api
