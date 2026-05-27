@@ -38,8 +38,9 @@ docker compose up -d
 - **Service** → lógica de negocio, lanza errores con `error.statusCode`.
 - **Validator** → validación con `express-validator` (solo estructura, no lógica).
 - **Prisma** → acceso a BD vía `src/config/prisma.js`. Nunca se usa directamente desde controller o routes.
-- Imports locales con extensión `.js` explícita. Controller puede ser clase con métodos static (auth) o funciones exportadas sueltas (manga); usar el estilo del módulo existente.
-- Solo `AuthController` usa `next(error)` consistentemente; otros módulos a veces responden con `res.status(500)` directo.
+- Imports locales con extensión `.js` explícita. Controller puede ser clase con métodos static (auth) o funciones exportadas sueltas (manga, adminMetrics); usar el estilo del módulo existente.
+- `AdminMetricsController` y `AdminMetricsService` son clases con métodos static, mismo patrón que Auth.
+- Las páginas admin siguen el layout consistente: `min-h-screen bg-background flex flex-col overflow-x-hidden` en el contenedor raíz, `container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0` en `<main>`.
 
 ## Frontend: convenciones
 
@@ -64,7 +65,8 @@ docker compose up -d
   ```bash
   DATABASE_URL="postgresql://postgres:1243@localhost:5432/mangalovers-db-tests" pnpm prisma migrate deploy
   ```
-- Tests existentes: auth (19), favorites (12), reads (9), manga (20), notifications (7), middleware unit (11) — **78 tests**.
+- Tests existentes: auth (19), favorites (12), reads (9), manga (20), notifications (7), middleware unit (11), adminUser (8), adminMetrics (2) — **148 tests**.
+- Tests de admin requieren `DATABASE_TEST_URL` y datos seed (proveedores).
 - Vitest config (`vitest.config.js`): `fileParallelism: false` para evitar colisiones en test DB compartida.
 - Helpers: `tests/helpers/factories.js` (createUser, createSeries, createChapter, createGenre, createProvider), `tests/helpers/app.js` (buildApp), `tests/helpers/auth.js` (generateAccessToken).
 - `tests/setup.js` sobreescribe `DATABASE_URL` globalmente antes de importar la app.

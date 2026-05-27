@@ -5,7 +5,7 @@ import { authorize } from "../middlewares/authorize.js";
 import { validate } from "../utils/validate.js";
 import { listUsersValidator, updateRoleValidator, updateStatusValidator } from "./adminUserValidator.js";
 import { listUsers, updateRole, updateStatus } from "./adminUserController.js";
-import { getMetrics } from "./adminMetricsController.js";
+import { getMetrics, getOverview, getScraperMetrics, getUserMetrics, getContentMetrics, getSystemMetrics } from "./adminMetricsController.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 
 const adminLimiter = rateLimit({
@@ -32,6 +32,11 @@ const router = Router();
 router.use(adminLimiter);
 
 router.get("/metrics", authenticate, authorize("ADMIN"), getMetrics);
+router.get("/metrics/overview", authenticate, authorize("ADMIN"), getOverview);
+router.get("/metrics/scrapers", authenticate, authorize("ADMIN"), getScraperMetrics);
+router.get("/metrics/users", authenticate, authorize("ADMIN"), getUserMetrics);
+router.get("/metrics/content", authenticate, authorize("ADMIN"), getContentMetrics);
+router.get("/metrics/system", authenticate, authorize("ADMIN"), getSystemMetrics);
 router.get("/users", authenticate, authorize("ADMIN"), listUsersValidator, validate, listUsers);
 router.patch("/users/:id/role", authenticate, authorize("ADMIN"), updateRoleValidator, validate, updateRole);
 router.patch("/users/:id/status", authenticate, authorize("ADMIN"), updateStatusValidator, validate, updateStatus);
