@@ -75,6 +75,19 @@ docker compose up -d
 
 Skills instalados en `.agents/skills/` y `.opencode/skills/`. Se cargan automáticamente al iniciar OpenCode.
 
+### Cuándo cargar cada skill
+
+| Cuando trabajes en… | Cargá estas skills primero |
+|---|---|
+| **Backend** (routes, controllers, services, middlewares) | `nodejs-backend-patterns` + `nodejs-express-server` + `nodejs-best-practices` |
+| **Prisma** (schema, queries, migraciones) | `prisma-client-api` + `prisma-cli` |
+| **Tests backend** | `vitest` |
+| **Frontend** (componentes, páginas, estilos) | `frontend-design` + `tailwind-v4-shadcn` + `tailwind-css-patterns` + `shadcn` + `vercel-react-best-practices` + `ui-ux-pro-max` |
+| **Tipos TypeScript** | `typescript-advanced-types` |
+| **SEO / a11y** | `seo` + `accessibility` |
+| **Docker / infra** | `docker-expert` |
+| **Vite** (config, build) | `vite` |
+
 ### Backend
 
 | Skill | Propósito |
