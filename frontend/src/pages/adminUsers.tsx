@@ -464,8 +464,8 @@ export default function AdminUsers() {
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <Users className="size-4 text-muted-foreground shrink-0 hidden sm:block" />
-                        <span className="text-sm font-semibold text-muted-foreground shrink-0 hidden sm:block">
+                        <Users className="size-4 text-foreground shrink-0 hidden sm:block" />
+                        <span className="text-sm font-semibold text-foreground shrink-0 hidden sm:block">
                             Usuarios
                         </span>
                         <div className="relative flex-1 max-w-sm">

@@ -491,8 +491,8 @@ export default function AdminMetrics() {
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
                     <div className="flex items-center gap-2 min-w-0 mx-auto">
-                        <BarChart3 className="size-4 text-muted-foreground" />
-                        <span className="text-sm font-semibold text-muted-foreground">Métricas del sistema</span>
+                        <BarChart3 className="size-4 text-foreground" />
+                        <span className="text-sm font-semibold text-foreground">Métricas del sistema</span>
                     </div>
                     <div />
                 </div>
