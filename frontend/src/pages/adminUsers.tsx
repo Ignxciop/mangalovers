@@ -461,19 +461,21 @@ export default function AdminUsers() {
             <SEO title="Administrar usuarios" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
+                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
                     <SidebarTrigger />
-                    <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <Users className="size-4 text-foreground shrink-0 hidden sm:block" />
-                        <span className="text-sm font-semibold text-foreground shrink-0 hidden sm:block">
-                            Usuarios
-                        </span>
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                                ref={searchInputRef}
-                                placeholder="Buscar..."
-                                className="pl-9 pr-8 h-9 text-sm bg-muted/40 border-none"
+                    <div className="flex justify-center min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                            <div className="hidden sm:flex items-center gap-2 shrink-0">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-semibold">Usuarios</span>
+                            </div>
+                            <div className="w-full max-w-md">
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                    <Input
+                                        ref={searchInputRef}
+                                        placeholder="Buscar..."
+                                        className="pl-9 pr-8 h-9 text-sm bg-muted/40 border-none"
                                 value={searchText}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 onKeyDown={(e) => {
@@ -488,6 +490,8 @@ export default function AdminUsers() {
                                     <X className="size-4" />
                                 </button>
                             )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("role"); next.delete("status"); next.set("page", "1"); setSearchParams(next); }}>
