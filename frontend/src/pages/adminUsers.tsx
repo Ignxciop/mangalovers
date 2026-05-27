@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { getUsers, updateUserRole, updateUserStatus, getActivityLogs } from "@/api/admin";
+import { getUsers, updateUserRole, updateUserStatus, getActivityLogs, getStatusHistory } from "@/api/admin";
 import type { AdminUser, UserRole, UserStatus, ActivityLogEntry } from "@/types/admin";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -116,6 +116,16 @@ function formatRelative(iso: string) {
     return formatDate(iso);
 }
 
+function toDatetimeLocal(iso: string) {
+    const d = new Date(iso);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const h = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${y}-${m}-${day}T${h}:${min}`;
+}
+
 function formatLogMetadata(event: string, metadata: Record<string, unknown> | null): string {
     if (!metadata) return "";
     switch (event) {
@@ -131,8 +141,12 @@ function formatLogMetadata(event: string, metadata: Record<string, unknown> | nu
             return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
         case "UPDATE_ROLE":
             return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
-        case "UPDATE_USER_STATUS":
-            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldStatus) + " → " + String(metadata.newStatus);
+        case "UPDATE_USER_STATUS": {
+            const usMeta = metadata.targetUserName ? String(metadata.targetUserName) + ": " : "";
+            const usChange = String(metadata.oldStatus) + " → " + String(metadata.newStatus);
+            const usUntil = metadata.suspendedUntil ? " (hasta " + new Date(String(metadata.suspendedUntil)).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + ")" : "";
+            return usMeta + usChange + usUntil;
+        }
         default:
             return JSON.stringify(metadata).slice(0, 60);
     }
@@ -183,13 +197,17 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
     );
 }
 
-function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: {
+function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, statusHistory }: {
     user: AdminUser;
     onRoleChange: (userId: string, role: UserRole) => void;
-    onStatusChange: (userId: string, status: UserStatus) => void;
+    onStatusChange: (userId: string, status: UserStatus, suspendedUntil?: string) => void;
     logs: ActivityLogEntry[];
     logsLoading: boolean;
+    statusHistory: ActivityLogEntry[];
 }) {
+    const [suspendedDate, setSuspendedDate] = useState(user.suspendedUntil ? toDatetimeLocal(user.suspendedUntil) : "");
+    const [suspendDraft, setSuspendDraft] = useState(false);
+    const [suspendDraftDate, setSuspendDraftDate] = useState("");
     return (
         <div className="space-y-4 text-sm">
             <div className="flex items-start justify-between gap-3">
@@ -221,7 +239,17 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                         <SelectItem value="ADMIN">Admin</SelectItem>
                     </SelectContent>
                 </Select>
-                <Select value={user.status} onValueChange={(v) => onStatusChange(user.id, v as UserStatus)}>
+                <Select value={user.status} onValueChange={(v) => {
+                    const newStatus = v as UserStatus;
+                    if (newStatus === "SUSPENDED") {
+                        setSuspendDraft(true);
+                        setSuspendDraftDate(toDatetimeLocal(new Date().toISOString()));
+                        return;
+                    }
+                    setSuspendDraft(false);
+                    setSuspendedDate("");
+                    onStatusChange(user.id, newStatus);
+                }}>
                     <SelectTrigger className="min-w-[7rem] h-7 text-xs shrink-0">
                         <SelectValue />
                     </SelectTrigger>
@@ -232,6 +260,40 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                     </SelectContent>
                 </Select>
             </div>
+            {suspendDraft && (
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Hasta:</span>
+                    <input
+                        type="datetime-local"
+                        value={suspendDraftDate}
+                        onChange={(e) => setSuspendDraftDate(e.target.value)}
+                        className="flex-1 h-7 rounded-md border border-input bg-transparent px-2 text-xs"
+                    />
+                    <button
+                        onClick={() => {
+                            onStatusChange(user.id, "SUSPENDED", suspendDraftDate || undefined);
+                            setSuspendDraft(false);
+                        }}
+                        className="h-7 shrink-0 rounded-md bg-primary text-primary-foreground px-3 text-xs font-medium hover:bg-primary/90 transition-colors"
+                    >
+                        Guardar
+                    </button>
+                </div>
+            )}
+            {user.status === "SUSPENDED" && !suspendDraft && (
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Hasta:</span>
+                    <input
+                        type="datetime-local"
+                        value={suspendedDate}
+                        onChange={(e) => {
+                            setSuspendedDate(e.target.value);
+                            onStatusChange(user.id, "SUSPENDED", e.target.value || undefined);
+                        }}
+                        className="flex-1 h-7 rounded-md border border-input bg-transparent px-2 text-xs"
+                    />
+                </div>
+            )}
 
             <div className="border-t border-border pt-3 space-y-2">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -265,6 +327,25 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                     </div>
                 </div>
             </div>
+
+            {(() => {
+                const pastBans = statusHistory.filter(l => l.metadata?.newStatus === "BANNED");
+                const pastSuspensions = statusHistory.filter(l => l.metadata?.newStatus === "SUSPENDED");
+                const chips: { label: string; count: number; lastDate: string }[] = [];
+                if (pastBans.length > 0) chips.push({ label: "Baneado anteriormente", count: pastBans.length, lastDate: pastBans[0].createdAt });
+                if (pastSuspensions.length > 0) chips.push({ label: "Suspendido anteriormente", count: pastSuspensions.length, lastDate: pastSuspensions[0].createdAt });
+                if (chips.length === 0) return null;
+                return (
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                        {chips.map(c => (
+                            <span key={c.label} className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground/70 border border-border">
+                                {c.label} ×{c.count}
+                                <span className="text-muted-foreground/50">({formatDate(c.lastDate)})</span>
+                            </span>
+                        ))}
+                    </div>
+                );
+            })()}
 
             <div className="border-t border-border pt-3">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-2">
@@ -313,6 +394,7 @@ export default function AdminUsers() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [userLogs, setUserLogs] = useState<ActivityLogEntry[]>([]);
     const [userLogsLoading, setUserLogsLoading] = useState(false);
+    const [statusHistory, setStatusHistory] = useState<ActivityLogEntry[]>([]);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const [sheetOpen, setSheetOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
@@ -364,6 +446,7 @@ export default function AdminUsers() {
     useEffect(() => {
         if (!selectedId) {
             setUserLogs([]);
+            setStatusHistory([]);
             return;
         }
         setUserLogsLoading(true);
@@ -373,6 +456,11 @@ export default function AdminUsers() {
         }).catch(() => {
             setUserLogs([]);
             setUserLogsLoading(false);
+        });
+        getStatusHistory(selectedId, 10).then((res) => {
+            setStatusHistory(res.data);
+        }).catch(() => {
+            setStatusHistory([]);
         });
     }, [selectedId]);
 
@@ -415,9 +503,9 @@ export default function AdminUsers() {
         }
     };
 
-    const handleStatusChange = async (userId: string, newStatus: UserStatus) => {
+    const handleStatusChange = async (userId: string, newStatus: UserStatus, suspendedUntil?: string) => {
         try {
-            const res = await updateUserStatus(userId, newStatus);
+            const res = await updateUserStatus(userId, newStatus, suspendedUntil);
             fetchUsers();
             toast.success("Estado actualizado", {
                 description: `${res.data.name} ${res.data.lastname} ahora está ${STATUS_LABELS[newStatus].toLowerCase()}`,
@@ -555,7 +643,7 @@ export default function AdminUsers() {
                         <div className="hidden lg:block flex-1 min-w-0 border-l border-border pl-5">
                             {selected ? (
                                 <div className="sticky top-0">
-                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} />
+                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full min-h-[200px]">
@@ -574,7 +662,7 @@ export default function AdminUsers() {
                         <SheetTitle className="text-xs font-medium">Detalle</SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} />}
+                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />}
                     </div>
                 </SheetContent>
             </Sheet>

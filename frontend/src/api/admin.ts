@@ -1,7 +1,7 @@
 import { api } from "./axios";
 import type {
     AdminUserListResponse, UpdateRoleResponse, UpdateStatusResponse,
-    AdminMetricsResponse, ActivityLogResponse, UserRole, UserStatus,
+    AdminMetricsResponse, ActivityLogResponse, ActivityLogEntry, UserRole, UserStatus,
     OverviewResponse, ScraperMetricsResponse, UserMetricsResponse,
     ContentMetricsResponse, SystemMetricsResponse,
 } from "@/types/admin";
@@ -22,8 +22,8 @@ export async function updateUserRole(userId: string, role: UserRole) {
     return data;
 }
 
-export async function updateUserStatus(userId: string, status: UserStatus) {
-    const { data } = await api.patch<UpdateStatusResponse>(`/admin/users/${userId}/status`, { status });
+export async function updateUserStatus(userId: string, status: UserStatus, suspendedUntil?: string) {
+    const { data } = await api.patch<UpdateStatusResponse>(`/admin/users/${userId}/status`, { status, suspendedUntil });
     return data;
 }
 
@@ -65,5 +65,10 @@ export async function getActivityLogs(params?: {
     search?: string;
 }) {
     const { data } = await api.get<ActivityLogResponse>("/admin/logs", { params });
+    return data;
+}
+
+export async function getStatusHistory(userId: string, limit = 10) {
+    const { data } = await api.get<{ success: boolean; data: ActivityLogEntry[] }>(`/admin/users/${userId}/status-history`, { params: { limit } });
     return data;
 }

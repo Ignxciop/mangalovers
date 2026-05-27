@@ -82,8 +82,12 @@ function formatMetadata(event: string, metadata: Record<string, unknown> | null)
             return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
         case "UPDATE_ROLE":
             return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
-        case "UPDATE_USER_STATUS":
-            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldStatus) + " → " + String(metadata.newStatus);
+        case "UPDATE_USER_STATUS": {
+            const usMeta = metadata.targetUserName ? String(metadata.targetUserName) + ": " : "";
+            const usChange = String(metadata.oldStatus) + " → " + String(metadata.newStatus);
+            const usUntil = metadata.suspendedUntil ? " (hasta " + new Date(String(metadata.suspendedUntil)).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + ")" : "";
+            return usMeta + usChange + usUntil;
+        }
         default:
             return JSON.stringify(metadata).slice(0, 60);
     }
