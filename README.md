@@ -58,8 +58,9 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 
 - **Frontend**: SPA en React con routing del lado del cliente. Los estilos usan Tailwind CSS 4 con componentes shadcn/ui. El estado global de autenticación se maneja con Zustand con persistencia en localStorage.
 - **Backend**: API REST modular (auth, manga, favorites, reads, notifications). Cada módulo sigue el patrón Controller → Service → Prisma.
-- **Base de datos**: PostgreSQL con 11 modelos (User, Series, Chapter, Page, Genre, Provider, ProviderSeries, ProviderChapter, UserFavorite, UserChapterRead, PushSubscription, RefreshToken, SeriesAlias, SeriesGenre).
-- **Scrapers**: Dos proveedores (Olympuscope, ManhwaWeb) con extracción independiente. Un cron job ejecuta la recolección cada hora. Las series se deduplican entre proveedores mediante un algoritmo de matching por tokens.
+- **Base de datos**: PostgreSQL con 16 modelos (User, Series, Chapter, Page, Genre, Provider, ProviderSeries, ProviderChapter, UserFavorite, UserChapterRead, PushSubscription, RefreshToken, SeriesAlias, SeriesGenre, ScraperRun, UserActivity).
+- **Scrapers**: Dos proveedores (Olympuscope, ManhwaWeb) con extracción independiente. Un cron job ejecuta la recolección cada hora. Cada ejecución se persiste en el modelo `ScraperRun` con snapshot de la base de datos (series procesadas, capítulos creados, errores). Las series se deduplican entre proveedores mediante un algoritmo de matching por tokens.
+- **Admin**: Panel de administración con dashboard (visión general), gestión de usuarios (roles/estados), sugerencias, registro de actividad y métricas del sistema (rendimiento de scrapers, crecimiento de usuarios, distribución de contenido, errores de API).
 
 ### Principales decisiones técnicas
 
@@ -110,6 +111,19 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 | POST | `/api/notifications/subscribe` | Sí | Suscribirse a notificaciones push |
 | DELETE | `/api/notifications/unsubscribe` | Sí | Cancelar suscripción push |
 | GET | `/api/notifications/status` | Sí | Estado de la suscripción push |
+| **Admin** | | | |
+| GET | `/api/admin/metrics/overview` | Admin | Dashboard general (usuarios, series, sugerencias, scraper) |
+| GET | `/api/admin/metrics/scrapers` | Admin | Métricas detalladas de scrapers (timeline, proveedores) |
+| GET | `/api/admin/metrics/users` | Admin | Métricas de usuarios (registros, activos, top lectores) |
+| GET | `/api/admin/metrics/content` | Admin | Métricas de contenido (géneros, histograma, estado) |
+| GET | `/api/admin/metrics/system` | Admin | Métricas del sistema (eventos, errores, rate limits) |
+| GET | `/api/admin/users` | Admin | Lista paginada de usuarios |
+| PATCH | `/api/admin/users/:id/role` | Admin | Cambiar rol de usuario |
+| PATCH | `/api/admin/users/:id/status` | Admin | Cambiar estado de usuario |
+| GET | `/api/admin/users/:id/activity` | Admin | Actividad de un usuario |
+| GET | `/api/admin/suggestions` | Admin | Sugerencias paginadas |
+| PATCH | `/api/admin/suggestions/:id/status` | Admin | Cambiar estado de sugerencia |
+| GET | `/api/admin/activity` | Admin | Registro de actividad global |
 
 ### Ejecutar localmente
 
@@ -173,14 +187,23 @@ feature/xxx  →  PR  →  staging  (CI)
 ```
 backend/
 ├── prisma/
-│   └── schema.prisma           # Modelo de datos
+│   ├── schema.prisma           # Modelo de datos + ScraperRun, UserActivity
+│   └── migrations/             # Migraciones generadas por Prisma
 ├── src/
 │   ├── auth/                   # Registro, login, JWT, refresh tokens, Google OAuth
+│   ├── admin/                  # Panel admin: usuarios, sugerencias, métricas, actividad
+│   │   ├── adminUserRoutes.js  # CRUD usuarios + actividad por usuario
+│   │   ├── adminUserController.js
+│   │   ├── adminUserService.js
+│   │   ├── adminMetricsController.js  # 6 handlers (overview, scrapers, users, content, system)
+│   │   └── adminMetricsService.js     # 5 métodos con queries Prisma + raw SQL
 │   ├── manga/                  # Series, capítulos, scraping, scrapers
+│   │   └── scrapers/
+│   │       └── scraper.js      # trackRun() que persiste ejecuciones en ScraperRun
 │   ├── favorite/               # Favoritos del usuario
 │   ├── read/                   # Tracking de lectura y estadísticas
 │   ├── notifications/          # Push notifications (web-push)
-│   ├── middlewares/            # Auth middleware, error handler
+│   ├── middlewares/            # Auth middleware, error handler, rate limiter
 │   ├── jobs/                   # Cron de scraping automático
 │   ├── scripts/                # Utilidades: seed, dedup, fixes, scraper runners
 │   └── config/                 # Prisma client, env, email validation
@@ -189,8 +212,12 @@ frontend/
 ├── src/
 │   ├── pages/                  # adminDashboard, adminUsers, adminMetrics, adminSuggestions, etc.
 │   ├── hooks/                  # Custom hooks para datos y UI
-│   ├── api/                    # Cliente Axios con interceptor JWT
-│   ├── store/                  # Zustand store (auth)
-│   ├── components/             # shadcn/ui, layouts, sidebar
-│   └── types/                  # TypeScript interfaces compartidas
+│   ├── api/
+│   │   ├── axios.ts            # Cliente Axios con interceptor JWT + refresh queue
+│   │   └── admin.ts            # 11 funciones admin (users, suggestions, activity, metrics)
+│   ├── store/                  # Zustand store (auth con persist)
+│   ├── components/             # shadcn/ui, layouts, sidebar, charts SVG
+│   └── types/
+│       ├── manga.ts            # Interfaces de series, capítulos
+│       └── admin.ts            # Interfaces admin: AdminUser, OverviewMetrics, ScraperRun, etc.
 ```
