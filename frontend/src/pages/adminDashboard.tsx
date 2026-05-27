@@ -170,11 +170,13 @@ export default function AdminDashboard() {
             <SEO title="Panel de Administración" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-14 px-4">
+                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
-                    <div className="flex justify-center min-w-0">
-                        <span className="text-xs font-medium text-muted-foreground">Panel de Administración</span>
+                    <div className="flex items-center gap-2 min-w-0 mx-auto">
+                        <Activity className="size-4 text-muted-foreground" />
+                        <span className="text-sm font-semibold text-muted-foreground">Panel de Administración</span>
                     </div>
+                    <div />
                 </div>
             </header>
 

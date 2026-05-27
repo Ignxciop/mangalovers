@@ -166,7 +166,8 @@ export default function AdminActivityLogs() {
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-sm font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <ScrollText className="size-4 text-muted-foreground shrink-0 hidden sm:block" />
+                        <span className="text-sm font-semibold text-muted-foreground shrink-0 hidden sm:block">
                             Actividad
                         </span>
                         <div className="relative flex-1 max-w-sm">
@@ -191,7 +192,7 @@ export default function AdminActivityLogs() {
                             )}
                         </div>
                     </div>
-                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={hasActiveFilter ? 1 : 0}>
+                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={hasActiveFilter ? 1 : 0} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("event"); next.set("page", "1"); setSearchParams(next); }}>
                         <div className="px-6 py-5 border-b border-border">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evento</p>
                             <div className="flex flex-wrap gap-2">
@@ -200,10 +201,7 @@ export default function AdminActivityLogs() {
                                         key={evt}
                                         variant={eventFilter === evt ? "default" : "outline"}
                                         className="cursor-pointer text-xs px-3 py-1"
-                                        onClick={() => {
-                                            updateFilter("event", eventFilter === evt ? "" : evt);
-                                            setFilterSheetOpen(false);
-                                        }}
+                                        onClick={() => updateFilter("event", eventFilter === evt ? "" : evt)}
                                     >
                                         {EVENT_LABELS[evt]}
                                     </Badge>

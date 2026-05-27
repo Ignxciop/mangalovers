@@ -464,7 +464,8 @@ export default function AdminUsers() {
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-sm font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <Users className="size-4 text-muted-foreground shrink-0 hidden sm:block" />
+                        <span className="text-sm font-semibold text-muted-foreground shrink-0 hidden sm:block">
                             Usuarios
                         </span>
                         <div className="relative flex-1 max-w-sm">
@@ -489,7 +490,7 @@ export default function AdminUsers() {
                             )}
                         </div>
                     </div>
-                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount}>
+                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("role"); next.delete("status"); next.set("page", "1"); setSearchParams(next); }}>
                         <div className="px-6 py-5 border-b border-border">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rol</p>
                             <div className="flex flex-wrap gap-2">
@@ -498,10 +499,7 @@ export default function AdminUsers() {
                                         key={r}
                                         variant={roleFilter === r ? "default" : "outline"}
                                         className="cursor-pointer text-xs px-3 py-1"
-                                        onClick={() => {
-                                            updateFilter("role", roleFilter === r ? "" : r);
-                                            setFilterSheetOpen(false);
-                                        }}
+                                        onClick={() => updateFilter("role", roleFilter === r ? "" : r)}
                                     >
                                         {r === "ADMIN" ? "Admin" : "Usuario"}
                                     </Badge>
@@ -516,10 +514,7 @@ export default function AdminUsers() {
                                         key={s}
                                         variant={statusFilter === s ? "default" : "outline"}
                                         className="cursor-pointer text-xs px-3 py-1"
-                                        onClick={() => {
-                                            updateFilter("status", statusFilter === s ? "" : s);
-                                            setFilterSheetOpen(false);
-                                        }}
+                                        onClick={() => updateFilter("status", statusFilter === s ? "" : s)}
                                     >
                                         {STATUS_LABELS[s]}
                                     </Badge>

@@ -488,11 +488,13 @@ export default function AdminMetrics() {
             <SEO title="Métricas del sistema" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-14 px-4">
+                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
-                    <div className="flex justify-center min-w-0">
-                        <span className="text-xs font-medium text-muted-foreground">Métricas del sistema</span>
+                    <div className="flex items-center gap-2 min-w-0 mx-auto">
+                        <BarChart3 className="size-4 text-muted-foreground" />
+                        <span className="text-sm font-semibold text-muted-foreground">Métricas del sistema</span>
                     </div>
+                    <div />
                 </div>
             </header>
 

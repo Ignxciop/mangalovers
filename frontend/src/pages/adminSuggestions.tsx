@@ -284,7 +284,8 @@ export default function AdminSuggestions() {
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-sm font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <MessageSquare className="size-4 text-muted-foreground shrink-0 hidden sm:block" />
+                        <span className="text-sm font-semibold text-muted-foreground shrink-0 hidden sm:block">
                             Sugerencias
                         </span>
                         <div className="relative flex-1 max-w-sm">
@@ -312,7 +313,7 @@ export default function AdminSuggestions() {
                             )}
                         </div>
                     </div>
-                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount}>
+                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("type"); next.set("page", "1"); setSearchParams(next); }}>
                         <div className="px-6 py-5 border-b border-border">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tipo</p>
                             <div className="flex flex-wrap gap-2">
@@ -321,10 +322,7 @@ export default function AdminSuggestions() {
                                         key={t}
                                         variant={typeFilter === t ? "default" : "outline"}
                                         className="cursor-pointer text-xs px-3 py-1"
-                                        onClick={() => {
-                                            updateFilter("type", typeFilter === t ? "" : t);
-                                            setFilterSheetOpen(false);
-                                        }}
+                                        onClick={() => updateFilter("type", typeFilter === t ? "" : t)}
                                     >
                                         {TYPE_LABELS[t as SuggestionType]}
                                     </Badge>
