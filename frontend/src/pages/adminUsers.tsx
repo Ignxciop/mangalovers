@@ -21,6 +21,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
 import { SEO } from "@/components/seo";
 import { cn } from "@/lib/utils";
@@ -142,12 +143,14 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
         <button
             onClick={onClick}
             className={cn(
-                "w-full text-left px-3 py-2.5 rounded transition-colors",
-                isSelected ? "bg-muted" : "hover:bg-muted/50",
+                "w-full text-left px-3 py-2.5 rounded-lg transition-all",
+                isSelected
+                    ? "bg-muted border border-border/50 shadow-sm"
+                    : "hover:bg-muted/40 border border-transparent",
             )}
         >
             <div className="flex items-center gap-2.5">
-                <div className="size-7 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[10px] font-bold text-muted-foreground">
+                <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[11px] font-bold text-muted-foreground">
                     {user.name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -158,7 +161,7 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
                     <p className="text-[11px] text-muted-foreground/60 truncate">{user.email}</p>
                 </div>
             </div>
-            <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground/50">
+            <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground/50">
                 <span className="flex items-center gap-1">
                     <MessageSquare className="size-2.5" />
                     {user._count.suggestions}
@@ -265,17 +268,19 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                     Últimos eventos
                 </div>
                 {logsLoading ? (
-                    <div className="flex justify-center py-4">
-                        <div className="size-4 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
+                    <div className="space-y-2 py-2">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <Skeleton key={i} className="h-10 rounded-md" />
+                        ))}
                     </div>
                 ) : logs.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground/50 text-center py-4">Sin actividad registrada</p>
+                    <p className="text-[11px] text-muted-foreground/50 text-center py-6">Sin actividad registrada</p>
                 ) : (
                     <div className="space-y-1.5">
                         {logs.slice(0, 10).map((log) => (
-                            <div key={log.id} className="flex items-start gap-2 py-1.5 px-2 rounded bg-muted/20 border border-border/50">
+                            <div key={log.id} className="flex items-start gap-2 py-2 px-2.5 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors">
                                 <div className="flex-1 min-w-0">
-                                    <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded border ${EVENT_COLORS[log.event] ?? "bg-muted text-muted-foreground border-border"}`}>
+                                    <span className={cn("inline-block text-[10px] font-medium px-1.5 py-0.5 rounded border", EVENT_COLORS[log.event] ?? "bg-muted text-muted-foreground border-border")}>
                                         {EVENT_LABELS[log.event] ?? log.event}
                                     </span>
                                     {log.metadata && (
@@ -519,15 +524,29 @@ export default function AdminUsers() {
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 {loading ? (
-                    <div className="flex justify-center py-16">
-                        <div className="size-5 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
+                    <div className="flex gap-5 flex-1 min-h-0">
+                        <div className="flex flex-col w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 gap-2">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <Skeleton key={i} className="h-[60px] rounded-lg" />
+                            ))}
+                        </div>
+                        <div className="hidden lg:block flex-1 border-l border-border pl-5">
+                            <Skeleton className="h-[400px] rounded-xl" />
+                        </div>
                     </div>
                 ) : users.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-24 gap-3 text-center flex-1">
-                        <Users className="size-8 text-muted-foreground/30" />
-                        <p className="text-xs text-muted-foreground">
-                            {activeFiltersCount > 0 || searchQuery ? "No hay usuarios con estos filtros" : "No hay usuarios registrados"}
-                        </p>
+                    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
+                        <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
+                            <Users className="size-6 text-muted-foreground/30" />
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-sm font-medium text-muted-foreground/70">
+                                {activeFiltersCount > 0 || searchQuery ? "Sin resultados" : "No hay usuarios"}
+                            </p>
+                            <p className="text-xs text-muted-foreground/50">
+                                {activeFiltersCount > 0 || searchQuery ? "Probá con otros filtros o búsqueda" : "Los usuarios nuevos aparecerán aquí"}
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     <div className="flex gap-5 flex-1 min-h-0">

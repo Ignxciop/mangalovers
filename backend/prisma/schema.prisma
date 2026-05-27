@@ -277,6 +277,24 @@ model UserActivity {
   @@map("user_activities")
 }
 
+model ScraperRun {
+  id               Int      @id @default(autoincrement())
+  provider         String
+  status           String   @default("running")
+  startedAt        DateTime @default(now())
+  finishedAt       DateTime?
+  seriesProcessed  Int      @default(0)
+  chaptersCreated  Int      @default(0)
+  chaptersUpdated  Int      @default(0)
+  pagesScraped     Int      @default(0)
+  errors           Int      @default(0)
+  errorMessage     String?
+
+  @@index([provider, startedAt])
+  @@index([startedAt])
+  @@map("scraper_runs")
+}
+
 model PushSubscription {
   id        String   @id @default(cuid())
   userId    String

@@ -21,6 +21,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
 import { SEO } from "@/components/seo";
 import { timeAgo } from "@/lib/date";
@@ -106,7 +107,7 @@ function DetailPanel({
                 </Select>
             </div>
 
-            <div className="bg-muted/20 rounded border border-border p-2.5 text-xs leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+            <div className="bg-muted/10 rounded-lg border border-border/60 p-3 text-xs leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto">
                 {suggestion.description}
             </div>
 
@@ -349,35 +350,48 @@ export default function AdminSuggestions() {
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 {loading ? (
-                    <div className="flex justify-center py-16">
-                        <div className="size-5 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
+                    <div className="flex gap-5 flex-1 min-h-0">
+                        <div className="flex flex-col w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 gap-2">
+                            <Skeleton className="h-8 rounded-lg" />
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <Skeleton key={i} className="h-[68px] rounded-lg" />
+                            ))}
+                        </div>
+                        <div className="hidden lg:block flex-1 border-l border-border pl-5">
+                            <Skeleton className="h-[350px] rounded-xl" />
+                        </div>
                     </div>
                 ) : suggestions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-24 gap-3 text-center flex-1">
-                        <MessageSquare className="size-8 text-muted-foreground/30" />
-                        <p className="text-xs text-muted-foreground">
-                            {activeFiltersCount > 0 || searchQuery
-                                ? "No hay sugerencias con estos filtros"
-                                : "No hay sugerencias"}
-                        </p>
+                    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
+                        <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
+                            <MessageSquare className="size-6 text-muted-foreground/30" />
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-sm font-medium text-muted-foreground/70">
+                                {activeFiltersCount > 0 || searchQuery ? "Sin resultados" : "No hay sugerencias"}
+                            </p>
+                            <p className="text-xs text-muted-foreground/50">
+                                {activeFiltersCount > 0 || searchQuery ? "Probá con otros filtros o búsqueda" : "Las sugerencias de los usuarios aparecerán aquí"}
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     <div className="flex gap-5 flex-1 min-h-0">
                         <div className="flex flex-col w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 min-h-0">
-                            <div className="flex items-center gap-1 pb-2 shrink-0 border-b border-border mb-2">
+                            <div className="flex items-center gap-1 pb-2 shrink-0 border-b border-border mb-2 overflow-x-auto">
                                 {tabs.map((tab) => (
                                     <button
                                         key={tab.value}
                                         onClick={() => updateFilter("status", tab.value)}
                                         className={cn(
-                                            "px-2.5 py-1 text-[11px] font-medium rounded transition-colors",
+                                            "flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-md transition-all shrink-0",
                                             statusFilter === tab.value
-                                                ? "bg-muted text-foreground"
-                                                : "text-muted-foreground hover:text-foreground",
+                                                ? "bg-muted text-foreground shadow-sm"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-muted/40",
                                         )}
                                     >
                                         {tab.label}
-                                        <span className="ml-1.5 text-[10px] text-muted-foreground/60">{tab.count}</span>
+                                        <span className="text-[10px] text-muted-foreground/50">{tab.count}</span>
                                     </button>
                                 ))}
                             </div>
@@ -391,10 +405,10 @@ export default function AdminSuggestions() {
                                             key={s.id}
                                             onClick={() => handleSelectSuggestion(s.id)}
                                             className={cn(
-                                                "w-full text-left px-3 py-2 rounded transition-colors",
+                                                "w-full text-left px-3 py-2.5 rounded-lg transition-all",
                                                 isSelected
-                                                    ? "bg-muted"
-                                                    : "hover:bg-muted/50",
+                                                    ? "bg-muted border border-border/50 shadow-sm"
+                                                    : "hover:bg-muted/40 border border-transparent",
                                                 resolved && !isSelected && "opacity-50",
                                             )}
                                         >

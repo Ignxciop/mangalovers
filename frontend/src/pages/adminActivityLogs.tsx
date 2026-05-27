@@ -12,6 +12,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
 import { SEO } from "@/components/seo";
 import { cn } from "@/lib/utils";
@@ -229,19 +230,29 @@ export default function AdminActivityLogs() {
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 {loading ? (
-                    <div className="flex justify-center py-16">
-                        <div className="size-5 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
+                    <div className="space-y-3">
+                        <Skeleton className="h-10 rounded-lg" />
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <Skeleton key={i} className="h-[52px] rounded-lg" />
+                        ))}
                     </div>
                 ) : logs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-24 gap-3 text-center flex-1">
-                        <ScrollText className="size-8 text-muted-foreground/30" />
-                        <p className="text-xs text-muted-foreground">
-                            {eventFilter || searchQuery ? "No hay actividad con estos filtros" : "No hay actividad registrada"}
-                        </p>
+                    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
+                        <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
+                            <ScrollText className="size-6 text-muted-foreground/30" />
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-sm font-medium text-muted-foreground/70">
+                                {eventFilter || searchQuery ? "Sin resultados" : "Sin actividad"}
+                            </p>
+                            <p className="text-xs text-muted-foreground/50">
+                                {eventFilter || searchQuery ? "Probá con otros filtros o búsqueda" : "El registro de actividad estará disponible cuando los usuarios interactúen"}
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col min-h-0">
-                        <div className="border border-border rounded-md overflow-hidden">
+                        <div className="border border-border rounded-lg overflow-hidden bg-card">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-xs">
                                     <thead>

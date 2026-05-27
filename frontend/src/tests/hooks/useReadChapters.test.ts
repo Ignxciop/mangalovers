@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useReadChapters } from "@/hooks/useReadChapters";
-import { useAuthStore } from "@/store/authStore";
 
 const mockFetchReadChapterIds = vi.fn();
 const mockToggleChapterRead = vi.fn();
