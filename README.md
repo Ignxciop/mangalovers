@@ -58,7 +58,7 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 
 - **Frontend**: SPA en React con routing del lado del cliente. Los estilos usan Tailwind CSS 4 con componentes shadcn/ui. El estado global de autenticación se maneja con Zustand con persistencia en localStorage.
 - **Backend**: API REST modular (auth, manga, favorites, reads, notifications). Cada módulo sigue el patrón Controller → Service → Prisma.
-- **Base de datos**: PostgreSQL con 16 modelos (User, Series, Chapter, Page, Genre, Provider, ProviderSeries, ProviderChapter, UserFavorite, UserChapterRead, PushSubscription, RefreshToken, SeriesAlias, SeriesGenre, ScraperRun, UserActivity).
+- **Base de datos**: PostgreSQL con 17 modelos (User, Series, Chapter, Page, Genre, Provider, ProviderSeries, ProviderChapter, UserFavorite, UserChapterRead, PushSubscription, RefreshToken, SeriesAlias, SeriesGenre, ScraperRun, UserActivity, AdminAuditLog).
 - **Scrapers**: Dos proveedores (Olympuscope, ManhwaWeb) con extracción independiente. Un cron job ejecuta la recolección cada hora. Cada ejecución se persiste en el modelo `ScraperRun` con snapshot de la base de datos (series procesadas, capítulos creados, errores). Las series se deduplican entre proveedores mediante un algoritmo de matching por tokens.
 - **Admin**: Panel de administración con dashboard (visión general), gestión de usuarios (roles/estados), sugerencias, registro de actividad y métricas del sistema (rendimiento de scrapers, crecimiento de usuarios, distribución de contenido, errores de API).
 
@@ -124,6 +124,8 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 | GET | `/api/admin/suggestions` | Admin | Sugerencias paginadas |
 | PATCH | `/api/admin/suggestions/:id/status` | Admin | Cambiar estado de sugerencia |
 | GET | `/api/admin/activity` | Admin | Registro de actividad global |
+| GET | `/api/admin/audit-logs` | Admin | Auditoría de acciones administrativas |
+| GET | `/api/admin/metrics` | Admin | Métricas generales del sistema |
 
 ### Ejecutar localmente
 
@@ -192,9 +194,10 @@ backend/
 ├── src/
 │   ├── auth/                   # Registro, login, JWT, refresh tokens, Google OAuth
 │   ├── admin/                  # Panel admin: usuarios, sugerencias, métricas, actividad
-│   │   ├── adminUserRoutes.js  # CRUD usuarios + actividad por usuario
+│   │   ├── adminUserRoutes.js       # CRUD usuarios + actividad por usuario + auditoría
 │   │   ├── adminUserController.js
 │   │   ├── adminUserService.js
+│   │   ├── adminAuditService.js     # Auditoría de acciones administrativas
 │   │   ├── adminMetricsController.js  # 6 handlers (overview, scrapers, users, content, system)
 │   │   └── adminMetricsService.js     # 5 métodos con queries Prisma + raw SQL
 │   ├── manga/                  # Series, capítulos, scraping, scrapers
@@ -210,11 +213,11 @@ backend/
 
 frontend/
 ├── src/
-│   ├── pages/                  # adminDashboard, adminUsers, adminMetrics, adminSuggestions, etc.
+│   ├── pages/                  # adminDashboard, adminUsers, adminMetrics, adminSuggestions, adminActivityLogs, adminAuditLogs, etc.
 │   ├── hooks/                  # Custom hooks para datos y UI
 │   ├── api/
 │   │   ├── axios.ts            # Cliente Axios con interceptor JWT + refresh queue
-│   │   └── admin.ts            # 11 funciones admin (users, suggestions, activity, metrics)
+│   │   └── admin.ts            # 12 funciones admin (users, suggestions, activity, metrics, audit)
 │   ├── store/                  # Zustand store (auth con persist)
 │   ├── components/             # shadcn/ui, layouts, sidebar, charts SVG
 │   └── types/

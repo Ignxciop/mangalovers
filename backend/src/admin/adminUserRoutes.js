@@ -4,7 +4,7 @@ import { authenticate } from "../middlewares/auth.js";
 import { authorize } from "../middlewares/authorize.js";
 import { validate } from "../utils/validate.js";
 import { listUsersValidator, updateRoleValidator, updateStatusValidator } from "./adminUserValidator.js";
-import { listUsers, updateRole, updateStatus } from "./adminUserController.js";
+import { listUsers, updateRole, updateStatus, getAuditLogs } from "./adminUserController.js";
 import { getMetrics, getOverview, getScraperMetrics, getUserMetrics, getContentMetrics, getSystemMetrics } from "./adminMetricsController.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 
@@ -40,5 +40,6 @@ router.get("/metrics/system", authenticate, authorize("ADMIN"), getSystemMetrics
 router.get("/users", authenticate, authorize("ADMIN"), listUsersValidator, validate, listUsers);
 router.patch("/users/:id/role", authenticate, authorize("ADMIN"), updateRoleValidator, validate, updateRole);
 router.patch("/users/:id/status", authenticate, authorize("ADMIN"), updateStatusValidator, validate, updateStatus);
+router.get("/audit-logs", authenticate, authorize("ADMIN"), getAuditLogs);
 
 export default router;

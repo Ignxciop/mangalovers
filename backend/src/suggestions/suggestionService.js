@@ -108,6 +108,13 @@ export class SuggestionService {
     };
   }
 
+  static async getById(id) {
+    return prisma.suggestion.findUnique({
+      where: { id },
+      select: { id: true, status: true },
+    });
+  }
+
   static async updateStatus(suggestionId, status, adminUserId) {
     const suggestion = await prisma.suggestion.findUnique({ where: { id: suggestionId } });
     if (!suggestion) throw new NotFoundError("Sugerencia no encontrada");

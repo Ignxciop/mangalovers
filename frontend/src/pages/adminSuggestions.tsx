@@ -18,8 +18,8 @@ import {
     SheetHeader,
     SheetTitle,
     SheetClose,
-    SheetTrigger,
 } from "@/components/ui/sheet";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
@@ -31,7 +31,6 @@ import {
     Search,
     X,
     RefreshCw,
-    SlidersHorizontal,
     ArrowLeft,
     User,
     Calendar,
@@ -158,7 +157,6 @@ export default function AdminSuggestions() {
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const [sheetOpen, setSheetOpen] = useState(false);
-    const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -313,38 +311,24 @@ export default function AdminSuggestions() {
                             )}
                         </div>
                     </div>
-                    <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-                        <SheetTrigger asChild>
-                            <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar por tipo">
-                                <SlidersHorizontal className="size-3.5" />
-                                {activeFiltersCount > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-primary text-primary-foreground text-[6px] flex items-center justify-center font-bold">
-                                        {activeFiltersCount}
-                                    </span>
-                                )}
-                            </button>
-                        </SheetTrigger>
-                        <SheetContent side="right" className="w-64">
-                            <SheetHeader className="pb-3">
-                                <SheetTitle className="text-xs font-medium">Filtrar por tipo</SheetTitle>
-                            </SheetHeader>
-                            <div className="flex flex-wrap gap-1.5">
-                                {VALID_TYPES.map((t) => (
-                                    <Badge
-                                        key={t}
-                                        variant={typeFilter === t ? "default" : "outline"}
-                                        className="cursor-pointer text-[10px] px-2 py-0.5"
-                                        onClick={() => {
-                                            updateFilter("type", typeFilter === t ? "" : t);
-                                            setFilterSheetOpen(false);
-                                        }}
-                                    >
-                                        {TYPE_LABELS[t as SuggestionType]}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </SheetContent>
-                    </Sheet>
+                    <FilterDrawer
+                        activeCount={activeFiltersCount}
+                        title="Filtrar por tipo"
+                        admin
+                    >
+                        <div className="flex flex-wrap gap-1.5">
+                            {VALID_TYPES.map((t) => (
+                                <Badge
+                                    key={t}
+                                    variant={typeFilter === t ? "default" : "outline"}
+                                    className="cursor-pointer text-[10px] px-2 py-0.5"
+                                    onClick={() => updateFilter("type", typeFilter === t ? "" : t)}
+                                >
+                                    {TYPE_LABELS[t as SuggestionType]}
+                                </Badge>
+                            ))}
+                        </div>
+                    </FilterDrawer>
                 </div>
             </header>
 

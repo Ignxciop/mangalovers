@@ -1,17 +1,10 @@
 import { SEO } from "@/components/seo";
 import { JsonLd } from "@/components/jsonld";
-import { Search, SlidersHorizontal, BookOpen, Eye, Heart } from "lucide-react";
+import { Search, BookOpen, Eye, Heart } from "lucide-react";
 import { CoverImage } from "@/components/coverImage";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from "@/components/ui/sheet";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import {
     Select,
     SelectContent,
@@ -259,242 +252,156 @@ export default function MangaList() {
                             </div>
                         </div>
                     </div>
-                    <Sheet>
-                        <SheetTrigger asChild>
-                            <Button
-                                variant="outline"
-                                className="shrink-0 relative"
+                    <FilterDrawer
+                        activeCount={activeFiltersCount}
+                        title="Filtros de búsqueda"
+                        onClear={() => {
+                            setSearchParams((prev) => {
+                                prev.delete("status");
+                                prev.delete("type");
+                                prev.delete("genres");
+                                prev.delete("sort");
+                                prev.set("page", "1");
+                                return prev;
+                            });
+                        }}
+                    >
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                Ordenar por
+                            </p>
+                            <Select
+                                value={sort}
+                                onValueChange={setSort}
                             >
-                                <SlidersHorizontal className="mr-2 h-4 w-4" />
-                                Filtros
-                                {activeFiltersCount > 0 && (
-                                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
-                                        {activeFiltersCount}
-                                    </span>
-                                )}
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent className="flex flex-col gap-0 p-0">
-                            <SheetHeader className="px-6 py-5 border-b border-border">
-                                <SheetTitle className="text-base">
-                                    Filtros de búsqueda
-                                </SheetTitle>
-                            </SheetHeader>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="updated">
+                                        Actualización reciente
+                                    </SelectItem>
+                                    <SelectItem value="chapters">
+                                        Más capítulos
+                                    </SelectItem>
+                                    <SelectItem value="az">
+                                        A → Z
+                                    </SelectItem>
+                                    <SelectItem value="za">
+                                        Z → A
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                            <div className="flex-1 overflow-y-auto">
-                                <div className="px-6 py-5 border-b border-border">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                        Ordenar por
-                                    </p>
-                                    <Select
-                                        value={sort}
-                                        onValueChange={setSort}
-                                    >
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="updated">
-                                                Actualización reciente
-                                            </SelectItem>
-                                            <SelectItem value="chapters">
-                                                Más capítulos
-                                            </SelectItem>
-                                            <SelectItem value="az">
-                                                A → Z
-                                            </SelectItem>
-                                            <SelectItem value="za">
-                                                Z → A
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="px-6 py-5 border-b border-border">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                        Estado
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {[
-                                            {
-                                                label: "Activo",
-                                                value: "Activo",
-                                            },
-                                            {
-                                                label: "Finalizado",
-                                                value: "Finalizado",
-                                            },
-                                            {
-                                                label: "Pausado",
-                                                value: "Pausado por el autor (Hiatus)",
-                                            },
-                                            {
-                                                label: "Abandonado",
-                                                value: "Abandonado por el scan",
-                                            },
-                                        ].map(({ label, value }) => (
-                                            <Badge
-                                                key={value}
-                                                variant={
-                                                    status === value
-                                                        ? "default"
-                                                        : "outline"
-                                                }
-                                                className="cursor-pointer px-3 py-1 text-xs"
-                                                role="button"
-                                                tabIndex={0}
-                                                onClick={() =>
-                                                    setStatus(
-                                                        status === value
-                                                            ? ""
-                                                            : value,
-                                                    )
-                                                }
-                                                onKeyDown={(e) => {
-                                                    if (e.key === "Enter" || e.key === " ") {
-                                                        e.preventDefault();
-                                                        setStatus(
-                                                            status === value
-                                                                ? ""
-                                                                : value,
-                                                        );
-                                                    }
-                                                }}
-                                            >
-                                                {label}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="px-6 py-5 border-b border-border">
-                                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                        Tipo
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {[
-                                            { label: "Todos", value: "" },
-                                            { label: "Manga", value: "manga" },
-                                            { label: "Manhwa", value: "manhwa" },
-                                            { label: "Manhua", value: "manhua" },
-                                        ].map(({ label, value }) => (
-                                            <Badge
-                                                key={value}
-                                                variant={
-                                                    type === value
-                                                        ? "default"
-                                                        : "outline"
-                                                }
-                                                className="cursor-pointer px-3 py-1 text-xs"
-                                                role="button"
-                                                tabIndex={0}
-                                                onClick={() =>
-                                                    setType(
-                                                        type === value ? "" : value,
-                                                    )
-                                                }
-                                                onKeyDown={(e) => {
-                                                    if (e.key === "Enter" || e.key === " ") {
-                                                        e.preventDefault();
-                                                        setType(
-                                                            type === value ? "" : value,
-                                                        );
-                                                    }
-                                                }}
-                                            >
-                                                {label}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="px-6 py-5">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                            Géneros
-                                        </p>
-                                        {selectedGenres.length > 0 && (
-                                            <button
-                                                onClick={() =>
-                                                    setSearchParams((prev) => {
-                                                        prev.delete("genres");
-                                                        prev.set("page", "1");
-                                                        return prev;
-                                                    })
-                                                }
-                                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                            >
-                                                Limpiar ({selectedGenres.length}
-                                                )
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="overflow-y-auto max-h-72">
-                                        {genresList.map((genre, idx) => (
-                                            <div
-                                                key={genre.id}
-                                                role="button"
-                                                tabIndex={0}
-                                                className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
-                                                    idx !==
-                                                    genresList.length - 1
-                                                        ? "border-b border-border/40"
-                                                        : ""
-                                                }`}
-                                                onClick={() =>
-                                                    toggleGenre(genre.name)
-                                                }
-                                                onKeyDown={(e) => {
-                                                    if (e.key === "Enter" || e.key === " ") {
-                                                        e.preventDefault();
-                                                        toggleGenre(genre.name);
-                                                    }
-                                                }}
-                                            >
-                                                <span
-                                                    className={`text-sm transition-colors ${
-                                                        selectedGenres.includes(
-                                                            genre.name,
-                                                        )
-                                                            ? "text-foreground font-medium"
-                                                            : "text-muted-foreground group-hover:text-foreground"
-                                                    }`}
-                                                >
-                                                    {genre.name}
-                                                </span>
-                                                {selectedGenres.includes(
-                                                    genre.name,
-                                                ) && (
-                                                    <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {activeFiltersCount > 0 && (
-                                <div className="px-6 py-4 border-t border-border">
-                                    <Button
-                                        variant="outline"
-                                        className="w-full"
-                                        onClick={() => {
-                                            setSearchParams((prev) => {
-                                                prev.delete("status");
-                                                prev.delete("type");
-                                                prev.delete("genres");
-                                                prev.delete("sort");
-                                                prev.set("page", "1");
-                                                return prev;
-                                            });
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                Estado
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { label: "Activo", value: "Activo" },
+                                    { label: "Finalizado", value: "Finalizado" },
+                                    { label: "Pausado", value: "Pausado por el autor (Hiatus)" },
+                                    { label: "Abandonado", value: "Abandonado por el scan" },
+                                ].map(({ label, value }) => (
+                                    <Badge
+                                        key={value}
+                                        variant={status === value ? "default" : "outline"}
+                                        className="cursor-pointer px-3 py-1 text-xs"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setStatus(status === value ? "" : value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                setStatus(status === value ? "" : value);
+                                            }
                                         }}
                                     >
-                                        Limpiar todos los filtros
-                                    </Button>
-                                </div>
-                            )}
-                        </SheetContent>
-                    </Sheet>
+                                        {label}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                Tipo
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { label: "Todos", value: "" },
+                                    { label: "Manga", value: "manga" },
+                                    { label: "Manhwa", value: "manhwa" },
+                                    { label: "Manhua", value: "manhua" },
+                                ].map(({ label, value }) => (
+                                    <Badge
+                                        key={value}
+                                        variant={type === value ? "default" : "outline"}
+                                        className="cursor-pointer px-3 py-1 text-xs"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setType(type === value ? "" : value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                setType(type === value ? "" : value);
+                                            }
+                                        }}
+                                    >
+                                        {label}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Géneros
+                                </p>
+                                {selectedGenres.length > 0 && (
+                                    <button
+                                        onClick={() => setSearchParams((prev) => { prev.delete("genres"); prev.set("page", "1"); return prev; })}
+                                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        Limpiar ({selectedGenres.length})
+                                    </button>
+                                )}
+                            </div>
+                            <div className="overflow-y-auto max-h-72">
+                                {genresList.map((genre, idx) => (
+                                    <div
+                                        key={genre.id}
+                                        role="button"
+                                        tabIndex={0}
+                                        className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
+                                            idx !== genresList.length - 1 ? "border-b border-border/40" : ""
+                                        }`}
+                                        onClick={() => toggleGenre(genre.name)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                toggleGenre(genre.name);
+                                            }
+                                        }}
+                                    >
+                                        <span className={`text-sm transition-colors ${
+                                            selectedGenres.includes(genre.name)
+                                                ? "text-foreground font-medium"
+                                                : "text-muted-foreground group-hover:text-foreground"
+                                        }`}>
+                                            {genre.name}
+                                        </span>
+                                        {selectedGenres.includes(genre.name) && (
+                                            <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </FilterDrawer>
                 </div>
             </header>
 

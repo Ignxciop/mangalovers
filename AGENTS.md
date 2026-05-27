@@ -40,6 +40,7 @@ docker compose up -d
 - **Prisma** → acceso a BD vía `src/config/prisma.js`. Nunca se usa directamente desde controller o routes.
 - Imports locales con extensión `.js` explícita. Controller puede ser clase con métodos static (auth) o funciones exportadas sueltas (manga, adminMetrics); usar el estilo del módulo existente.
 - `AdminMetricsController` y `AdminMetricsService` son clases con métodos static, mismo patrón que Auth.
+- `AdminAuditService` registra acciones administrativas (role/status/suggestion changes) en tabla `admin_audit_logs`, separada de `user_activities`. Se usa en controllers vía `AdminAuditService.log(adminId, action, { targetId, targetType, metadata })`.
 - Las páginas admin siguen el layout consistente: `min-h-screen bg-background flex flex-col overflow-x-hidden` en el contenedor raíz, `container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0` en `<main>`.
 
 ## Frontend: convenciones

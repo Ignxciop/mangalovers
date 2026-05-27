@@ -52,6 +52,7 @@ model User {
   suggestions       Suggestion[]
   reviewedSuggestions Suggestion[] @relation("SuggestionReviewedBy")
   activityLogs      UserActivity[]
+  adminAuditLogs    AdminAuditLog[]
 
   @@map("users")
 }
@@ -308,4 +309,22 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+model AdminAuditLog {
+  id         String   @id @default(uuid())
+  adminId    String
+  action     String
+  targetId   String?
+  targetType String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, createdAt])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
 }
