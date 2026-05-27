@@ -8,6 +8,7 @@ export interface AdminUser {
     lastname: string;
     role: UserRole;
     status: UserStatus;
+    suspendedUntil: string | null;
     lastLoginAt: string | null;
     createdAt: string;
     _count: {
@@ -38,6 +39,7 @@ export interface UpdateRoleResponse {
         lastname: string;
         role: UserRole;
         status: UserStatus;
+        suspendedUntil: string | null;
         lastLoginAt: string | null;
         createdAt: string;
     };
@@ -261,3 +263,4 @@ export interface ActivityLogResponse {
         totalPages: number;
     };
 }
+

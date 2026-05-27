@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ValidationError } from "../utils/errors.js";
+import { RefreshTokenService } from "../auth/refreshTokenService.js";
 
 export class AdminUserService {
   static async listUsers(page = 1, limit = 20, filters = {}) {
@@ -35,6 +36,7 @@ export class AdminUserService {
           lastname: true,
           role: true,
           status: true,
+          suspendedUntil: true,
           lastLoginAt: true,
           createdAt: true,
           _count: {
@@ -73,13 +75,14 @@ export class AdminUserService {
         lastname: true,
         role: true,
         status: true,
+        suspendedUntil: true,
         lastLoginAt: true,
         createdAt: true,
       },
     });
   }
 
-  static async updateStatus(targetUserId, newStatus, adminUserId) {
+  static async updateStatus(targetUserId, status, adminUserId, suspendedUntil) {
     if (targetUserId === adminUserId) {
       throw new ValidationError("No puedes cambiar tu propio estado");
     }
@@ -87,33 +90,20 @@ export class AdminUserService {
     const user = await prisma.user.findUnique({ where: { id: targetUserId } });
     if (!user) throw new NotFoundError("Usuario no encontrado");
 
-    return prisma.user.update({
-      where: { id: targetUserId },
-      data: { status: newStatus },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        lastname: true,
-        role: true,
-        status: true,
-        lastLoginAt: true,
-        createdAt: true,
-      },
-    });
-  }
-
-  static async updateStatus(targetUserId, status, adminUserId) {
-    if (targetUserId === adminUserId) {
-      throw new ValidationError("No puedes cambiar tu propio estado");
+    const data = { status };
+    if (status === "SUSPENDED" && suspendedUntil) {
+      data.suspendedUntil = new Date(suspendedUntil);
+    } else if (status !== "SUSPENDED") {
+      data.suspendedUntil = null;
     }
 
-    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
-    if (!user) throw new NotFoundError("Usuario no encontrado");
+    if (status === "BANNED" || status === "SUSPENDED") {
+      await RefreshTokenService.revokeAllUserTokens(targetUserId);
+    }
 
     return prisma.user.update({
       where: { id: targetUserId },
-      data: { status },
+      data,
       select: {
         id: true,
         email: true,
@@ -121,6 +111,8 @@ export class AdminUserService {
         lastname: true,
         role: true,
         status: true,
+        suspendedUntil: true,
+        lastLoginAt: true,
         createdAt: true,
       },
     });

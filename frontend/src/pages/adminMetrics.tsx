@@ -38,9 +38,9 @@ function MiniCard({ icon: Icon, label, value, sub, accent }: {
                 <Icon className="size-4" />
             </div>
             <div className="min-w-0">
-                <p className="text-[11px] text-muted-foreground mb-0.5 leading-none">{label}</p>
+                <p className="text-xs text-muted-foreground mb-0.5 leading-none">{label}</p>
                 <p className="text-lg font-bold leading-none tracking-tight tabular-nums">{value}</p>
-                {sub && <p className="text-[10px] text-muted-foreground/60 mt-1">{sub}</p>}
+                {sub && <p className="text-xs text-muted-foreground/60 mt-1">{sub}</p>}
             </div>
         </div>
     );
@@ -113,11 +113,11 @@ function HorizontalBar({ data, getLabel, getValue, accent = "brand" }: {
                 const label = getLabel(d);
                 return (
                     <div key={i} className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground w-20 shrink-0 truncate">{label}</span>
+                        <span className="text-xs text-muted-foreground w-20 shrink-0 truncate">{label}</span>
                         <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                             <div className={cn("h-full rounded-full transition-all", barAccent)} style={{ width: `${(val / max) * 100}%` }} />
                         </div>
-                        <span className="text-[10px] text-muted-foreground w-8 text-right tabular-nums">{val}</span>
+                        <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">{val}</span>
                     </div>
                 );
             })}
@@ -152,7 +152,7 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
                                     {hasRun ? (isOk ? "Operativo" : "Falló") : "Sin datos"}
                                 </span>
                             </div>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                                 <span className="text-muted-foreground">Series vinculadas:</span>
                                 <span className="font-medium tabular-nums text-right">{p.seriesCount}</span>
                                 {hasRun && (
@@ -197,12 +197,12 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
                                     ) : (
                                         <Clock className="size-3.5 text-amber-500 shrink-0" />
                                     )}
-                                    <span className="text-[11px] capitalize font-medium">{run.provider}</span>
-                                    <span className="text-[10px] text-muted-foreground">
+                                    <span className="text-xs capitalize font-medium">{run.provider}</span>
+                                    <span className="text-xs text-muted-foreground">
                                         {new Date(run.startedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                     {run.seriesProcessed > 0 && <span>{run.seriesProcessed} series</span>}
                                     {run.chaptersCreated > 0 && <span>{run.chaptersCreated} caps</span>}
                                     {run.errors > 0 && <span className="text-rose-500">{run.errors} err</span>}
@@ -290,13 +290,13 @@ function UserTab({ data }: { data: UserMetricsData }) {
                         {data.topReaders.map((r, i) => (
                             <div key={r.userId} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
+                                    <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
                                     <div className="size-5 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[8px] font-bold text-muted-foreground">
                                         {r.name[0]?.toUpperCase() ?? "?"}
                                     </div>
-                                    <span className="text-[11px] font-medium truncate">{r.name}</span>
+                                    <span className="text-xs font-medium truncate">{r.name}</span>
                                 </div>
-                                <span className="text-[11px] text-muted-foreground tabular-nums">{r.chaptersRead} caps</span>
+                                <span className="text-xs text-muted-foreground tabular-nums">{r.chaptersRead} caps</span>
                             </div>
                         ))}
                     </div>
@@ -416,9 +416,9 @@ function SystemTab({ data }: { data: SystemMetricsData }) {
                                 <div className="flex items-start gap-2 min-w-0">
                                     <AlertCircle className="size-3 text-rose-500 shrink-0 mt-0.5" />
                                     <div className="min-w-0">
-                                        <p className="text-[11px] font-medium truncate">{err.user}</p>
+                                        <p className="text-xs font-medium truncate">{err.user}</p>
                                         {err.metadata && (
-                                            <p className="text-[10px] text-muted-foreground truncate max-w-xs">
+                                            <p className="text-xs text-muted-foreground truncate max-w-xs">
                                                 {JSON.stringify(err.metadata).slice(0, 80)}
                                             </p>
                                         )}

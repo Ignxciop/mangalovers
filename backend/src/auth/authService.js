@@ -6,7 +6,41 @@ import { config } from "../config/env.js";
 import logger from "../config/logger.js";
 import { RefreshTokenService } from "./refreshTokenService.js";
 import { validateEmail } from "../config/emailAllowed.js";
-import { ConflictError, UnauthorizedError, NotFoundError, ValidationError } from "../utils/errors.js";
+import { ConflictError, UnauthorizedError, NotFoundError, ValidationError, ForbiddenError } from "../utils/errors.js";
+
+function formatRemainingTime(suspendedUntil) {
+  const ms = new Date(suspendedUntil).getTime() - Date.now();
+  if (ms <= 0) return null;
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    return `${days} día${days > 1 ? "s" : ""}`;
+  }
+  if (hours > 0) return `${hours}h ${minutes}min`;
+  return `${minutes} min`;
+}
+
+async function checkUserStatus(user) {
+  if (!user) return;
+  if (user.status === "BANNED") {
+    throw new ForbiddenError("Tu cuenta ha sido baneada");
+  }
+  if (user.status === "SUSPENDED") {
+    if (user.suspendedUntil && new Date(user.suspendedUntil) <= new Date()) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { status: "ACTIVE", suspendedUntil: null },
+      });
+      return;
+    }
+    const remaining = user.suspendedUntil ? formatRemainingTime(user.suspendedUntil) : null;
+    if (remaining) {
+      throw new ForbiddenError(`Tu cuenta está suspendida por ${remaining}`);
+    }
+    throw new ForbiddenError("Tu cuenta está suspendida");
+  }
+}
 
 export class AuthService {
   static generateAccessToken(user) {
@@ -55,6 +89,8 @@ export class AuthService {
     if (!user || !isValidPassword) {
       throw new UnauthorizedError("Credenciales inválidas");
     }
+
+    await checkUserStatus(user);
 
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     user.lastLoginAt = new Date();
@@ -108,6 +144,7 @@ export class AuthService {
         select: { id: true, email: true, name: true, lastname: true, role: true, status: true, createdAt: true },
       });
     } else {
+      await checkUserStatus(user);
       await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     }
 
@@ -135,7 +172,26 @@ export class AuthService {
 
     const refreshToken = await RefreshTokenService.validateRefreshToken(refreshTokenString);
 
-    const accessToken = this.generateAccessToken(refreshToken.user);
+    const user = refreshToken.user;
+    const userStatus = user.status;
+    if (userStatus === "BANNED") {
+      throw new ForbiddenError("Tu cuenta ha sido baneada");
+    }
+    if (userStatus === "SUSPENDED") {
+      if (user.suspendedUntil && new Date(user.suspendedUntil) <= new Date()) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { status: "ACTIVE", suspendedUntil: null },
+        });
+      } else {
+        const remaining = user.suspendedUntil ? formatRemainingTime(user.suspendedUntil) : null;
+        throw new ForbiddenError(remaining
+          ? `Tu cuenta está suspendida por ${remaining}`
+          : "Tu cuenta está suspendida");
+      }
+    }
+
+    const accessToken = this.generateAccessToken(user);
     const newRefreshTokenToken = RefreshTokenService.generateRefreshToken();
     const daysToExpire = parseInt(config.JWT_REFRESH_EXPIRES_IN.replace("d", ""));
     const expiresAt = new Date();
@@ -174,6 +230,14 @@ export class AuthService {
 
     if (!user) throw new NotFoundError("Usuario no encontrado");
 
+    return user;
+  }
+
+  static async getStatus(userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { status: true, suspendedUntil: true },
+    });
     return user;
   }
 

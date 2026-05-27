@@ -51,12 +51,13 @@ export async function updateStatus(req, res, next) {
   try {
     const suggestionId = parseInt(req.params.id);
     const { status } = req.body;
+    const existing = await SuggestionService.getById(suggestionId);
     const suggestion = await SuggestionService.updateStatus(suggestionId, status, req.user.userId);
     res.json({ success: true, message: "Estado actualizado", data: suggestion });
 
     ActivityLogService.logEvent(
       req.user.userId, "UPDATE_SUGGESTION_STATUS",
-      { suggestionId, newStatus: status },
+      { suggestionId, title: existing?.title, newStatus: status, oldStatus: existing?.status },
       req.ip, req.headers["user-agent"],
     ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_SUGGESTION_STATUS" }, "ActivityLog error"));
   } catch (error) {

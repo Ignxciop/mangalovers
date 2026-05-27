@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { getUsers, updateUserRole, updateUserStatus, getActivityLogs } from "@/api/admin";
+import { getUsers, updateUserRole, updateUserStatus, getActivityLogs, getStatusHistory } from "@/api/admin";
 import type { AdminUser, UserRole, UserStatus, ActivityLogEntry } from "@/types/admin";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,8 @@ import {
     SheetHeader,
     SheetTitle,
     SheetClose,
-    SheetTrigger,
 } from "@/components/ui/sheet";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
@@ -37,7 +37,6 @@ import {
     Bookmark,
     BookOpen,
     ScrollText,
-    SlidersHorizontal,
     ArrowLeft,
 } from "lucide-react";
 
@@ -117,6 +116,16 @@ function formatRelative(iso: string) {
     return formatDate(iso);
 }
 
+function toDatetimeLocal(iso: string) {
+    const d = new Date(iso);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const h = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return `${y}-${m}-${day}T${h}:${min}`;
+}
+
 function formatLogMetadata(event: string, metadata: Record<string, unknown> | null): string {
     if (!metadata) return "";
     switch (event) {
@@ -124,18 +133,27 @@ function formatLogMetadata(event: string, metadata: Record<string, unknown> | nu
             return (metadata.seriesName ? String(metadata.seriesName) + " - " : "") + "Cap. " + (metadata.chapterName ?? metadata.chapterId);
         case "ADD_FAVORITE":
         case "REMOVE_FAVORITE":
-            if (metadata.seriesName) return '"' + metadata.seriesName + '"';
-            return JSON.stringify(metadata).slice(0, 60);
+            if (metadata.seriesName) return String(metadata.seriesName);
+            return "Serie #" + String(metadata.seriesId);
         case "SEND_SUGGESTION":
-            if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
-            return JSON.stringify(metadata).slice(0, 60);
+            return String(metadata.title ?? metadata.type ?? "");
+        case "UPDATE_SUGGESTION_STATUS":
+            return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
+        case "UPDATE_ROLE":
+            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
+        case "UPDATE_USER_STATUS": {
+            const usMeta = metadata.targetUserName ? String(metadata.targetUserName) + ": " : "";
+            const usChange = String(metadata.oldStatus) + " → " + String(metadata.newStatus);
+            const usUntil = metadata.suspendedUntil ? " (hasta " + new Date(String(metadata.suspendedUntil)).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + ")" : "";
+            return usMeta + usChange + usUntil;
+        }
         default:
             return JSON.stringify(metadata).slice(0, 60);
     }
 }
 
 function StatusText({ status }: { status: UserStatus }) {
-    return <span className={cn("text-[11px] font-medium", STATUS_COLORS[status])}>{STATUS_LABELS[status]}</span>;
+    return <span className={cn("text-xs font-medium", STATUS_COLORS[status])}>{STATUS_LABELS[status]}</span>;
 }
 
 function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: boolean; onClick: () => void }) {
@@ -150,7 +168,7 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
             )}
         >
             <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[11px] font-bold text-muted-foreground">
+                <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
                     {user.name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -158,10 +176,10 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
                         <span className="text-xs font-medium truncate">{user.name} {user.lastname}</span>
                         <StatusText status={user.status} />
                     </div>
-                    <p className="text-[11px] text-muted-foreground/60 truncate">{user.email}</p>
+                    <p className="text-xs text-muted-foreground/60 truncate">{user.email}</p>
                 </div>
             </div>
-            <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground/50">
+            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground/50">
                 <span className="flex items-center gap-1">
                     <MessageSquare className="size-2.5" />
                     {user._count.suggestions}
@@ -179,13 +197,17 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
     );
 }
 
-function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: {
+function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, statusHistory }: {
     user: AdminUser;
     onRoleChange: (userId: string, role: UserRole) => void;
-    onStatusChange: (userId: string, status: UserStatus) => void;
+    onStatusChange: (userId: string, status: UserStatus, suspendedUntil?: string) => void;
     logs: ActivityLogEntry[];
     logsLoading: boolean;
+    statusHistory: ActivityLogEntry[];
 }) {
+    const [suspendedDate, setSuspendedDate] = useState(user.suspendedUntil ? toDatetimeLocal(user.suspendedUntil) : "");
+    const [suspendDraft, setSuspendDraft] = useState(false);
+    const [suspendDraftDate, setSuspendDraftDate] = useState("");
     return (
         <div className="space-y-4 text-sm">
             <div className="flex items-start justify-between gap-3">
@@ -197,8 +219,8 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                         <h2 className="text-sm font-semibold leading-snug">{user.name} {user.lastname}</h2>
                         <div className="flex items-center gap-2">
                             <StatusText status={user.status} />
-                            <span className="text-[10px] text-muted-foreground/50">·</span>
-                            <span className="text-[10px] text-muted-foreground/60">
+                            <span className="text-xs text-muted-foreground/50">·</span>
+                            <span className="text-xs text-muted-foreground/60">
                                 {user.role === "ADMIN" ? "Admin" : "Usuario"}
                             </span>
                         </div>
@@ -217,7 +239,17 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                         <SelectItem value="ADMIN">Admin</SelectItem>
                     </SelectContent>
                 </Select>
-                <Select value={user.status} onValueChange={(v) => onStatusChange(user.id, v as UserStatus)}>
+                <Select value={user.status} onValueChange={(v) => {
+                    const newStatus = v as UserStatus;
+                    if (newStatus === "SUSPENDED") {
+                        setSuspendDraft(true);
+                        setSuspendDraftDate(toDatetimeLocal(new Date().toISOString()));
+                        return;
+                    }
+                    setSuspendDraft(false);
+                    setSuspendedDate("");
+                    onStatusChange(user.id, newStatus);
+                }}>
                     <SelectTrigger className="min-w-[7rem] h-7 text-xs shrink-0">
                         <SelectValue />
                     </SelectTrigger>
@@ -228,6 +260,40 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                     </SelectContent>
                 </Select>
             </div>
+            {suspendDraft && (
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Hasta:</span>
+                    <input
+                        type="datetime-local"
+                        value={suspendDraftDate}
+                        onChange={(e) => setSuspendDraftDate(e.target.value)}
+                        className="flex-1 h-7 rounded-md border border-input bg-transparent px-2 text-xs"
+                    />
+                    <button
+                        onClick={() => {
+                            onStatusChange(user.id, "SUSPENDED", suspendDraftDate || undefined);
+                            setSuspendDraft(false);
+                        }}
+                        className="h-7 shrink-0 rounded-md bg-primary text-primary-foreground px-3 text-xs font-medium hover:bg-primary/90 transition-colors"
+                    >
+                        Guardar
+                    </button>
+                </div>
+            )}
+            {user.status === "SUSPENDED" && !suspendDraft && (
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">Hasta:</span>
+                    <input
+                        type="datetime-local"
+                        value={suspendedDate}
+                        onChange={(e) => {
+                            setSuspendedDate(e.target.value);
+                            onStatusChange(user.id, "SUSPENDED", e.target.value || undefined);
+                        }}
+                        className="flex-1 h-7 rounded-md border border-input bg-transparent px-2 text-xs"
+                    />
+                </div>
+            )}
 
             <div className="border-t border-border pt-3 space-y-2">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -245,25 +311,44 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
             </div>
 
             <div className="border-t border-border pt-3">
-                <p className="text-[11px] font-medium text-muted-foreground mb-2">Actividad</p>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Actividad</p>
                 <div className="grid grid-cols-3 gap-2">
                     <div className="bg-muted/20 rounded border border-border p-2 text-center">
                         <p className="text-sm font-semibold">{user._count.suggestions}</p>
-                        <p className="text-[10px] text-muted-foreground">Sugerencias</p>
+                        <p className="text-xs text-muted-foreground">Sugerencias</p>
                     </div>
                     <div className="bg-muted/20 rounded border border-border p-2 text-center">
                         <p className="text-sm font-semibold">{user._count.favorites}</p>
-                        <p className="text-[10px] text-muted-foreground">Favoritos</p>
+                        <p className="text-xs text-muted-foreground">Favoritos</p>
                     </div>
                     <div className="bg-muted/20 rounded border border-border p-2 text-center">
                         <p className="text-sm font-semibold">{user._count.chapterReads}</p>
-                        <p className="text-[10px] text-muted-foreground">Lecturas</p>
+                        <p className="text-xs text-muted-foreground">Lecturas</p>
                     </div>
                 </div>
             </div>
 
+            {(() => {
+                const pastBans = statusHistory.filter(l => l.metadata?.newStatus === "BANNED");
+                const pastSuspensions = statusHistory.filter(l => l.metadata?.newStatus === "SUSPENDED");
+                const chips: { label: string; count: number; lastDate: string }[] = [];
+                if (pastBans.length > 0) chips.push({ label: "Baneado anteriormente", count: pastBans.length, lastDate: pastBans[0].createdAt });
+                if (pastSuspensions.length > 0) chips.push({ label: "Suspendido anteriormente", count: pastSuspensions.length, lastDate: pastSuspensions[0].createdAt });
+                if (chips.length === 0) return null;
+                return (
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                        {chips.map(c => (
+                            <span key={c.label} className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground/70 border border-border">
+                                {c.label} ×{c.count}
+                                <span className="text-muted-foreground/50">({formatDate(c.lastDate)})</span>
+                            </span>
+                        ))}
+                    </div>
+                );
+            })()}
+
             <div className="border-t border-border pt-3">
-                <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-2">
                     <ScrollText className="size-3" />
                     Últimos eventos
                 </div>
@@ -274,7 +359,7 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                         ))}
                     </div>
                 ) : logs.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground/50 text-center py-6">Sin actividad registrada</p>
+                    <p className="text-xs text-muted-foreground/50 text-center py-6">Sin actividad registrada</p>
                 ) : (
                     <div className="space-y-1.5">
                         {logs.slice(0, 10).map((log) => (
@@ -284,12 +369,12 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading }: 
                                         {EVENT_LABELS[log.event] ?? log.event}
                                     </span>
                                     {log.metadata && (
-                                        <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
+                                        <p className="text-xs text-muted-foreground/70 mt-0.5 truncate">
                                             {formatLogMetadata(log.event, log.metadata)}
                                         </p>
                                     )}
                                 </div>
-                                <time className="text-[10px] text-muted-foreground/50 shrink-0 pt-0.5">
+                                <time className="text-xs text-muted-foreground/50 shrink-0 pt-0.5">
                                     {formatRelative(log.createdAt)}
                                 </time>
                             </div>
@@ -309,9 +394,9 @@ export default function AdminUsers() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [userLogs, setUserLogs] = useState<ActivityLogEntry[]>([]);
     const [userLogsLoading, setUserLogsLoading] = useState(false);
+    const [statusHistory, setStatusHistory] = useState<ActivityLogEntry[]>([]);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const [sheetOpen, setSheetOpen] = useState(false);
-    const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -361,6 +446,7 @@ export default function AdminUsers() {
     useEffect(() => {
         if (!selectedId) {
             setUserLogs([]);
+            setStatusHistory([]);
             return;
         }
         setUserLogsLoading(true);
@@ -370,6 +456,11 @@ export default function AdminUsers() {
         }).catch(() => {
             setUserLogs([]);
             setUserLogsLoading(false);
+        });
+        getStatusHistory(selectedId, 10).then((res) => {
+            setStatusHistory(res.data);
+        }).catch(() => {
+            setStatusHistory([]);
         });
     }, [selectedId]);
 
@@ -412,9 +503,9 @@ export default function AdminUsers() {
         }
     };
 
-    const handleStatusChange = async (userId: string, newStatus: UserStatus) => {
+    const handleStatusChange = async (userId: string, newStatus: UserStatus, suspendedUntil?: string) => {
         try {
-            const res = await updateUserStatus(userId, newStatus);
+            const res = await updateUserStatus(userId, newStatus, suspendedUntil);
             fetchUsers();
             toast.success("Estado actualizado", {
                 description: `${res.data.name} ${res.data.lastname} ahora está ${STATUS_LABELS[newStatus].toLowerCase()}`,
@@ -436,18 +527,18 @@ export default function AdminUsers() {
             <SEO title="Administrar usuarios" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
+                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-xs font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <span className="text-sm font-semibold shrink-0 hidden sm:block">
                             Usuarios
                         </span>
                         <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 ref={searchInputRef}
                                 placeholder="Buscar..."
-                                className="pl-7 pr-7 h-7 text-xs bg-muted/40 border-none"
+                                className="pl-9 bg-secondary/50 border-none"
                                 value={searchText}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 onKeyDown={(e) => {
@@ -464,61 +555,42 @@ export default function AdminUsers() {
                             )}
                         </div>
                     </div>
-                    <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-                        <SheetTrigger asChild>
-                            <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar">
-                                <SlidersHorizontal className="size-3.5" />
-                                {activeFiltersCount > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-primary text-primary-foreground text-[6px] flex items-center justify-center font-bold">
-                                        {activeFiltersCount}
-                                    </span>
-                                )}
-                            </button>
-                        </SheetTrigger>
-                        <SheetContent side="right" className="w-64">
-                            <SheetHeader className="pb-3">
-                                <SheetTitle className="text-xs font-medium">Filtros</SheetTitle>
-                            </SheetHeader>
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="text-[11px] font-medium text-muted-foreground mb-2">Rol</p>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {VALID_ROLES.map((r) => (
-                                            <Badge
-                                                key={r}
-                                                variant={roleFilter === r ? "default" : "outline"}
-                                                className="cursor-pointer text-[10px] px-2 py-0.5"
-                                                onClick={() => {
-                                                    updateFilter("role", roleFilter === r ? "" : r);
-                                                    setFilterSheetOpen(false);
-                                                }}
-                                            >
-                                                {r === "ADMIN" ? "Admin" : "Usuario"}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <p className="text-[11px] font-medium text-muted-foreground mb-2">Estado</p>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {VALID_STATUSES.map((s) => (
-                                            <Badge
-                                                key={s}
-                                                variant={statusFilter === s ? "default" : "outline"}
-                                                className="cursor-pointer text-[10px] px-2 py-0.5"
-                                                onClick={() => {
-                                                    updateFilter("status", statusFilter === s ? "" : s);
-                                                    setFilterSheetOpen(false);
-                                                }}
-                                            >
-                                                {STATUS_LABELS[s]}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
+                    <FilterDrawer
+                        activeCount={activeFiltersCount}
+                        title="Filtros"
+                        admin
+                    >
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rol</p>
+                            <div className="flex flex-wrap gap-2">
+                                {VALID_ROLES.map((r) => (
+                                    <Badge
+                                        key={r}
+                                        variant={roleFilter === r ? "default" : "outline"}
+                                        className="cursor-pointer px-3 py-1 text-xs"
+                                        onClick={() => updateFilter("role", roleFilter === r ? "" : r)}
+                                    >
+                                        {r === "ADMIN" ? "Admin" : "Usuario"}
+                                    </Badge>
+                                ))}
                             </div>
-                        </SheetContent>
-                    </Sheet>
+                        </div>
+                        <div className="px-6 py-5">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Estado</p>
+                            <div className="flex flex-wrap gap-2">
+                                {VALID_STATUSES.map((s) => (
+                                    <Badge
+                                        key={s}
+                                        variant={statusFilter === s ? "default" : "outline"}
+                                        className="cursor-pointer px-3 py-1 text-xs"
+                                        onClick={() => updateFilter("status", statusFilter === s ? "" : s)}
+                                    >
+                                        {STATUS_LABELS[s]}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    </FilterDrawer>
                 </div>
             </header>
 
@@ -571,7 +643,7 @@ export default function AdminUsers() {
                         <div className="hidden lg:block flex-1 min-w-0 border-l border-border pl-5">
                             {selected ? (
                                 <div className="sticky top-0">
-                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} />
+                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full min-h-[200px]">
@@ -590,7 +662,7 @@ export default function AdminUsers() {
                         <SheetTitle className="text-xs font-medium">Detalle</SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} />}
+                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />}
                     </div>
                 </SheetContent>
             </Sheet>

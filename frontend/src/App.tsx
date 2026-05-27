@@ -8,6 +8,7 @@ import { AdminRoute } from "@/components/adminRoute.tsx";
 import MainLayout from "./components/layouts/mainLayout.tsx";
 import AdminLayout from "./components/layouts/adminLayout.tsx";
 import { useAuthStore } from "./store/authStore.ts";
+import { useAccountStatusWatcher } from "./hooks/useAccountStatusWatcher";
 
 const Login = lazy(() => import("./pages/loginForm.tsx").then((m) => ({ default: m.Login })));
 const Register = lazy(() => import("./pages/registerForm.tsx").then((m) => ({ default: m.Register })));
@@ -32,6 +33,7 @@ function SmartDirect() {
 }
 
 function BootstrappedApp() {
+    useAccountStatusWatcher();
     const bootstrapping = useAuthStore((s) => s.bootstrapping);
     const bootstrap = useAuthStore((s) => s.bootstrap);
 

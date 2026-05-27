@@ -12,7 +12,6 @@ import {
     Check,
     Clock,
     Eye,
-    SlidersHorizontal,
     Search,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -23,19 +22,13 @@ import {
     DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from "@/components/ui/sheet";
-import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -454,232 +447,142 @@ export default function FavoritesList() {
                                 </div>
                             </div>
                         </div>
-                        <Sheet>
-                            <SheetTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="relative"
+                        <FilterDrawer
+                            activeCount={activeFiltersCount}
+                            title="Filtros"
+                            onClear={clearFilters}
+                        >
+                            <div className="px-6 py-5 border-b border-border">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                    Ordenar por
+                                </p>
+                                <Select
+                                    value={sortBy}
+                                    onValueChange={(v) => setSortBy(v as SortBy)}
                                 >
-                                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                                    Filtros
-                                    {activeFiltersCount > 0 && (
-                                        <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
-                                            {activeFiltersCount}
-                                        </span>
-                                    )}
-                                </Button>
-                            </SheetTrigger>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="reciente">
+                                            Favorito más reciente
+                                        </SelectItem>
+                                        <SelectItem value="pendiente-asc">
+                                            Menos capítulos pendientes
+                                        </SelectItem>
+                                        <SelectItem value="pendiente-desc">
+                                            Más capítulos pendientes
+                                        </SelectItem>
+                                        <SelectItem value="updated">
+                                            Actualización reciente
+                                        </SelectItem>
+                                        <SelectItem value="nombre">
+                                            A → Z
+                                        </SelectItem>
+                                        <SelectItem value="za">
+                                            Z → A
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                            <SheetContent className="flex flex-col gap-0 p-0">
-                                <SheetHeader className="px-6 py-5 border-b border-border">
-                                    <SheetTitle className="text-base">
-                                        Filtros
-                                    </SheetTitle>
-                                </SheetHeader>
-
-                                <div className="flex-1 overflow-y-auto">
-                                    <div className="px-6 py-5 border-b border-border">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                            Ordenar por
-                                        </p>
-                                        <Select
-                                            value={sortBy}
-                                            onValueChange={(v) =>
-                                                setSortBy(v as SortBy)
-                                            }
+                            <div className="px-6 py-5 border-b border-border">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                    Estado
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {(["Todos", "Siguiendo", "Terminado"] as const).map((f) => (
+                                        <Badge
+                                            key={f}
+                                            variant={statusFilter === f ? "default" : "outline"}
+                                            className="cursor-pointer px-3 py-1 text-xs"
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => setStatusFilter(f)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" || e.key === " ") {
+                                                    e.preventDefault();
+                                                    setStatusFilter(f);
+                                                }
+                                            }}
                                         >
-                                            <SelectTrigger className="w-full">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="reciente">
-                                                    Favorito más reciente
-                                                </SelectItem>
-                                                <SelectItem value="pendiente-asc">
-                                                    Menos capítulos pendientes
-                                                </SelectItem>
-                                                <SelectItem value="pendiente-desc">
-                                                    Más capítulos pendientes
-                                                </SelectItem>
-                                                <SelectItem value="updated">
-                                                    Actualización reciente
-                                                </SelectItem>
-                                                <SelectItem value="nombre">
-                                                    A → Z
-                                                </SelectItem>
-                                                <SelectItem value="za">
-                                                    Z → A
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                            {f}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
 
-                                    <div className="px-6 py-5 border-b border-border">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                            Estado
-                                        </p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(
-                                                [
-                                                    "Todos",
-                                                    "Siguiendo",
-                                                    "Terminado",
-                                                ] as const
-                                            ).map((f) => (
-                                                <Badge
-                                                    key={f}
-                                                    variant={
-                                                        statusFilter === f
-                                                            ? "default"
-                                                            : "outline"
-                                                    }
-                                                    className="cursor-pointer px-3 py-1 text-xs"
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={() =>
-                                                        setStatusFilter(f)
-                                                    }
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter" || e.key === " ") {
-                                                            e.preventDefault();
-                                                            setStatusFilter(f);
-                                                        }
-                                                    }}
-                                                >
-                                                    {f}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </div>
+                            <div className="px-6 py-5 border-b border-border">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                    Tipo
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        { label: "Todos", value: "" },
+                                        { label: "Manga", value: "manga" },
+                                        { label: "Manhwa", value: "manhwa" },
+                                        { label: "Manhua", value: "manhua" },
+                                    ].map(({ label, value }) => (
+                                        <Badge
+                                            key={value}
+                                            variant={typeFilter === value ? "default" : "outline"}
+                                            className="cursor-pointer px-3 py-1 text-xs"
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => setTypeFilter(typeFilter === value ? "" : (value as TypeFilter))}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" || e.key === " ") {
+                                                    e.preventDefault();
+                                                    setTypeFilter(typeFilter === value ? "" : (value as TypeFilter));
+                                                }
+                                            }}
+                                        >
+                                            {label}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
 
-                                    <div className="px-6 py-5 border-b border-border">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                            Tipo
-                                        </p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {[
-                                                { label: "Todos", value: "" },
-                                                { label: "Manga", value: "manga" },
-                                                { label: "Manhwa", value: "manhwa" },
-                                                { label: "Manhua", value: "manhua" },
-                                            ].map(({ label, value }) => (
-                                                <Badge
-                                                    key={value}
-                                                    variant={
-                                                        typeFilter === value
-                                                            ? "default"
-                                                            : "outline"
-                                                    }
-                                                    className="cursor-pointer px-3 py-1 text-xs"
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={() =>
-                                                        setTypeFilter(
-                                                            typeFilter === value
-                                                                ? ""
-                                                                : (value as TypeFilter),
-                                                        )
-                                                    }
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter" || e.key === " ") {
-                                                            e.preventDefault();
-                                                            setTypeFilter(
-                                                                typeFilter === value
-                                                                    ? ""
-                                                                    : (value as TypeFilter),
-                                                            );
-                                                        }
-                                                    }}
-                                                >
-                                                    {label}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="px-6 py-5">
-                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                            Progreso de lectura
-                                        </p>
-                                        <div className="overflow-y-auto">
-                                            {[
-                                                {
-                                                    value: "todos",
-                                                    label: "Todos",
-                                                },
-                                                {
-                                                    value: "al-dia",
-                                                    label: "Al día",
-                                                },
-                                                {
-                                                    value: "pendiente",
-                                                    label: "Con capítulos pendientes",
-                                                },
-                                            ].map(
-                                                (
-                                                    { value, label },
-                                                    idx,
-                                                    arr,
-                                                ) => (
-                                                    <div
-                                                        key={value}
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
-                                                            idx !==
-                                                            arr.length - 1
-                                                                ? "border-b border-border/40"
-                                                                : ""
-                                                        }`}
-                                                        onClick={() =>
-                                                            setProgressFilter(
-                                                                value as ProgressFilter,
-                                                            )
-                                                        }
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === "Enter" || e.key === " ") {
-                                                                e.preventDefault();
-                                                                setProgressFilter(
-                                                                    value as ProgressFilter,
-                                                                );
-                                                            }
-                                                        }}
-                                                    >
-                                                        <span
-                                                            className={`text-sm transition-colors ${
-                                                                progressFilter ===
-                                                                value
-                                                                    ? "text-foreground font-medium"
-                                                                    : "text-muted-foreground group-hover:text-foreground"
-                                                            }`}
-                                                        >
-                                                            {label}
-                                                        </span>
-                                                        {progressFilter ===
-                                                            value && (
-                                                            <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                                                        )}
-                                                    </div>
-                                                ),
+                            <div className="px-6 py-5">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                    Progreso de lectura
+                                </p>
+                                <div className="overflow-y-auto">
+                                    {[
+                                        { value: "todos", label: "Todos" },
+                                        { value: "al-dia", label: "Al día" },
+                                        { value: "pendiente", label: "Con capítulos pendientes" },
+                                    ].map(({ value, label }, idx, arr) => (
+                                        <div
+                                            key={value}
+                                            role="button"
+                                            tabIndex={0}
+                                            className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
+                                                idx !== arr.length - 1 ? "border-b border-border/40" : ""
+                                            }`}
+                                            onClick={() => setProgressFilter(value as ProgressFilter)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" || e.key === " ") {
+                                                    e.preventDefault();
+                                                    setProgressFilter(value as ProgressFilter);
+                                                }
+                                            }}
+                                        >
+                                            <span className={`text-sm transition-colors ${
+                                                progressFilter === value
+                                                    ? "text-foreground font-medium"
+                                                    : "text-muted-foreground group-hover:text-foreground"
+                                            }`}>
+                                                {label}
+                                            </span>
+                                            {progressFilter === value && (
+                                                <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
                                             )}
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
-
-                                {activeFiltersCount > 0 && (
-                                    <div className="px-6 py-4 border-t border-border">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full"
-                                            onClick={clearFilters}
-                                        >
-                                            Limpiar todos los filtros
-                                        </Button>
-                                    </div>
-                                )}
-                            </SheetContent>
-                        </Sheet>
+                            </div>
+                        </FilterDrawer>
                     </div>
                 </header>
 

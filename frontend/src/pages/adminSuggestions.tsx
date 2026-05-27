@@ -18,8 +18,8 @@ import {
     SheetHeader,
     SheetTitle,
     SheetClose,
-    SheetTrigger,
 } from "@/components/ui/sheet";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
@@ -31,7 +31,6 @@ import {
     Search,
     X,
     RefreshCw,
-    SlidersHorizontal,
     ArrowLeft,
     User,
     Calendar,
@@ -158,7 +157,6 @@ export default function AdminSuggestions() {
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const [sheetOpen, setSheetOpen] = useState(false);
-    const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -282,18 +280,18 @@ export default function AdminSuggestions() {
             <SEO title="Administrar sugerencias" />
 
             <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-14 px-4 gap-3">
+                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
                     <SidebarTrigger />
                     <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-xs font-medium text-muted-foreground shrink-0 hidden sm:block">
+                        <span className="text-sm font-semibold shrink-0 hidden sm:block">
                             Sugerencias
                         </span>
                         <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 ref={searchInputRef}
                                 placeholder="Buscar..."
-                                className="pl-7 pr-7 h-7 text-xs bg-muted/40 border-none"
+                                className="pl-9 bg-secondary/50 border-none"
                                 value={searchText}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 onKeyDown={(e) => {
@@ -313,38 +311,27 @@ export default function AdminSuggestions() {
                             )}
                         </div>
                     </div>
-                    <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-                        <SheetTrigger asChild>
-                            <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted relative" aria-label="Filtrar por tipo">
-                                <SlidersHorizontal className="size-3.5" />
-                                {activeFiltersCount > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-primary text-primary-foreground text-[6px] flex items-center justify-center font-bold">
-                                        {activeFiltersCount}
-                                    </span>
-                                )}
-                            </button>
-                        </SheetTrigger>
-                        <SheetContent side="right" className="w-64">
-                            <SheetHeader className="pb-3">
-                                <SheetTitle className="text-xs font-medium">Filtrar por tipo</SheetTitle>
-                            </SheetHeader>
-                            <div className="flex flex-wrap gap-1.5">
+                    <FilterDrawer
+                        activeCount={activeFiltersCount}
+                        title="Filtrar por tipo"
+                        admin
+                    >
+                        <div className="px-6 py-5">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tipo</p>
+                            <div className="flex flex-wrap gap-2">
                                 {VALID_TYPES.map((t) => (
                                     <Badge
                                         key={t}
                                         variant={typeFilter === t ? "default" : "outline"}
-                                        className="cursor-pointer text-[10px] px-2 py-0.5"
-                                        onClick={() => {
-                                            updateFilter("type", typeFilter === t ? "" : t);
-                                            setFilterSheetOpen(false);
-                                        }}
+                                        className="cursor-pointer px-3 py-1 text-xs"
+                                        onClick={() => updateFilter("type", typeFilter === t ? "" : t)}
                                     >
                                         {TYPE_LABELS[t as SuggestionType]}
                                     </Badge>
                                 ))}
                             </div>
-                        </SheetContent>
-                    </Sheet>
+                        </div>
+                    </FilterDrawer>
                 </div>
             </header>
 
@@ -384,14 +371,14 @@ export default function AdminSuggestions() {
                                         key={tab.value}
                                         onClick={() => updateFilter("status", tab.value)}
                                         className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-md transition-all shrink-0",
+                                            "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shrink-0",
                                             statusFilter === tab.value
                                                 ? "bg-muted text-foreground shadow-sm"
                                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/40",
                                         )}
                                     >
                                         {tab.label}
-                                        <span className="text-[10px] text-muted-foreground/50">{tab.count}</span>
+                                        <span className="text-xs text-muted-foreground/50">{tab.count}</span>
                                     </button>
                                 ))}
                             </div>
@@ -413,10 +400,10 @@ export default function AdminSuggestions() {
                                             )}
                                         >
                                             <div className="flex items-center gap-2 mb-0.5">
-                                                <span className={cn("text-[11px] font-medium", STATUS_COLORS[s.status])}>
+                                                <span className={cn("text-xs font-medium", STATUS_COLORS[s.status])}>
                                                     {STATUS_LABELS[s.status]}
                                                 </span>
-                                                <span className="text-[10px] text-muted-foreground/50">
+                                                <span className="text-xs text-muted-foreground/50">
                                                     {TYPE_LABELS[s.type]}
                                                 </span>
                                             </div>
@@ -426,7 +413,7 @@ export default function AdminSuggestions() {
                                             )}>
                                                 {s.title}
                                             </p>
-                                            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground/50">
+                                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground/50">
                                                 <span>{s.user?.name ?? s.user?.email ?? "—"}</span>
                                                 <span>·</span>
                                                 <span>{timeAgo(s.createdAt)}</span>

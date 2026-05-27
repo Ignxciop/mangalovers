@@ -8,6 +8,8 @@ interface User {
     lastname: string;
     email: string;
     role: "ADMIN" | "USER";
+    status?: "ACTIVE" | "BANNED" | "SUSPENDED";
+    suspendedUntil?: string | null;
 }
 
 interface AuthState {
