@@ -44,18 +44,22 @@ export async function updateRole(req, res, next) {
 export async function updateStatus(req, res, next) {
   try {
     const targetUserId = req.params.id;
-    const { status } = req.body;
+    const { status, suspendedUntil } = req.body;
     const existing = await prisma.user.findUnique({
       where: { id: targetUserId },
       select: { status: true, name: true, lastname: true },
     });
-    const user = await AdminUserService.updateStatus(targetUserId, status, req.user.userId);
+    const user = await AdminUserService.updateStatus(targetUserId, status, req.user.userId, suspendedUntil);
     res.json({ success: true, message: "Estado actualizado", data: user });
 
     const targetName = `${existing.name} ${existing.lastname}`;
+    const meta = { targetUserId, targetUserName: targetName, oldStatus: existing?.status, newStatus: status };
+    if (status === "SUSPENDED" && suspendedUntil) {
+      meta.suspendedUntil = suspendedUntil;
+    }
     ActivityLogService.logEvent(
       req.user.userId, "UPDATE_USER_STATUS",
-      { targetUserId, targetUserName: targetName, oldStatus: existing?.status, newStatus: status },
+      meta,
       req.ip, req.headers["user-agent"],
     ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_USER_STATUS" }, "ActivityLog error"));
   } catch (error) {
