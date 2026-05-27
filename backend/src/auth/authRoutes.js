@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   register, login, googleLogin, refresh,
   logout, logoutAll, getMe, getActiveSessions,
-  updateProfile, updatePassword, deleteAccount, getGoogleClientId,
+  updateProfile, updatePassword, deleteAccount, getGoogleClientId, getStatus,
 } from "./authController.js";
 import {
   registerValidator, loginValidator, googleLoginValidator,
@@ -21,6 +21,7 @@ router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.post("/logout-all", authenticate, logoutAll);
 router.get("/me", authenticate, getMe);
+router.get("/status", authenticate, getStatus);
 router.get("/sessions", authenticate, getActiveSessions);
 router.patch("/profile", authenticate, updateProfileValidator, validate, updateProfile);
 router.patch("/password", authenticate, updatePasswordValidator, validate, updatePassword);

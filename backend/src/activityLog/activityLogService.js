@@ -91,6 +91,24 @@ export class ActivityLogService {
     };
   }
 
+  static async getEventsByTargetUser(targetUserId, limit = 10) {
+    try {
+      const data = await prisma.$queryRawUnsafe(
+        `SELECT * FROM user_activities
+         WHERE event = 'UPDATE_USER_STATUS'
+         AND metadata->>'targetUserId' = $1
+         ORDER BY "createdAt" DESC
+         LIMIT $2`,
+        targetUserId,
+        limit,
+      );
+      return data;
+    } catch (error) {
+      logger.error({ err: error.message, targetUserId }, "ActivityLog: error al obtener eventos por target");
+      return [];
+    }
+  }
+
   static async cleanupOld(days = 90) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);

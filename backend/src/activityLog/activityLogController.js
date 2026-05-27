@@ -1,5 +1,16 @@
 import { ActivityLogService } from "./activityLogService.js";
 
+export async function handleGetStatusHistory(req, res, next) {
+  try {
+    const targetUserId = req.params.id;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const data = await ActivityLogService.getEventsByTargetUser(targetUserId, limit);
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function handleGetUserLogs(req, res, next) {
   try {
     const userId = req.params.id;

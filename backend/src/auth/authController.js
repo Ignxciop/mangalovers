@@ -180,3 +180,12 @@ export async function getGoogleClientId(req, res, next) {
     next(error);
   }
 }
+
+export async function getStatus(req, res, next) {
+  try {
+    const userStatus = await AuthService.getStatus(req.user.userId);
+    res.json({ success: true, data: userStatus });
+  } catch (error) {
+    next(error);
+  }
+}
