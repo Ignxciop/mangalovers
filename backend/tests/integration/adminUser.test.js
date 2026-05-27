@@ -150,3 +150,138 @@ describe("GET /api/admin/metrics", () => {
         expect(res.body.success).toBe(false);
     });
 });
+
+describe("PATCH /api/admin/users/:id/status", () => {
+    it("cambia estado de usuario como ADMIN", async () => {
+        const admin = await createUser({ role: "ADMIN" });
+        const target = await createUser();
+
+        const res = await request(app)
+            .patch(`/api/admin/users/${target.id}/status`)
+            .set(authHeader(admin))
+            .send({ status: "BANNED" })
+            .expect(200);
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.status).toBe("BANNED");
+    });
+
+    it("rechaza cambiar el propio estado", async () => {
+        const admin = await createUser({ role: "ADMIN" });
+
+        const res = await request(app)
+            .patch(`/api/admin/users/${admin.id}/status`)
+            .set(authHeader(admin))
+            .send({ status: "BANNED" })
+            .expect(400);
+
+        expect(res.body.success).toBe(false);
+    });
+
+    it("rechaza estado inválido", async () => {
+        const admin = await createUser({ role: "ADMIN" });
+        const target = await createUser();
+
+        const res = await request(app)
+            .patch(`/api/admin/users/${target.id}/status`)
+            .set(authHeader(admin))
+            .send({ status: "INVALID_STATUS" })
+            .expect(400);
+
+        expect(res.body.success).toBe(false);
+    });
+
+    it("rechaza si no es ADMIN", async () => {
+        const user = await createUser();
+        const target = await createUser();
+
+        const res = await request(app)
+            .patch(`/api/admin/users/${target.id}/status`)
+            .set(authHeader(user))
+            .send({ status: "BANNED" })
+            .expect(401);
+
+        expect(res.body.success).toBe(false);
+    });
+
+    it("rechaza sin autenticación", async () => {
+        const target = await createUser();
+
+        const res = await request(app)
+            .patch(`/api/admin/users/${target.id}/status`)
+            .send({ status: "BANNED" })
+            .expect(401);
+
+        expect(res.body.success).toBe(false);
+    });
+});
+
+describe("GET /api/admin/users/:id/activity", () => {
+    it("devuelve activity logs de un usuario como ADMIN", async () => {
+        const admin = await createUser({ role: "ADMIN" });
+        const target = await createUser();
+
+        const res = await request(app)
+            .get(`/api/admin/users/${target.id}/activity`)
+            .set(authHeader(admin))
+            .expect(200);
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.data).toBeDefined();
+        expect(res.body.meta).toHaveProperty("total");
+    });
+
+    it("rechaza si no es ADMIN", async () => {
+        const user = await createUser();
+        const target = await createUser();
+
+        const res = await request(app)
+            .get(`/api/admin/users/${target.id}/activity`)
+            .set(authHeader(user))
+            .expect(401);
+
+        expect(res.body.success).toBe(false);
+    });
+
+    it("rechaza sin autenticación", async () => {
+        const res = await request(app)
+            .get("/api/admin/users/some-id/activity")
+            .expect(401);
+
+        expect(res.body.success).toBe(false);
+    });
+});
+
+describe("GET /api/admin/logs", () => {
+    it("devuelve todos los activity logs como ADMIN", async () => {
+        const admin = await createUser({ role: "ADMIN" });
+
+        const res = await request(app)
+            .get("/api/admin/logs")
+            .set(authHeader(admin))
+            .expect(200);
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.data).toBeDefined();
+        expect(res.body.meta).toHaveProperty("total");
+    });
+
+    it("rechaza si no es ADMIN", async () => {
+        const user = await createUser();
+
+        const res = await request(app)
+            .get("/api/admin/logs")
+            .set(authHeader(user))
+            .expect(401);
+
+        expect(res.body.success).toBe(false);
+    });
+
+    it("rechaza sin autenticación", async () => {
+        const res = await request(app)
+            .get("/api/admin/logs")
+            .expect(401);
+
+        expect(res.body.success).toBe(false);
+    });
+});

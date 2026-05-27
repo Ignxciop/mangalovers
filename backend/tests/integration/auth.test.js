@@ -330,3 +330,82 @@ describe("DELETE /api/auth/account", () => {
         expect(res.body.success).toBe(false);
     });
 });
+
+describe("GET /api/auth/google-client-id", () => {
+    it("devuelve el client ID de Google", async () => {
+        const res = await request(app)
+            .get("/api/auth/google-client-id")
+            .expect(200);
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.data).toHaveProperty("clientId");
+    });
+});
+
+describe("POST /api/auth/google", () => {
+    it("rechaza login sin idToken (validación)", async () => {
+        const res = await request(app)
+            .post("/api/auth/google")
+            .send({})
+            .expect(400);
+
+        expect(res.body.success).toBe(false);
+    });
+
+    it("rechaza login con idToken inválido", async () => {
+        const res = await request(app)
+            .post("/api/auth/google")
+            .send({ idToken: "invalid-token-123" });
+
+        expect(res.status).toBeGreaterThanOrEqual(400);
+        expect(res.body.success).toBe(false);
+    });
+});
+
+describe("GET /api/auth/sessions", () => {
+    it("devuelve sesiones activas del usuario", async () => {
+        const user = await createUser({
+            email: "sessions-test@gmail.com",
+            password: "Password123!",
+        });
+        const token = generateAccessToken(user.id);
+
+        await request(app)
+            .post("/api/auth/login")
+            .send({ email: user.email, password: "Password123!" });
+
+        const res = await request(app)
+            .get("/api/auth/sessions")
+            .set("Authorization", `Bearer ${token}`)
+            .expect(200);
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.sessions).toBeDefined();
+        expect(Array.isArray(res.body.data.sessions)).toBe(true);
+        expect(res.body.data.sessions.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("devuelve array vacío si no hay sesiones activas", async () => {
+        const user = await createUser({
+            email: "nosessions-test@gmail.com",
+            password: "Password123!",
+        });
+        const token = generateAccessToken(user.id);
+
+        const res = await request(app)
+            .get("/api/auth/sessions")
+            .set("Authorization", `Bearer ${token}`)
+            .expect(200);
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.sessions).toEqual([]);
+    });
+
+    it("rechaza sin autenticación con 401", async () => {
+        const res = await request(app)
+            .get("/api/auth/sessions")
+            .expect(401);
+
+        expect(res.body.success).toBe(false);
+    });
+});
