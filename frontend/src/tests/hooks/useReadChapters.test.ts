@@ -7,14 +7,14 @@ const mockToggleChapterRead = vi.fn();
 const mockMarkChapterUntil = vi.fn();
 
 vi.mock("@/api/manga", () => ({
-    fetchReadChapterIds: (...args: any[]) => mockFetchReadChapterIds(...args),
-    toggleChapterRead: (...args: any[]) => mockToggleChapterRead(...args),
-    markChapterUntil: (...args: any[]) => mockMarkChapterUntil(...args),
+    fetchReadChapterIds: (...args: unknown[]) => (mockFetchReadChapterIds as (...args: unknown[]) => unknown)(...args),
+    toggleChapterRead: (...args: unknown[]) => (mockToggleChapterRead as (...args: unknown[]) => unknown)(...args),
+    markChapterUntil: (...args: unknown[]) => (mockMarkChapterUntil as (...args: unknown[]) => unknown)(...args),
 }));
 
 let mockIsAuthenticated = true;
 vi.mock("@/store/authStore", () => ({
-    useAuthStore: vi.fn((selector?: (s: { isAuthenticated: boolean }) => any) => {
+    useAuthStore: vi.fn((selector?: (s: { isAuthenticated: boolean }) => unknown) => {
         const state = { isAuthenticated: mockIsAuthenticated };
         return selector ? selector(state) : state;
     }),

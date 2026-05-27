@@ -445,7 +445,6 @@ export default function AdminMetrics() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setLoading(true);
         Promise.all([
             getScraperMetrics().then((r) => setScraperData(r.data)).catch(() => {}),
             getUserMetrics().then((r) => setUserData(r.data)).catch(() => {}),

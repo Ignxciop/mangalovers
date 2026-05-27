@@ -67,6 +67,22 @@ function MiniSection({ title, children }: { title: string; children: React.React
     );
 }
 
+function Elapsed({ finishedAt }: { finishedAt: string | null }) {
+    const [now, setNow] = useState<number | null>(null);
+    useEffect(() => {
+        const tick = () => setNow(Date.now());
+        tick();
+        const id = setInterval(tick, 60000);
+        return () => clearInterval(id);
+    }, []);
+    if (!finishedAt) return "en ejecución...";
+    if (now === null) return "...";
+    const diff = now - new Date(finishedAt).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `hace ${mins} min`;
+    return `hace ${Math.floor(mins / 60)}h ${mins % 60}min`;
+}
+
 function ScraperStatus({ scraper }: { scraper: OverviewMetrics["scraper"] }) {
     if (!scraper) {
         return (
@@ -78,14 +94,6 @@ function ScraperStatus({ scraper }: { scraper: OverviewMetrics["scraper"] }) {
     }
 
     const isOk = scraper.status === "success";
-    const elapsed = scraper.finishedAt
-        ? (() => {
-            const diff = Date.now() - new Date(scraper.finishedAt).getTime();
-            const mins = Math.floor(diff / 60000);
-            if (mins < 60) return `hace ${mins} min`;
-            return `hace ${Math.floor(mins / 60)}h ${mins % 60}min`;
-        })()
-        : "en ejecución...";
 
     return (
         <div className="space-y-2">
@@ -103,7 +111,7 @@ function ScraperStatus({ scraper }: { scraper: OverviewMetrics["scraper"] }) {
                         {isOk ? "Operativo" : "Falló"}
                     </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground">{elapsed}</span>
+                    <span className="text-[10px] text-muted-foreground"><Elapsed finishedAt={scraper.finishedAt} /></span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-[10px] text-muted-foreground">
                 <span>Series: {scraper.seriesProcessed}</span>
