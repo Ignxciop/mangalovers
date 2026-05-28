@@ -40,6 +40,7 @@ import {
     ChevronRight,
     Settings,
     BarChart3,
+    Users,
     MessageCirclePlus,
     Shield,
 } from "lucide-react";
@@ -422,6 +423,12 @@ export function AppSidebar() {
                                     href="/favoritos"
                                     icon={Heart}
                                     label="Favoritos"
+                                    disabled={!isAuthenticated}
+                                />
+                                <NavItem
+                                    href="/amigos"
+                                    icon={Users}
+                                    label="Amigos"
                                     disabled={!isAuthenticated}
                                 />
                                 <NavItem
