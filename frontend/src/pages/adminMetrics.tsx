@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { getScraperMetrics, getUserMetrics, getContentMetrics, getSystemMetrics } from "@/api/admin";
 import type { ScraperMetricsData, UserMetricsData, ContentMetricsData, SystemMetricsData } from "@/types/admin";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SEO } from "@/components/seo";
+import { AdminHeader } from "@/components/AdminHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -38,9 +38,9 @@ function MiniCard({ icon: Icon, label, value, sub, accent }: {
                 <Icon className="size-4" />
             </div>
             <div className="min-w-0">
-                <p className="text-xs text-muted-foreground mb-0.5 leading-none">{label}</p>
-                <p className="text-lg font-bold leading-none tracking-tight tabular-nums">{value}</p>
-                {sub && <p className="text-xs text-muted-foreground/60 mt-1">{sub}</p>}
+                <p className="text-xs text-muted-foreground mb-1 leading-none">{label}</p>
+                <p className="text-xl font-bold leading-none tracking-tight tabular-nums">{value}</p>
+                {sub && <p className="text-xs text-muted-foreground/60 mt-1.5">{sub}</p>}
             </div>
         </div>
     );
@@ -56,10 +56,10 @@ function SectionHeader({ icon: Icon, title, color = "brand" }: { icon: React.Ele
     };
     return (
         <div className="flex items-center gap-2 mb-3">
-            <span className={cn("flex items-center justify-center size-6 rounded-md shrink-0", colorMap[color] ?? colorMap.brand)}>
-                <Icon className="h-3.5 w-3.5" />
+            <span className={cn("flex items-center justify-center size-7 rounded-md shrink-0", colorMap[color] ?? colorMap.brand)}>
+                <Icon className="h-4 w-4" />
             </span>
-            <h2 className="text-xs font-semibold tracking-wide">{title}</h2>
+            <h2 className="text-sm font-semibold tracking-wide">{title}</h2>
         </div>
     );
 }
@@ -80,14 +80,14 @@ function BarChart({ data, getLabel, getValue, accent = "brand" }: {
                 const label = getLabel(d);
                 return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                        <span className="text-[9px] text-muted-foreground font-medium">{val > 0 ? val : ""}</span>
+                        <span className="text-[10px] text-muted-foreground font-medium">{val > 0 ? val : ""}</span>
                         <div className="w-full relative flex items-end" style={{ height: "80px" }}>
                             <div
                                 className={cn("w-full rounded-t-sm transition-all duration-500 bg-gradient-to-t", accentGrad)}
                                 style={{ height: `${(val / max) * 80}px`, minHeight: val > 0 ? "3px" : "0" }}
                             />
                         </div>
-                        <span className="text-[8px] text-muted-foreground truncate w-full text-center">
+                        <span className="text-[10px] text-muted-foreground truncate w-full text-center">
                             {label.length > 6 ? label.slice(0, 6) + "..." : label}
                         </span>
                     </div>
@@ -113,11 +113,11 @@ function HorizontalBar({ data, getLabel, getValue, accent = "brand" }: {
                 const label = getLabel(d);
                 return (
                     <div key={i} className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground w-20 shrink-0 truncate">{label}</span>
-                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <span className="text-xs text-muted-foreground w-24 shrink-0 truncate">{label}</span>
+                        <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
                             <div className={cn("h-full rounded-full transition-all", barAccent)} style={{ width: `${(val / max) * 100}%` }} />
                         </div>
-                        <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">{val}</span>
+                        <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">{val}</span>
                     </div>
                 );
             })}
@@ -145,15 +145,15 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
                                     )}
                                     <span className="text-sm font-semibold capitalize">{p.name}</span>
                                 </div>
-                                <span className={cn(
-                                    "text-[10px] font-medium px-2 py-0.5 rounded-full",
+                                    <span className={cn(
+                                    "text-xs font-medium px-2 py-0.5 rounded-full",
                                     isOk ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground",
                                 )}>
                                     {hasRun ? (isOk ? "Operativo" : "Falló") : "Sin datos"}
                                 </span>
                             </div>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                                <span className="text-muted-foreground">Series vinculadas:</span>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                <span className="text-muted-foreground">Series vinculadas:</span>
                                 <span className="font-medium tabular-nums text-right">{p.seriesCount}</span>
                                 {hasRun && (
                                     <>
@@ -188,16 +188,16 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
                 ) : (
                     <div className="space-y-2 max-h-80 overflow-y-auto">
                         {data.recentRuns.map((run) => (
-                            <div key={run.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                                <div className="flex items-center gap-2">
+                            <div key={run.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                                <div className="flex items-center gap-2.5">
                                     {run.status === "success" ? (
-                                        <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+                                        <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
                                     ) : run.status === "failed" ? (
-                                        <XCircle className="size-3.5 text-rose-500 shrink-0" />
+                                        <XCircle className="size-4 text-rose-500 shrink-0" />
                                     ) : (
-                                        <Clock className="size-3.5 text-amber-500 shrink-0" />
+                                        <Clock className="size-4 text-amber-500 shrink-0" />
                                     )}
-                                    <span className="text-xs capitalize font-medium">{run.provider}</span>
+                                    <span className="text-sm capitalize font-medium">{run.provider}</span>
                                     <span className="text-xs text-muted-foreground">
                                         {new Date(run.startedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                                     </span>
@@ -288,15 +288,15 @@ function UserTab({ data }: { data: UserMetricsData }) {
                 ) : (
                     <div className="space-y-2">
                         {data.topReaders.map((r, i) => (
-                            <div key={r.userId} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
-                                    <div className="size-5 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[8px] font-bold text-muted-foreground">
+                            <div key={r.userId} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className="text-xs font-bold text-muted-foreground w-5 shrink-0">{i + 1}</span>
+                                    <div className="size-7 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[10px] font-bold text-muted-foreground">
                                         {r.name[0]?.toUpperCase() ?? "?"}
                                     </div>
-                                    <span className="text-xs font-medium truncate">{r.name}</span>
+                                    <span className="text-sm font-medium truncate">{r.name}</span>
                                 </div>
-                                <span className="text-xs text-muted-foreground tabular-nums">{r.chaptersRead} caps</span>
+                                <span className="text-sm text-muted-foreground tabular-nums">{r.chaptersRead} caps</span>
                             </div>
                         ))}
                     </div>
@@ -412,11 +412,11 @@ function SystemTab({ data }: { data: SystemMetricsData }) {
                 ) : (
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                         {data.recentErrors.map((err) => (
-                            <div key={err.id} className="flex items-start justify-between py-1.5 border-b border-border last:border-0">
-                                <div className="flex items-start gap-2 min-w-0">
-                                    <AlertCircle className="size-3 text-rose-500 shrink-0 mt-0.5" />
+                            <div key={err.id} className="flex items-start justify-between py-2 border-b border-border last:border-0">
+                                <div className="flex items-start gap-2.5 min-w-0">
+                                    <AlertCircle className="size-4 text-rose-500 shrink-0 mt-0.5" />
                                     <div className="min-w-0">
-                                        <p className="text-xs font-medium truncate">{err.user}</p>
+                                        <p className="text-sm font-medium truncate">{err.user}</p>
                                         {err.metadata && (
                                             <p className="text-xs text-muted-foreground truncate max-w-xs">
                                                 {JSON.stringify(err.metadata).slice(0, 80)}
@@ -424,7 +424,7 @@ function SystemTab({ data }: { data: SystemMetricsData }) {
                                         )}
                                     </div>
                                 </div>
-                                <span className="text-[9px] text-muted-foreground shrink-0">
+                                <span className="text-xs text-muted-foreground shrink-0">
                                     {new Date(err.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                                 </span>
                             </div>
@@ -487,14 +487,7 @@ export default function AdminMetrics() {
         <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Métricas del sistema" />
 
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-14 px-4">
-                    <SidebarTrigger />
-                    <div className="flex justify-center min-w-0">
-                        <span className="text-xs font-medium text-muted-foreground">Métricas del sistema</span>
-                    </div>
-                </div>
-            </header>
+            <AdminHeader icon={BarChart3} title="Métricas del sistema" />
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 <div className="flex border-b border-border mb-6 overflow-x-auto">
@@ -524,8 +517,8 @@ export default function AdminMetrics() {
 function EmptyState() {
     return (
         <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
-            <BarChart3 className="size-8 text-muted-foreground/30" />
-            <p className="text-xs text-muted-foreground">No se pudieron cargar los datos</p>
+            <BarChart3 className="size-10 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">No se pudieron cargar los datos</p>
         </div>
     );
 }

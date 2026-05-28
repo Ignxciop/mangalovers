@@ -4,6 +4,7 @@ import type {
     AdminMetricsResponse, ActivityLogResponse, ActivityLogEntry, UserRole, UserStatus,
     OverviewResponse, ScraperMetricsResponse, UserMetricsResponse,
     ContentMetricsResponse, SystemMetricsResponse,
+    UserStatusHistoryResponse,
 } from "@/types/admin";
 
 export async function getUsers(params?: {
@@ -22,8 +23,15 @@ export async function updateUserRole(userId: string, role: UserRole) {
     return data;
 }
 
-export async function updateUserStatus(userId: string, status: UserStatus, suspendedUntil?: string) {
-    const { data } = await api.patch<UpdateStatusResponse>(`/admin/users/${userId}/status`, { status, suspendedUntil });
+export async function updateUserStatus(userId: string, status: UserStatus, suspendedUntil?: string | null) {
+    const body: Record<string, unknown> = { status };
+    if (suspendedUntil !== undefined) body.suspendedUntil = suspendedUntil;
+    const { data } = await api.patch<UpdateStatusResponse>(`/admin/users/${userId}/status`, body);
+    return data;
+}
+
+export async function getUserStatusHistory(userId: string) {
+    const { data } = await api.get<UserStatusHistoryResponse>(`/admin/users/${userId}/status-history`);
     return data;
 }
 

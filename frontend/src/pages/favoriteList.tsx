@@ -448,9 +448,9 @@ export default function FavoritesList() {
                             </div>
                         </div>
                         <FilterDrawer
-                            activeCount={activeFiltersCount}
+                            activeFiltersCount={activeFiltersCount}
                             title="Filtros"
-                            onClear={clearFilters}
+                            onClearAll={clearFilters}
                         >
                             <div className="px-6 py-5 border-b border-border">
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">

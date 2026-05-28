@@ -3,6 +3,12 @@ import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
 import { UnauthorizedError } from "../utils/errors.js";
 
+function formatSuspendedUntil(date) {
+  return new Date(date).toLocaleString("es-ES", {
+    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+
 export class RefreshTokenService {
   static generateRefreshToken() {
     return crypto.randomBytes(64).toString("hex");
@@ -23,13 +29,13 @@ export class RefreshTokenService {
     const refreshToken = await prisma.refreshToken.findUnique({
       where: { token },
       include: {
-            user: {
-                select: {
-                  id: true, email: true, name: true, lastname: true, role: true,
-                  status: true, suspendedUntil: true,
-                  password: true, createdAt: true, updatedAt: true,
-                },
-            },
+        user: {
+          select: {
+            id: true, email: true, name: true, lastname: true, role: true,
+            status: true, suspendedUntil: true,
+            password: true, createdAt: true, updatedAt: true,
+          },
+        },
       },
     });
 
@@ -42,6 +48,25 @@ export class RefreshTokenService {
 
     if (refreshToken.isRevoked) {
       throw new UnauthorizedError("Refresh token revocado");
+    }
+
+    const user = refreshToken.user;
+    if (user.status === "BANNED") {
+      await this.revokeAllUserTokens(user.id);
+      throw new UnauthorizedError("Tu cuenta ha sido baneada");
+    }
+    if (user.status === "SUSPENDED") {
+      if (!user.suspendedUntil || new Date(user.suspendedUntil) <= new Date()) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { status: "ACTIVE", suspendedUntil: null },
+        });
+      } else {
+        await this.revokeAllUserTokens(user.id);
+        throw new UnauthorizedError(
+          `Tu cuenta está suspendida hasta el ${formatSuspendedUntil(user.suspendedUntil)}`,
+        );
+      }
     }
 
     return refreshToken;

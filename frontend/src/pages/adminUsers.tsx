@@ -1,9 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { getUsers, updateUserRole, updateUserStatus, getActivityLogs, getStatusHistory } from "@/api/admin";
-import type { AdminUser, UserRole, UserStatus, ActivityLogEntry } from "@/types/admin";
-import { Input } from "@/components/ui/input";
+import { getUsers, updateUserRole, updateUserStatus, getActivityLogs, getUserStatusHistory } from "@/api/admin";
+import type { AdminUser, UserRole, UserStatus, ActivityLogEntry, UserStatusHistory } from "@/types/admin";
 import { Badge } from "@/components/ui/badge";
 import {
     Select,
@@ -19,16 +18,35 @@ import {
     SheetTitle,
     SheetClose,
 } from "@/components/ui/sheet";
-import { FilterDrawer } from "@/components/FilterDrawer";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
+import { FilterDrawer } from "@/components/FilterDrawer";
 import { SEO } from "@/components/seo";
+import { AdminHeader } from "@/components/AdminHeader";
 import { cn } from "@/lib/utils";
 import {
     Users,
-    Search,
-    X,
     Shield,
     Mail,
     Calendar,
@@ -134,13 +152,14 @@ function formatLogMetadata(event: string, metadata: Record<string, unknown> | nu
         case "ADD_FAVORITE":
         case "REMOVE_FAVORITE":
             if (metadata.seriesName) return String(metadata.seriesName);
-            return "Serie #" + String(metadata.seriesId);
+            return JSON.stringify(metadata).slice(0, 60);
         case "SEND_SUGGESTION":
-            return String(metadata.title ?? metadata.type ?? "");
-        case "UPDATE_SUGGESTION_STATUS":
-            return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
+            if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
+            return JSON.stringify(metadata).slice(0, 60);
         case "UPDATE_ROLE":
             return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
+        case "UPDATE_SUGGESTION_STATUS":
+            return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
         case "UPDATE_USER_STATUS": {
             const usMeta = metadata.targetUserName ? String(metadata.targetUserName) + ": " : "";
             const usChange = String(metadata.oldStatus) + " → " + String(metadata.newStatus);
@@ -167,29 +186,29 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
                     : "hover:bg-muted/40 border border-transparent",
             )}
         >
-            <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
+            <div className="flex items-center gap-3">
+                <div className="size-9 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
                     {user.name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium truncate">{user.name} {user.lastname}</span>
+                        <span className="text-sm font-medium truncate">{user.name} {user.lastname}</span>
                         <StatusText status={user.status} />
                     </div>
                     <p className="text-xs text-muted-foreground/60 truncate">{user.email}</p>
                 </div>
             </div>
-            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground/50">
+            <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground/50">
                 <span className="flex items-center gap-1">
-                    <MessageSquare className="size-2.5" />
+                    <MessageSquare className="size-3" />
                     {user._count.suggestions}
                 </span>
                 <span className="flex items-center gap-1">
-                    <Bookmark className="size-2.5" />
+                    <Bookmark className="size-3" />
                     {user._count.favorites}
                 </span>
                 <span className="flex items-center gap-1">
-                    <BookOpen className="size-2.5" />
+                    <BookOpen className="size-3" />
                     {user._count.chapterReads}
                 </span>
             </div>
@@ -203,20 +222,20 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
     onStatusChange: (userId: string, status: UserStatus, suspendedUntil?: string) => void;
     logs: ActivityLogEntry[];
     logsLoading: boolean;
-    statusHistory: ActivityLogEntry[];
+    statusHistory: UserStatusHistory | null;
 }) {
     const [suspendedDate, setSuspendedDate] = useState(user.suspendedUntil ? toDatetimeLocal(user.suspendedUntil) : "");
     const [suspendDraft, setSuspendDraft] = useState(false);
     const [suspendDraftDate, setSuspendDraftDate] = useState("");
     return (
-        <div className="space-y-4 text-sm">
+        <div className="space-y-5">
             <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                    <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
+                <div className="flex items-center gap-3">
+                    <div className="size-10 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-sm font-bold text-muted-foreground">
                         {user.name[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                        <h2 className="text-sm font-semibold leading-snug">{user.name} {user.lastname}</h2>
+                        <h2 className="text-base font-semibold leading-snug">{user.name} {user.lastname}</h2>
                         <div className="flex items-center gap-2">
                             <StatusText status={user.status} />
                             <span className="text-xs text-muted-foreground/50">·</span>
@@ -230,33 +249,23 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
 
             <div className="flex items-center gap-2">
                 <Select value={user.role} onValueChange={(v) => onRoleChange(user.id, v as UserRole)}>
-                    <SelectTrigger className="min-w-[7rem] h-7 text-xs shrink-0">
-                        <Shield className="size-3 mr-1 shrink-0" />
+                    <SelectTrigger className="min-w-[8rem] h-9 text-sm shrink-0">
+                        <Shield className="size-4 mr-1 shrink-0" />
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="USER">Usuario</SelectItem>
-                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem className="text-sm" value="USER">Usuario</SelectItem>
+                        <SelectItem className="text-sm" value="ADMIN">Admin</SelectItem>
                     </SelectContent>
                 </Select>
-                <Select value={user.status} onValueChange={(v) => {
-                    const newStatus = v as UserStatus;
-                    if (newStatus === "SUSPENDED") {
-                        setSuspendDraft(true);
-                        setSuspendDraftDate(toDatetimeLocal(new Date().toISOString()));
-                        return;
-                    }
-                    setSuspendDraft(false);
-                    setSuspendedDate("");
-                    onStatusChange(user.id, newStatus);
-                }}>
-                    <SelectTrigger className="min-w-[7rem] h-7 text-xs shrink-0">
+                <Select value={user.status} onValueChange={(v) => onStatusChange(user.id, v as UserStatus)}>
+                    <SelectTrigger className="min-w-[8rem] h-9 text-sm shrink-0">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="ACTIVE">Activo</SelectItem>
-                        <SelectItem value="SUSPENDED">Suspendido</SelectItem>
-                        <SelectItem value="BANNED">Baneado</SelectItem>
+                        <SelectItem className="text-sm" value="ACTIVE">Activo</SelectItem>
+                        <SelectItem className="text-sm" value="SUSPENDED">Suspendido</SelectItem>
+                        <SelectItem className="text-sm" value="BANNED">Baneado</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -295,67 +304,68 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
                 </div>
             )}
 
-            <div className="border-t border-border pt-3 space-y-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Mail className="size-3.5 shrink-0" />
+            {user.status === "SUSPENDED" && user.suspendedUntil && (
+                <div className="flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                    <Clock className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span className="text-amber-700 dark:text-amber-300">
+                        Suspendido hasta el {new Date(user.suspendedUntil).toLocaleString("es-ES", {
+                            day: "numeric", month: "long", year: "numeric",
+                            hour: "2-digit", minute: "2-digit",
+                        })}
+                    </span>
+                </div>
+            )}
+
+            <div className="border-t border-border pt-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="size-4 shrink-0" />
                     <span>{user.email}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="size-3.5 shrink-0" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="size-4 shrink-0" />
                     <span>Registrado el {formatDate(user.createdAt)}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="size-3.5 shrink-0" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="size-4 shrink-0" />
                     <span>Última conexión: {formatDateTime(user.lastLoginAt)}</span>
                 </div>
             </div>
 
-            <div className="border-t border-border pt-3">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Actividad</p>
-                <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-muted/20 rounded border border-border p-2 text-center">
-                        <p className="text-sm font-semibold">{user._count.suggestions}</p>
+            <div className="border-t border-border pt-4">
+                <p className="text-xs font-medium text-muted-foreground mb-3">Actividad</p>
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-muted/20 rounded-lg border border-border p-3 text-center">
+                        <p className="text-lg font-semibold">{user._count.suggestions}</p>
                         <p className="text-xs text-muted-foreground">Sugerencias</p>
                     </div>
-                    <div className="bg-muted/20 rounded border border-border p-2 text-center">
-                        <p className="text-sm font-semibold">{user._count.favorites}</p>
+                    <div className="bg-muted/20 rounded-lg border border-border p-3 text-center">
+                        <p className="text-lg font-semibold">{user._count.favorites}</p>
                         <p className="text-xs text-muted-foreground">Favoritos</p>
                     </div>
-                    <div className="bg-muted/20 rounded border border-border p-2 text-center">
-                        <p className="text-sm font-semibold">{user._count.chapterReads}</p>
+                    <div className="bg-muted/20 rounded-lg border border-border p-3 text-center">
+                        <p className="text-lg font-semibold">{user._count.chapterReads}</p>
                         <p className="text-xs text-muted-foreground">Lecturas</p>
                     </div>
                 </div>
             </div>
 
-            {(() => {
-                const pastBans = statusHistory.filter(l => l.metadata?.newStatus === "BANNED");
-                const pastSuspensions = statusHistory.filter(l => l.metadata?.newStatus === "SUSPENDED");
-                const chips: { label: string; count: number; lastDate: string }[] = [];
-                if (pastBans.length > 0) chips.push({ label: "Baneado anteriormente", count: pastBans.length, lastDate: pastBans[0].createdAt });
-                if (pastSuspensions.length > 0) chips.push({ label: "Suspendido anteriormente", count: pastSuspensions.length, lastDate: pastSuspensions[0].createdAt });
-                if (chips.length === 0) return null;
-                return (
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                        {chips.map(c => (
-                            <span key={c.label} className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground/70 border border-border">
-                                {c.label} ×{c.count}
-                                <span className="text-muted-foreground/50">({formatDate(c.lastDate)})</span>
-                            </span>
-                        ))}
-                    </div>
-                );
-            })()}
-
-            <div className="border-t border-border pt-3">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-2">
-                    <ScrollText className="size-3" />
+            <div className="border-t border-border pt-4">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-3">
+                    <ScrollText className="size-4" />
                     Últimos eventos
+                    {statusHistory && (statusHistory.suspensionCount > 0 || statusHistory.banCount > 0) && (
+                        <span className="text-muted-foreground/50 font-normal ml-auto">
+                            {statusHistory.suspensionCount > 0 && `${statusHistory.suspensionCount} susp.`}
+                            {statusHistory.suspensionCount > 0 && statusHistory.banCount > 0 && " · "}
+                            {statusHistory.banCount > 0 && `${statusHistory.banCount} ban.`}
+                            {user.status === "SUSPENDED" && user.suspendedUntil && ` · hasta ${new Date(user.suspendedUntil).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+                        </span>
+                    )}
                 </div>
                 {logsLoading ? (
                     <div className="space-y-2 py-2">
                         {Array.from({ length: 3 }).map((_, i) => (
-                            <Skeleton key={i} className="h-10 rounded-md" />
+                            <Skeleton key={i} className="h-12 rounded-md" />
                         ))}
                     </div>
                 ) : logs.length === 0 ? (
@@ -363,13 +373,13 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
                 ) : (
                     <div className="space-y-1.5">
                         {logs.slice(0, 10).map((log) => (
-                            <div key={log.id} className="flex items-start gap-2 py-2 px-2.5 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors">
+                            <div key={log.id} className="flex items-start gap-3 py-2.5 px-3 rounded-lg bg-muted/20 border border-border/50 hover:bg-muted/30 transition-colors">
                                 <div className="flex-1 min-w-0">
-                                    <span className={cn("inline-block text-[10px] font-medium px-1.5 py-0.5 rounded border", EVENT_COLORS[log.event] ?? "bg-muted text-muted-foreground border-border")}>
+                                    <span className={cn("inline-block text-xs font-medium px-2 py-0.5 rounded border", EVENT_COLORS[log.event] ?? "bg-muted text-muted-foreground border-border")}>
                                         {EVENT_LABELS[log.event] ?? log.event}
                                     </span>
                                     {log.metadata && (
-                                        <p className="text-xs text-muted-foreground/70 mt-0.5 truncate">
+                                        <p className="text-xs text-muted-foreground/70 mt-1 truncate">
                                             {formatLogMetadata(log.event, log.metadata)}
                                         </p>
                                     )}
@@ -394,10 +404,13 @@ export default function AdminUsers() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [userLogs, setUserLogs] = useState<ActivityLogEntry[]>([]);
     const [userLogsLoading, setUserLogsLoading] = useState(false);
-    const [statusHistory, setStatusHistory] = useState<ActivityLogEntry[]>([]);
+    const [statusHistory, setStatusHistory] = useState<UserStatusHistory | null>(null);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const [sheetOpen, setSheetOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [suspensionDialogUserId, setSuspensionDialogUserId] = useState<string | null>(null);
+    const [suspensionDate, setSuspensionDate] = useState("");
+    const [banDialogUserId, setBanDialogUserId] = useState<string | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -446,22 +459,23 @@ export default function AdminUsers() {
     useEffect(() => {
         if (!selectedId) {
             setUserLogs([]);
-            setStatusHistory([]);
+            setStatusHistory(null);
             return;
         }
         setUserLogsLoading(true);
-        getActivityLogs({ userId: selectedId, limit: 10 }).then((res) => {
-            setUserLogs(res.data);
+        Promise.all([
+            getActivityLogs({ userId: selectedId, limit: 10 }),
+            getUserStatusHistory(selectedId),
+        ]).then(([logsRes, historyRes]) => {
+            setUserLogs(logsRes.data);
+            setStatusHistory(historyRes.data);
             setUserLogsLoading(false);
         }).catch(() => {
             setUserLogs([]);
+            setStatusHistory(null);
             setUserLogsLoading(false);
         });
-        getStatusHistory(selectedId, 10).then((res) => {
-            setStatusHistory(res.data);
-        }).catch(() => {
-            setStatusHistory([]);
-        });
+
     }, [selectedId]);
 
     const selected = users.find((u) => u.id === selectedId) ?? null;
@@ -503,7 +517,21 @@ export default function AdminUsers() {
         }
     };
 
-    const handleStatusChange = async (userId: string, newStatus: UserStatus, suspendedUntil?: string) => {
+    const handleStatusChange = (userId: string, newStatus: UserStatus) => {
+        if (newStatus === "SUSPENDED") {
+            const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            const offset = defaultDate.getTimezoneOffset();
+            const local = new Date(defaultDate.getTime() - offset * 60000).toISOString().slice(0, 16);
+            setSuspensionDate(local);
+            setSuspensionDialogUserId(userId);
+        } else if (newStatus === "BANNED") {
+            setBanDialogUserId(userId);
+        } else {
+            doStatusChange(userId, newStatus);
+        }
+    };
+
+    const doStatusChange = async (userId: string, newStatus: UserStatus, suspendedUntil?: string) => {
         try {
             const res = await updateUserStatus(userId, newStatus, suspendedUntil);
             fetchUsers();
@@ -526,73 +554,54 @@ export default function AdminUsers() {
         <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Administrar usuarios" />
 
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                    <SidebarTrigger />
-                    <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-sm font-semibold shrink-0 hidden sm:block">
-                            Usuarios
-                        </span>
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                                ref={searchInputRef}
-                                placeholder="Buscar..."
-                                className="pl-9 bg-secondary/50 border-none"
-                                value={searchText}
-                                onChange={(e) => handleSearchChange(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        if (debounceRef.current) clearTimeout(debounceRef.current);
-                                        updateFilter("search", searchText);
-                                    }
-                                }}
-                            />
-                            {searchText && (
-                                <button onClick={clearSearch} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                                    <X className="size-3" />
-                                </button>
-                            )}
+            <AdminHeader
+                icon={Users}
+                title="Usuarios"
+                search={{
+                    placeholder: "Buscar...",
+                    value: searchText,
+                    onChange: handleSearchChange,
+                    onEnter: (value) => {
+                        if (debounceRef.current) clearTimeout(debounceRef.current);
+                        updateFilter("search", value);
+                    },
+                    onClear: clearSearch,
+                    inputRef: searchInputRef,
+                }}
+            >
+                <FilterDrawer title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("role"); next.delete("status"); next.set("page", "1"); setSearchParams(next); }}>
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rol</p>
+                        <div className="flex flex-wrap gap-2">
+                            {VALID_ROLES.map((r) => (
+                                <Badge
+                                    key={r}
+                                    variant={roleFilter === r ? "default" : "outline"}
+                                    className="cursor-pointer text-xs px-3 py-1"
+                                    onClick={() => updateFilter("role", roleFilter === r ? "" : r)}
+                                >
+                                    {r === "ADMIN" ? "Admin" : "Usuario"}
+                                </Badge>
+                            ))}
                         </div>
                     </div>
-                    <FilterDrawer
-                        activeCount={activeFiltersCount}
-                        title="Filtros"
-                        admin
-                    >
-                        <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rol</p>
-                            <div className="flex flex-wrap gap-2">
-                                {VALID_ROLES.map((r) => (
-                                    <Badge
-                                        key={r}
-                                        variant={roleFilter === r ? "default" : "outline"}
-                                        className="cursor-pointer px-3 py-1 text-xs"
-                                        onClick={() => updateFilter("role", roleFilter === r ? "" : r)}
-                                    >
-                                        {r === "ADMIN" ? "Admin" : "Usuario"}
-                                    </Badge>
-                                ))}
-                            </div>
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Estado</p>
+                        <div className="flex flex-wrap gap-2">
+                            {VALID_STATUSES.map((s) => (
+                                <Badge
+                                    key={s}
+                                    variant={statusFilter === s ? "default" : "outline"}
+                                    className="cursor-pointer text-xs px-3 py-1"
+                                    onClick={() => updateFilter("status", statusFilter === s ? "" : s)}
+                                >
+                                    {STATUS_LABELS[s]}
+                                </Badge>
+                            ))}
                         </div>
-                        <div className="px-6 py-5">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Estado</p>
-                            <div className="flex flex-wrap gap-2">
-                                {VALID_STATUSES.map((s) => (
-                                    <Badge
-                                        key={s}
-                                        variant={statusFilter === s ? "default" : "outline"}
-                                        className="cursor-pointer px-3 py-1 text-xs"
-                                        onClick={() => updateFilter("status", statusFilter === s ? "" : s)}
-                                    >
-                                        {STATUS_LABELS[s]}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                    </FilterDrawer>
-                </div>
-            </header>
+                    </div>
+                </FilterDrawer>
+            </AdminHeader>
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 {loading ? (
@@ -608,15 +617,15 @@ export default function AdminUsers() {
                     </div>
                 ) : users.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
-                        <div className="size-12 rounded-full bg-muted/30 flex items-center justify-center">
-                            <Users className="size-6 text-muted-foreground/30" />
+                        <div className="size-14 rounded-full bg-muted/30 flex items-center justify-center">
+                            <Users className="size-7 text-muted-foreground/30" />
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium text-muted-foreground/70">
+                        <div className="space-y-1.5">
+                            <p className="text-base font-medium text-muted-foreground/70">
                                 {activeFiltersCount > 0 || searchQuery ? "Sin resultados" : "No hay usuarios"}
                             </p>
-                            <p className="text-xs text-muted-foreground/50">
-                                {activeFiltersCount > 0 || searchQuery ? "Probá con otros filtros o búsqueda" : "Los usuarios nuevos aparecerán aquí"}
+                            <p className="text-sm text-muted-foreground/50">
+                                {activeFiltersCount > 0 || searchQuery ? "Prueba con otros filtros o búsqueda" : "Los usuarios nuevos aparecerán aquí"}
                             </p>
                         </div>
                     </div>
@@ -647,7 +656,7 @@ export default function AdminUsers() {
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full min-h-[200px]">
-                                    <p className="text-xs text-muted-foreground/50">Seleccioná un usuario</p>
+                                    <p className="text-sm text-muted-foreground/50">Selecciona un usuario</p>
                                 </div>
                             )}
                         </div>
@@ -655,13 +664,77 @@ export default function AdminUsers() {
                 )}
             </main>
 
+            <Dialog open={!!suspensionDialogUserId} onOpenChange={(open) => { if (!open) setSuspensionDialogUserId(null); }}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Fecha de suspensión</DialogTitle>
+                        <DialogDescription>
+                            Selecciona hasta cuándo estará suspendido el usuario. No podrá acceder hasta esa fecha.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-2">
+                        <Label htmlFor="suspendedUntil">Suspender hasta</Label>
+                        <Input
+                            id="suspendedUntil"
+                            type="datetime-local"
+                            value={suspensionDate}
+                            onChange={(e) => setSuspensionDate(e.target.value)}
+                            min={new Date().toISOString().slice(0, 16)}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSuspensionDialogUserId(null)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            size="sm"
+                            disabled={!suspensionDate}
+                            onClick={() => {
+                                if (!suspensionDialogUserId) return;
+                                doStatusChange(suspensionDialogUserId, "SUSPENDED", suspensionDate);
+                                setSuspensionDialogUserId(null);
+                            }}
+                        >
+                            Confirmar suspensión
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <AlertDialog open={!!banDialogUserId} onOpenChange={(open) => { if (!open) setBanDialogUserId(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Banear usuario?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. El usuario será bloqueado permanentemente y no podrá acceder a su cuenta.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (!banDialogUserId) return;
+                                doStatusChange(banDialogUserId, "BANNED");
+                                setBanDialogUserId(null);
+                            }}
+                        >
+                            Banear
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <Sheet open={sheetOpen} onOpenChange={(open) => { setSheetOpen(open); if (!open) setSelectedId(null); }}>
-                <SheetContent side="bottom" className="rounded-t-lg max-h-[80vh] flex flex-col gap-0 p-0">
-                    <SheetHeader className="px-4 py-2.5 border-b border-border shrink-0 flex-row items-center gap-2">
-                        <SheetClose className="shrink-0"><ArrowLeft className="size-4" /></SheetClose>
-                        <SheetTitle className="text-xs font-medium">Detalle</SheetTitle>
+                <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] flex flex-col gap-0 p-0">
+                    <SheetHeader className="px-6 py-5 border-b border-border flex-row items-center gap-2">
+                        <SheetClose className="shrink-0"><ArrowLeft className="size-5" /></SheetClose>
+                        <SheetTitle className="text-base">Detalle</SheetTitle>
                     </SheetHeader>
-                    <div className="flex-1 overflow-y-auto p-4">
+                    <div className="flex-1 overflow-y-auto px-6 py-5">
                         {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />}
                     </div>
                 </SheetContent>

@@ -97,3 +97,10 @@ export async function deleteFavorite(userId, seriesId) {
     where: { userId_seriesId: { userId, seriesId: Number(seriesId) } },
   });
 }
+
+export async function getSeriesBasicInfo(seriesId) {
+  return prisma.series.findUnique({
+    where: { id: seriesId },
+    select: { name: true },
+  });
+}

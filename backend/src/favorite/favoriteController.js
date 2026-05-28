@@ -1,7 +1,6 @@
 import {
-  getUserFavorites, getFavorite, upsertFavorite, deleteFavorite,
+  getUserFavorites, getFavorite, upsertFavorite, deleteFavorite, getSeriesBasicInfo,
 } from "./favoriteService.js";
-import { prisma } from "../config/prisma.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 import logger from "../config/logger.js";
 
@@ -31,10 +30,7 @@ export async function handleUpsertFavorite(req, res, next) {
     res.json(favorite);
 
     if (!existing) {
-      const series = await prisma.series.findUnique({
-        where: { id: Number(seriesId) },
-        select: { name: true },
-      });
+      const series = await getSeriesBasicInfo(Number(seriesId));
       ActivityLogService.logEvent(
         req.user.userId, "ADD_FAVORITE",
         { seriesId: Number(seriesId), seriesName: series?.name ?? null },
@@ -48,10 +44,7 @@ export async function handleUpsertFavorite(req, res, next) {
 
 export async function handleDeleteFavorite(req, res, next) {
   try {
-    const series = await prisma.series.findUnique({
-      where: { id: Number(req.params.seriesId) },
-      select: { name: true },
-    });
+    const series = await getSeriesBasicInfo(Number(req.params.seriesId));
     await deleteFavorite(req.user.userId, req.params.seriesId);
     res.json({ success: true });
 

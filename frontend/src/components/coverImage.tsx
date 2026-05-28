@@ -113,7 +113,7 @@ export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
                 src={src || ""}
                 alt={alt}
                 loading={priority ? "eager" : "lazy"}
-                {...(priority ? { fetchpriority: "high" } : {})}
+                {...(priority ? { fetchPriority: "high" } : {})}
                 className={`w-full h-full object-cover ${
                     status === "loaded" ? "opacity-100" : "opacity-0"
                 } transition-opacity duration-300`}

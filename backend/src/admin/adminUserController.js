@@ -1,4 +1,3 @@
-import { prisma } from "../config/prisma.js";
 import { AdminUserService } from "./adminUserService.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 import logger from "../config/logger.js";
@@ -23,10 +22,7 @@ export async function updateRole(req, res, next) {
   try {
     const targetUserId = req.params.id;
     const { role } = req.body;
-    const existing = await prisma.user.findUnique({
-      where: { id: targetUserId },
-      select: { role: true, name: true, lastname: true },
-    });
+    const existing = await AdminUserService.getUserBasicInfo(targetUserId);
     const user = await AdminUserService.updateRole(targetUserId, role, req.user.userId);
     res.json({ success: true, message: "Rol actualizado", data: user });
 
@@ -45,11 +41,8 @@ export async function updateStatus(req, res, next) {
   try {
     const targetUserId = req.params.id;
     const { status, suspendedUntil } = req.body;
-    const existing = await prisma.user.findUnique({
-      where: { id: targetUserId },
-      select: { status: true, name: true, lastname: true },
-    });
-    const user = await AdminUserService.updateStatus(targetUserId, status, req.user.userId, suspendedUntil);
+    const existing = await AdminUserService.getUserBasicInfo(targetUserId);
+    const user = await AdminUserService.updateStatus(targetUserId, status, suspendedUntil, req.user.userId);
     res.json({ success: true, message: "Estado actualizado", data: user });
 
     const targetName = `${existing.name} ${existing.lastname}`;
@@ -67,3 +60,11 @@ export async function updateStatus(req, res, next) {
   }
 }
 
+export async function getStatusHistory(req, res, next) {
+  try {
+    const history = await AdminUserService.getStatusHistory(req.params.id);
+    res.json({ success: true, data: history });
+  } catch (error) {
+    next(error);
+  }
+}
