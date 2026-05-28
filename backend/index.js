@@ -18,6 +18,7 @@ import { seedProviders } from "./src/scripts/seed.js";
 import notificationRoutes from "./src/notifications/notificationRoutes.js";
 import sitemapRoutes from "./src/sitemap/sitemapRoutes.js";
 import suggestionRoutes from "./src/suggestions/suggestionRoutes.js";
+import friendRoutes from "./src/friends/friendRoutes.js";
 import adminRoutes from "./src/admin/adminUserRoutes.js";
 import activityLogRoutes from "./src/activityLog/activityLogRoutes.js";
 import { ActivityLogService } from "./src/activityLog/activityLogService.js";
@@ -112,12 +113,23 @@ const favoriteLimiter = rateLimit({
     handler: rateLimitHandler("Demasiados cambios en favoritos"),
 });
 
+const friendLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler("Demasiadas solicitudes de amistad"),
+});
+
 app.use("/api", generalLimiter);
 app.use("/api/auth", authLimiter);
 app.use("/api/reads/full-stats", heavyLimiter);
 app.use("/api/reads/stats", heavyLimiter);
 app.use("/api/manga/recommended", heavyLimiter);
 app.use("/api/favorites", favoriteLimiter);
+app.use("/api/friends/request", friendLimiter);
+app.use("/api/friends/block", friendLimiter);
+app.use("/api/friends/search", friendLimiter);
 
 app.use("/uploads", express.static("uploads"));
 
@@ -140,6 +152,7 @@ app.use("/api/favorites", favoriteRoutes);
 app.use("/api/reads", readRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/suggestions", suggestionRoutes);
+app.use("/api/friends", friendRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin", activityLogRoutes);
 app.use("/api", sitemapRoutes);

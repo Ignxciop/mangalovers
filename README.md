@@ -16,6 +16,7 @@ Mangalovers es un lector de manga online que permite a los usuarios:
 - **Ver estadísticas detalladas** de lectura: total de capítulos leídos, páginas estimadas, horas invertidas, rachas, heatmap de actividad mensual y los géneros más leídos.
 - **Recibir notificaciones push** cuando se publican nuevos capítulos de sus series favoritas.
 - **Gestionar favoritos** con estados como "Siguiendo" o "Terminado".
+- **Conectar con amigos**: enviar/recibir solicitudes, buscar usuarios, bloquear/desbloquear y ver qué capítulos leyeron tus amigos en cada serie.
 
 ### ¿Qué problema resuelve?
 
@@ -58,7 +59,7 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 
 - **Frontend**: SPA en React con routing del lado del cliente. Los estilos usan Tailwind CSS 4 con componentes shadcn/ui. El estado global de autenticación se maneja con Zustand con persistencia en localStorage.
 - **Backend**: API REST modular (auth, manga, favorites, reads, notifications). Cada módulo sigue el patrón Controller → Service → Prisma.
-- **Base de datos**: PostgreSQL con 17 modelos (User, Series, Chapter, Page, Genre, Provider, ProviderSeries, ProviderChapter, UserFavorite, UserChapterRead, PushSubscription, RefreshToken, SeriesAlias, SeriesGenre, ScraperRun, UserActivity, AdminAuditLog).
+- **Base de datos**: PostgreSQL con 17 modelos (User, Series, Chapter, Page, Genre, Provider, ProviderSeries, ProviderChapter, UserFavorite, UserChapterRead, PushSubscription, RefreshToken, SeriesAlias, SeriesGenre, Friend, ScraperRun, UserActivity).
 - **Scrapers**: Dos proveedores (Olympuscope, ManhwaWeb) con extracción independiente. Un cron job ejecuta la recolección cada hora. Cada ejecución se persiste en el modelo `ScraperRun` con snapshot de la base de datos (series procesadas, capítulos creados, errores). Las series se deduplican entre proveedores mediante un algoritmo de matching por tokens.
 - **Admin**: Panel de administración con dashboard (visión general), gestión de usuarios (roles/estados), sugerencias, registro de actividad y métricas del sistema (rendimiento de scrapers, crecimiento de usuarios, distribución de contenido, errores de API).
 
@@ -106,6 +107,19 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 | POST | `/api/reads/chapter/:chapterId/mark-until` | Sí | Marcar todos los capítulos hasta este como leídos |
 | GET | `/api/reads/stats` | Sí | Estadísticas de lectura |
 | GET | `/api/reads/full-stats` | Sí | Estadísticas detalladas con heatmap, rachas, géneros |
+| **Amigos** | | | |
+| GET | `/api/friends` | Sí | Lista de amigos aceptados |
+| GET | `/api/friends/requests/received` | Sí | Solicitudes de amistad recibidas |
+| GET | `/api/friends/requests/sent` | Sí | Solicitudes de amistad enviadas |
+| GET | `/api/friends/blocked` | Sí | Usuarios bloqueados |
+| GET | `/api/friends/search?q=` | Sí | Buscar usuarios por nombre/apellido/apodo |
+| POST | `/api/friends/request` | Sí | Enviar solicitud de amistad |
+| PATCH | `/api/friends/request/:id/accept` | Sí | Aceptar solicitud |
+| PATCH | `/api/friends/request/:id/reject` | Sí | Rechazar solicitud |
+| POST | `/api/friends/block` | Sí | Bloquear usuario |
+| POST | `/api/friends/unblock` | Sí | Desbloquear usuario |
+| DELETE | `/api/friends/:userId` | Sí | Eliminar amigo |
+| GET | `/api/friends/series/:seriesId/reads` | Sí | Último capítulo leído por cada amigo en una serie |
 | **Notificaciones** | | | |
 | GET | `/api/notifications/vapid-public-key` | No | Clave pública VAPID para Web Push |
 | POST | `/api/notifications/subscribe` | Sí | Suscribirse a notificaciones push |
@@ -124,7 +138,6 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 | GET | `/api/admin/suggestions` | Admin | Sugerencias paginadas |
 | PATCH | `/api/admin/suggestions/:id/status` | Admin | Cambiar estado de sugerencia |
 | GET | `/api/admin/activity` | Admin | Registro de actividad global |
-| GET | `/api/admin/audit-logs` | Admin | Auditoría de acciones administrativas |
 | GET | `/api/admin/metrics` | Admin | Métricas generales del sistema |
 
 ### Ejecutar localmente
@@ -194,7 +207,7 @@ backend/
 ├── src/
 │   ├── auth/                   # Registro, login, JWT, refresh tokens, Google OAuth
 │   ├── admin/                  # Panel admin: usuarios, sugerencias, métricas, actividad
-│   │   ├── adminUserRoutes.js       # CRUD usuarios + actividad por usuario + auditoría
+│   │   ├── adminUserRoutes.js       # CRUD usuarios + actividad por usuario
 │   │   ├── adminUserController.js
 │   │   ├── adminUserService.js
 │   │   ├── adminAuditService.js     # Auditoría de acciones administrativas
@@ -204,6 +217,7 @@ backend/
 │   │   └── scrapers/
 │   │       └── scraper.js      # trackRun() que persiste ejecuciones en ScraperRun
 │   ├── favorite/               # Favoritos del usuario
+│   ├── friends/                # Amigos: solicitudes, bloqueos, actividad de lectura
 │   ├── read/                   # Tracking de lectura y estadísticas
 │   ├── notifications/          # Push notifications (web-push)
 │   ├── middlewares/            # Auth middleware, error handler, rate limiter
@@ -213,11 +227,12 @@ backend/
 
 frontend/
 ├── src/
-│   ├── pages/                  # adminDashboard, adminUsers, adminMetrics, adminSuggestions, adminActivityLogs, adminAuditLogs, etc.
+│   ├── pages/                  # home, mangaDetail, mangaList, statsPage, friendsPage, profilePage, adminDashboard, adminUsers, adminMetrics, adminSuggestions, adminActivityLogs, adminAuditLogs, etc.
 │   ├── hooks/                  # Custom hooks para datos y UI
 │   ├── api/
 │   │   ├── axios.ts            # Cliente Axios con interceptor JWT + refresh queue
-│   │   └── admin.ts            # 12 funciones admin (users, suggestions, activity, metrics, audit)
+│   │   ├── admin.ts            # 12 funciones admin (users, suggestions, activity, metrics)
+│   │   └── friends.ts          # API de amigos y FriendSeriesRead
 │   ├── store/                  # Zustand store (auth con persist)
 │   ├── components/             # shadcn/ui, layouts, sidebar, charts SVG
 │   └── types/

@@ -5,6 +5,7 @@ import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CoverImage } from "@/components/coverImage";
 import {
     ChevronLeft,
@@ -33,6 +34,10 @@ import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, memo, useCallback } from "react";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useAuthStore } from "@/store/authStore";
+import { getFriendReadsForSeries, type FriendSeriesRead } from "@/api/friends";
+
+const AVATAR_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
 
 function MangaDetailSkeleton() {
     return (
@@ -107,6 +112,7 @@ const ChapterRow = memo(function ChapterRow({
     toggleRead,
     slug,
     backUrl,
+    friends = [],
 }: {
     chapter: {
         id: number;
@@ -120,6 +126,7 @@ const ChapterRow = memo(function ChapterRow({
     toggleRead: (id: number) => Promise<void>;
     slug: string;
     backUrl: string;
+    friends?: FriendSeriesRead[];
 }) {
     const date = new Date(chapter.publishedAt).toLocaleDateString("es-ES", {
         day: "2-digit",
@@ -152,7 +159,7 @@ const ChapterRow = memo(function ChapterRow({
             }`}
         >
             <div className="flex items-center gap-3 min-w-0">
-                <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 text-right">
+                <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 text-right tabular-nums">
                     {chapter.chapterNumber}
                 </span>
                 <button
@@ -171,6 +178,25 @@ const ChapterRow = memo(function ChapterRow({
                 <span className="text-sm text-foreground/90 truncate group-hover:text-foreground transition-colors">
                     {chapter.name}
                 </span>
+                {friends.length > 0 && (
+                    <span className="flex -space-x-1.5 shrink-0" title={friends.map((f) => `${f.name} ${f.lastname}`).join(", ")}>
+                        {friends.slice(0, 3).map((f) => (
+                            <Avatar key={f.userId} className="size-5 rounded-full border-2 border-background">
+                                {f.avatarUrl && (
+                                    <AvatarImage src={`${AVATAR_BASE}/uploads/avatars/${f.avatarUrl}`} alt={f.name} className="rounded-full object-cover" />
+                                )}
+                                <AvatarFallback className="rounded-full text-[8px] font-bold bg-primary/10 text-primary">
+                                    {f.name[0]}
+                                </AvatarFallback>
+                            </Avatar>
+                        ))}
+                        {friends.length > 3 && (
+                            <span className="size-5 rounded-full bg-muted text-[8px] font-bold flex items-center justify-center border-2 border-background text-muted-foreground">
+                                +{friends.length - 3}
+                            </span>
+                        )}
+                    </span>
+                )}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0 ml-4">
                 <Clock className="h-3 w-3" />
@@ -205,6 +231,7 @@ function StatPill({
 export default function MangaDetail() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
+    const user = useAuthStore((s) => s.user);
     const { series, loading, error } = useSeriesDetail(slug ?? "");
     const {
         status: favStatus,
@@ -220,6 +247,24 @@ export default function MangaDetail() {
     const backUrl = location.state?.from ?? "/";
 
     const [chaptersReversed, setChaptersReversed] = useState(true);
+    const [friendReads, setFriendReads] = useState<FriendSeriesRead[]>([]);
+
+    useEffect(() => {
+        if (!series?.id || !user) return;
+        getFriendReadsForSeries(series.id)
+            .then(setFriendReads)
+            .catch(() => setFriendReads([]));
+    }, [series?.id, user]);
+
+    const friendReadsByChapter = useMemo(() => {
+        const map = new Map<number, FriendSeriesRead[]>();
+        for (const read of friendReads) {
+            const arr = map.get(read.chapterId) ?? [];
+            arr.push(read);
+            map.set(read.chapterId, arr);
+        }
+        return map;
+    }, [friendReads]);
 
     const chaptersSorted = useMemo(() => {
         if (!series) return [];
@@ -610,6 +655,7 @@ export default function MangaDetail() {
                                                     toggleRead={toggleRead}
                                                     slug={slug ?? ""}
                                                     backUrl={backUrl}
+                                                    friends={friendReadsByChapter.get(chapter.id) ?? []}
                                                 />
                                             ))}
                                         </div>
