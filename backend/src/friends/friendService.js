@@ -12,7 +12,7 @@ export class FriendService {
       where: { receiverId: currentUserId, status: "BLOCKED" },
       select: { senderId: true },
     });
-    blockedMeResult.forEach((f) => blockedMe.add(f.senderId));
+    blockedByMeResult.forEach((f) => blockedMe.add(f.senderId));
 
     const friendships = await prisma.friend.findMany({
       where: {
