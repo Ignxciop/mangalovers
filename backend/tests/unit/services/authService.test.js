@@ -84,13 +84,18 @@ describe("AuthService.googleLogin", () => {
 
     expect(result.user.email).toBe("googleuser@gmail.com");
     expect(prisma.user.create).toHaveBeenCalledWith({
-      data: {
+      data: expect.objectContaining({
         email: "googleuser@gmail.com",
         name: "Google",
         lastname: "User",
         password: "",
-      },
-      select: expect.any(Object),
+        alias: expect.any(String),
+      }),
+      select: expect.objectContaining({
+        alias: true,
+        aliasChanged: true,
+        avatarUrl: true,
+      }),
     });
   });
 
