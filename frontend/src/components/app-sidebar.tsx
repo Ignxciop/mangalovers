@@ -12,7 +12,7 @@ import {
     SidebarGroupContent,
     useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -148,6 +148,13 @@ const SidebarUserSection = memo(function SidebarUserSection({
                             >
                                 <div className="relative shrink-0">
                                     <Avatar className="h-8 w-8 rounded-lg">
+                                        {user?.avatarUrl && (
+                                            <AvatarImage
+                                                src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ?? ""}/uploads/avatars/${user.avatarUrl}`}
+                                                alt={user.name ?? ""}
+                                                className="rounded-lg object-cover"
+                                            />
+                                        )}
                                         <AvatarFallback
                                             className={cn(
                                                 "rounded-lg text-xs font-bold",
@@ -211,6 +218,13 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                 >
                                     <div className="relative shrink-0">
                                         <Avatar className="h-10 w-10 rounded-xl">
+                                            {user?.avatarUrl && (
+                                                <AvatarImage
+                                                    src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ?? ""}/uploads/avatars/${user.avatarUrl}`}
+                                                    alt={user.name ?? ""}
+                                                    className="rounded-xl object-cover"
+                                                />
+                                            )}
                                             <AvatarFallback
                                                 className={cn(
                                                     "rounded-xl text-sm font-bold",
