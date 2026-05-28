@@ -162,6 +162,25 @@ const ChapterRow = memo(function ChapterRow({
                 <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 text-right">
                     {chapter.chapterNumber}
                 </span>
+                {friends.length > 0 && (
+                    <div className="flex -space-x-1.5 shrink-0" title={friends.map((f) => `${f.name} ${f.lastname}`).join(", ")}>
+                        {friends.slice(0, 3).map((f) => (
+                            <Avatar key={f.userId} className="size-5 rounded-full border-2 border-background">
+                                {f.avatarUrl && (
+                                    <AvatarImage src={`${AVATAR_BASE}/uploads/avatars/${f.avatarUrl}`} alt={f.name} className="rounded-full object-cover" />
+                                )}
+                                <AvatarFallback className="rounded-full text-[8px] font-bold bg-primary/10 text-primary">
+                                    {f.name[0]}
+                                </AvatarFallback>
+                            </Avatar>
+                        ))}
+                        {friends.length > 3 && (
+                            <span className="size-5 rounded-full bg-muted text-[8px] font-bold flex items-center justify-center border-2 border-background text-muted-foreground">
+                                +{friends.length - 3}
+                            </span>
+                        )}
+                    </div>
+                )}
                 <button
                     onClick={handleToggle}
                     className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
@@ -180,25 +199,6 @@ const ChapterRow = memo(function ChapterRow({
                 </span>
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0 ml-4">
-                {friends.length > 0 && (
-                    <div className="flex -space-x-1.5 mr-1" title={friends.map((f) => `${f.name} ${f.lastname}`).join(", ")}>
-                        {friends.slice(0, 3).map((f) => (
-                            <Avatar key={f.userId} className="size-5 rounded-full border-2 border-background">
-                                {f.avatarUrl && (
-                                    <AvatarImage src={`${AVATAR_BASE}/uploads/avatars/${f.avatarUrl}`} alt={f.name} className="rounded-full object-cover" />
-                                )}
-                                <AvatarFallback className="rounded-full text-[8px] font-bold bg-primary/10 text-primary">
-                                    {f.name[0]}
-                                </AvatarFallback>
-                            </Avatar>
-                        ))}
-                        {friends.length > 3 && (
-                            <span className="size-5 rounded-full bg-muted text-[8px] font-bold flex items-center justify-center border-2 border-background text-muted-foreground">
-                                +{friends.length - 3}
-                            </span>
-                        )}
-                    </div>
-                )}
                 <Clock className="h-3 w-3" />
                 {date}
             </div>
