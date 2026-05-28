@@ -29,13 +29,13 @@ export class RefreshTokenService {
     const refreshToken = await prisma.refreshToken.findUnique({
       where: { token },
       include: {
-          user: {
-            select: {
-              id: true, email: true, name: true, lastname: true, role: true,
-              status: true, suspendedUntil: true,
-              password: true, createdAt: true, updatedAt: true,
-            },
+        user: {
+          select: {
+            id: true, email: true, name: true, lastname: true, role: true,
+            status: true, suspendedUntil: true,
+            password: true, createdAt: true, updatedAt: true,
           },
+        },
       },
     });
 

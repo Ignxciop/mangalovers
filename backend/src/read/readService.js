@@ -428,7 +428,10 @@ export async function getFullStats(userId) {
       };
     });
 
-  const firstReadDate = reads.length > 0 ? reads[0].createdAt : null;
+  const firstReadDate =
+    reads.length > 0
+      ? new Date(Math.min(...reads.map((r) => new Date(r.createdAt)))).toISOString()
+      : null;
   const avgChaptersPerDay = readDays.length > 0 ? Math.round(totalChaptersRead / readDays.length) : 0;
 
   return {

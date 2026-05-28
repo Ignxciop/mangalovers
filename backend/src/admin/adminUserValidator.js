@@ -39,4 +39,7 @@ export const updateStatusValidator = [
   body("status")
     .isIn(["ACTIVE", "BANNED", "SUSPENDED"])
     .withMessage("Estado inválido"),
+  body("suspendedUntil")
+    .optional({ values: "null" })
+    .isISO8601().withMessage("Fecha de suspensión inválida"),
 ];

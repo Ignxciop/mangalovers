@@ -289,3 +289,4 @@ export interface ActivityLogResponse {
         totalPages: number;
     };
 }
+

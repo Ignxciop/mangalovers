@@ -1,28 +1,53 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useState, type ReactNode } from "react";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { SlidersHorizontal } from "lucide-react";
 
 interface FilterDrawerProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
     title: string;
     activeFiltersCount?: number;
     onClearAll?: () => void;
-    children: React.ReactNode;
+    children: ReactNode;
 }
 
-export function FilterDrawer({ open, onOpenChange, title, activeFiltersCount, onClearAll, children }: FilterDrawerProps) {
+export function FilterDrawer({
+    open: controlledOpen,
+    onOpenChange: controlledOnOpenChange,
+    title,
+    activeFiltersCount = 0,
+    onClearAll,
+    children,
+}: FilterDrawerProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const isControlled = controlledOpen !== undefined;
+    const open = isControlled ? controlledOpen : internalOpen;
+    const handleOpenChange = (next: boolean) => {
+        if (isControlled) {
+            controlledOnOpenChange?.(next);
+        } else {
+            setInternalOpen(next);
+        }
+    };
+
     return (
-        <Sheet open={open} onOpenChange={onOpenChange}>
+        <Sheet open={open} onOpenChange={handleOpenChange}>
             <SheetTrigger asChild>
                 <Button variant="outline" className="shrink-0 relative">
-                    <SlidersHorizontal className="mr-2 size-4" />
+                    <SlidersHorizontal className="mr-2 h-4 w-4" />
                     Filtros
-                    {activeFiltersCount ? (
-                        <span className="absolute -top-1.5 -right-1.5 size-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                    {activeFiltersCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
                             {activeFiltersCount}
                         </span>
-                    ) : null}
+                    )}
                 </Button>
             </SheetTrigger>
             <SheetContent className="flex flex-col gap-0 p-0">
@@ -32,13 +57,13 @@ export function FilterDrawer({ open, onOpenChange, title, activeFiltersCount, on
                 <div className="flex-1 overflow-y-auto">
                     {children}
                 </div>
-                {onClearAll && activeFiltersCount ? (
+                {onClearAll && (
                     <div className="px-6 py-4 border-t border-border">
                         <Button variant="outline" className="w-full" onClick={onClearAll}>
                             Limpiar todos los filtros
                         </Button>
                     </div>
-                ) : null}
+                )}
             </SheetContent>
         </Sheet>
     );

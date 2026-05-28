@@ -37,6 +37,40 @@ async function checkUserStatus(userId) {
 
 const lastLoginCache = new Map();
 
+function formatRemainingTime(suspendedUntil) {
+  const ms = new Date(suspendedUntil).getTime() - Date.now();
+  if (ms <= 0) return null;
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    return `${days} día${days > 1 ? "s" : ""}`;
+  }
+  if (hours > 0) return `${hours}h ${minutes}min`;
+  return `${minutes} min`;
+}
+
+async function checkUserStatus(user) {
+  if (!user) return;
+  if (user.status === "BANNED") {
+    throw new ForbiddenError("Tu cuenta ha sido baneada");
+  }
+  if (user.status === "SUSPENDED") {
+    if (user.suspendedUntil && new Date(user.suspendedUntil) <= new Date()) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { status: "ACTIVE", suspendedUntil: null },
+      });
+      return;
+    }
+    const remaining = user.suspendedUntil ? formatRemainingTime(user.suspendedUntil) : null;
+    if (remaining) {
+      throw new ForbiddenError(`Tu cuenta está suspendida por ${remaining}`);
+    }
+    throw new ForbiddenError("Tu cuenta está suspendida");
+  }
+}
+
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -51,7 +85,16 @@ export const authenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, config.JWT_SECRET);
     req.user = { userId: decoded.userId, role: decoded.role };
 
+<<<<<<< HEAD
     await checkUserStatus(req.user.userId);
+=======
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { id: true, status: true, suspendedUntil: true },
+    });
+
+    await checkUserStatus(user);
+>>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
 
     next();
 

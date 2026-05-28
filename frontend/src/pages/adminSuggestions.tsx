@@ -18,6 +18,11 @@ import {
     SheetTitle,
     SheetClose,
 } from "@/components/ui/sheet";
+<<<<<<< HEAD
+=======
+import { FilterDrawer } from "@/components/FilterDrawer";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+>>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
 import { FilterDrawer } from "@/components/FilterDrawer";
@@ -154,7 +159,6 @@ export default function AdminSuggestions() {
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const [sheetOpen, setSheetOpen] = useState(false);
-    const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -277,6 +281,7 @@ export default function AdminSuggestions() {
         <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Administrar sugerencias" />
 
+<<<<<<< HEAD
             <AdminHeader
                 icon={MessageSquare}
                 title="Sugerencias"
@@ -302,14 +307,68 @@ export default function AdminSuggestions() {
                                     variant={typeFilter === t ? "default" : "outline"}
                                     className="cursor-pointer text-xs px-3 py-1"
                                     onClick={() => updateFilter("type", typeFilter === t ? "" : t)}
+=======
+            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
+                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
+                    <SidebarTrigger />
+                    <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
+                        <span className="text-sm font-semibold shrink-0 hidden sm:block">
+                            Sugerencias
+                        </span>
+                        <div className="relative flex-1 max-w-sm">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                            <Input
+                                ref={searchInputRef}
+                                placeholder="Buscar..."
+                                className="pl-9 bg-secondary/50 border-none"
+                                value={searchText}
+                                onChange={(e) => handleSearchChange(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        if (debounceRef.current) clearTimeout(debounceRef.current);
+                                        updateFilter("search", searchText);
+                                    }
+                                }}
+                            />
+                            {searchText && (
+                                <button
+                                    onClick={clearSearch}
+                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+>>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                                 >
                                     {TYPE_LABELS[t as SuggestionType]}
                                 </Badge>
                             ))}
                         </div>
                     </div>
+<<<<<<< HEAD
                 </FilterDrawer>
             </AdminHeader>
+=======
+                    <FilterDrawer
+                        activeCount={activeFiltersCount}
+                        title="Filtrar por tipo"
+                        admin
+                    >
+                        <div className="px-6 py-5">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tipo</p>
+                            <div className="flex flex-wrap gap-2">
+                                {VALID_TYPES.map((t) => (
+                                    <Badge
+                                        key={t}
+                                        variant={typeFilter === t ? "default" : "outline"}
+                                        className="cursor-pointer px-3 py-1 text-xs"
+                                        onClick={() => updateFilter("type", typeFilter === t ? "" : t)}
+                                    >
+                                        {TYPE_LABELS[t as SuggestionType]}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    </FilterDrawer>
+                </div>
+            </header>
+>>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 {loading ? (
@@ -354,7 +413,11 @@ export default function AdminSuggestions() {
                                         )}
                                     >
                                         {tab.label}
+<<<<<<< HEAD
                                         <span className="text-xs text-muted-foreground/50 ml-1">{tab.count}</span>
+=======
+                                        <span className="text-xs text-muted-foreground/50">{tab.count}</span>
+>>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                                     </button>
                                 ))}
                             </div>
@@ -375,6 +438,7 @@ export default function AdminSuggestions() {
                                                 resolved && !isSelected && "opacity-50",
                                             )}
                                         >
+<<<<<<< HEAD
                                         <div className="flex items-center gap-2 mb-0.5">
                                             <span className={cn("text-xs font-medium", STATUS_COLORS[s.status])}>
                                                 {STATUS_LABELS[s.status]}
@@ -390,6 +454,23 @@ export default function AdminSuggestions() {
                                             {s.title}
                                         </p>
                                         <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground/50">
+=======
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className={cn("text-xs font-medium", STATUS_COLORS[s.status])}>
+                                                    {STATUS_LABELS[s.status]}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground/50">
+                                                    {TYPE_LABELS[s.type]}
+                                                </span>
+                                            </div>
+                                            <p className={cn(
+                                                "text-xs leading-snug truncate",
+                                                resolved ? "text-muted-foreground" : "text-foreground",
+                                            )}>
+                                                {s.title}
+                                            </p>
+                                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground/50">
+>>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                                                 <span>{s.user?.name ?? s.user?.email ?? "—"}</span>
                                                 <span>·</span>
                                                 <span>{timeAgo(s.createdAt)}</span>

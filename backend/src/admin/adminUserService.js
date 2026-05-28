@@ -86,11 +86,11 @@ export class AdminUserService {
   static async getUserBasicInfo(id) {
     return prisma.user.findUnique({
       where: { id },
-      select: { name: true, lastname: true, role: true, status: true, suspendedUntil: true },
+      select: { name: true, lastname: true, role: true, status: true },
     });
   }
 
-  static async updateStatus(targetUserId, status, adminUserId, suspendedUntil) {
+  static async updateStatus(targetUserId, status, suspendedUntil, adminUserId) {
     if (targetUserId === adminUserId) {
       throw new ValidationError("No puedes cambiar tu propio estado");
     }

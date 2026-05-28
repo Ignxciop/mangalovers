@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "users" ADD COLUMN "suspendedUntil" TIMESTAMP(3);
+ALTER TABLE "users" ADD COLUMN     "suspendedUntil" TIMESTAMP(3);

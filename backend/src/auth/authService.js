@@ -6,7 +6,7 @@ import { config } from "../config/env.js";
 import logger from "../config/logger.js";
 import { RefreshTokenService } from "./refreshTokenService.js";
 import { validateEmail } from "../config/emailAllowed.js";
-import { ConflictError, UnauthorizedError, NotFoundError, ValidationError } from "../utils/errors.js";
+import { ConflictError, UnauthorizedError, NotFoundError, ValidationError, ForbiddenError } from "../utils/errors.js";
 
 function formatSuspendedUntil(date) {
   return new Date(date).toLocaleString("es-ES", {
@@ -16,7 +16,7 @@ function formatSuspendedUntil(date) {
 
 async function checkUserStatus(user) {
   if (user.status === "BANNED") {
-    throw new UnauthorizedError("Tu cuenta ha sido baneada");
+    throw new ForbiddenError("Tu cuenta ha sido baneada");
   }
   if (user.status === "SUSPENDED") {
     if (!user.suspendedUntil || new Date(user.suspendedUntil) <= new Date()) {
@@ -25,7 +25,7 @@ async function checkUserStatus(user) {
         data: { status: "ACTIVE", suspendedUntil: null },
       });
     } else {
-      throw new UnauthorizedError(
+      throw new ForbiddenError(
         `Tu cuenta está suspendida hasta el ${formatSuspendedUntil(user.suspendedUntil)}`,
       );
     }

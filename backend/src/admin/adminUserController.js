@@ -42,7 +42,7 @@ export async function updateStatus(req, res, next) {
     const targetUserId = req.params.id;
     const { status, suspendedUntil } = req.body;
     const existing = await AdminUserService.getUserBasicInfo(targetUserId);
-    const user = await AdminUserService.updateStatus(targetUserId, status, req.user.userId, suspendedUntil);
+    const user = await AdminUserService.updateStatus(targetUserId, status, suspendedUntil, req.user.userId);
     res.json({ success: true, message: "Estado actualizado", data: user });
 
     const targetName = `${existing.name} ${existing.lastname}`;
