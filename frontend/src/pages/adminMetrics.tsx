@@ -38,15 +38,9 @@ function MiniCard({ icon: Icon, label, value, sub, accent }: {
                 <Icon className="size-4" />
             </div>
             <div className="min-w-0">
-<<<<<<< HEAD
                 <p className="text-xs text-muted-foreground mb-1 leading-none">{label}</p>
                 <p className="text-xl font-bold leading-none tracking-tight tabular-nums">{value}</p>
                 {sub && <p className="text-xs text-muted-foreground/60 mt-1.5">{sub}</p>}
-=======
-                <p className="text-xs text-muted-foreground mb-0.5 leading-none">{label}</p>
-                <p className="text-lg font-bold leading-none tracking-tight tabular-nums">{value}</p>
-                {sub && <p className="text-xs text-muted-foreground/60 mt-1">{sub}</p>}
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
             </div>
         </div>
     );
@@ -119,19 +113,11 @@ function HorizontalBar({ data, getLabel, getValue, accent = "brand" }: {
                 const label = getLabel(d);
                 return (
                     <div key={i} className="flex items-center gap-2">
-<<<<<<< HEAD
                         <span className="text-xs text-muted-foreground w-24 shrink-0 truncate">{label}</span>
                         <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
                             <div className={cn("h-full rounded-full transition-all", barAccent)} style={{ width: `${(val / max) * 100}%` }} />
                         </div>
                         <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">{val}</span>
-=======
-                        <span className="text-xs text-muted-foreground w-20 shrink-0 truncate">{label}</span>
-                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                            <div className={cn("h-full rounded-full transition-all", barAccent)} style={{ width: `${(val / max) * 100}%` }} />
-                        </div>
-                        <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">{val}</span>
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                     </div>
                 );
             })}
@@ -166,13 +152,8 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
                                     {hasRun ? (isOk ? "Operativo" : "Falló") : "Sin datos"}
                                 </span>
                             </div>
-<<<<<<< HEAD
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
                 <span className="text-muted-foreground">Series vinculadas:</span>
-=======
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                                <span className="text-muted-foreground">Series vinculadas:</span>
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                                 <span className="font-medium tabular-nums text-right">{p.seriesCount}</span>
                                 {hasRun && (
                                     <>
@@ -216,11 +197,7 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
                                     ) : (
                                         <Clock className="size-4 text-amber-500 shrink-0" />
                                     )}
-<<<<<<< HEAD
                                     <span className="text-sm capitalize font-medium">{run.provider}</span>
-=======
-                                    <span className="text-xs capitalize font-medium">{run.provider}</span>
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                                     <span className="text-xs text-muted-foreground">
                                         {new Date(run.startedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                                     </span>
@@ -311,7 +288,6 @@ function UserTab({ data }: { data: UserMetricsData }) {
                 ) : (
                     <div className="space-y-2">
                         {data.topReaders.map((r, i) => (
-<<<<<<< HEAD
                             <div key={r.userId} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                                 <div className="flex items-center gap-2.5 min-w-0">
                                     <span className="text-xs font-bold text-muted-foreground w-5 shrink-0">{i + 1}</span>
@@ -321,17 +297,6 @@ function UserTab({ data }: { data: UserMetricsData }) {
                                     <span className="text-sm font-medium truncate">{r.name}</span>
                                 </div>
                                 <span className="text-sm text-muted-foreground tabular-nums">{r.chaptersRead} caps</span>
-=======
-                            <div key={r.userId} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-xs font-bold text-muted-foreground w-4 shrink-0">{i + 1}</span>
-                                    <div className="size-5 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-[8px] font-bold text-muted-foreground">
-                                        {r.name[0]?.toUpperCase() ?? "?"}
-                                    </div>
-                                    <span className="text-xs font-medium truncate">{r.name}</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground tabular-nums">{r.chaptersRead} caps</span>
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                             </div>
                         ))}
                     </div>
@@ -451,11 +416,7 @@ function SystemTab({ data }: { data: SystemMetricsData }) {
                                 <div className="flex items-start gap-2.5 min-w-0">
                                     <AlertCircle className="size-4 text-rose-500 shrink-0 mt-0.5" />
                                     <div className="min-w-0">
-<<<<<<< HEAD
                                         <p className="text-sm font-medium truncate">{err.user}</p>
-=======
-                                        <p className="text-xs font-medium truncate">{err.user}</p>
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                                         {err.metadata && (
                                             <p className="text-xs text-muted-foreground truncate max-w-xs">
                                                 {JSON.stringify(err.metadata).slice(0, 80)}

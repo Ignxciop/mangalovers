@@ -3,11 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { getActivityLogs } from "@/api/admin";
 import type { ActivityLogEntry } from "@/types/admin";
 import { Badge } from "@/components/ui/badge";
-<<<<<<< HEAD
-=======
-import { FilterDrawer } from "@/components/FilterDrawer";
-import { SidebarTrigger } from "@/components/ui/sidebar";
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
 import { FilterDrawer } from "@/components/FilterDrawer";
@@ -16,11 +11,6 @@ import { AdminHeader } from "@/components/AdminHeader";
 import { cn } from "@/lib/utils";
 import {
     ScrollText,
-<<<<<<< HEAD
-=======
-    Search,
-    X,
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
 } from "lucide-react";
 
 const EVENT_LABELS: Record<string, string> = {
@@ -82,7 +72,6 @@ function formatMetadata(event: string, metadata: Record<string, unknown> | null)
         case "ADD_FAVORITE":
         case "REMOVE_FAVORITE":
             if (metadata.seriesName) return String(metadata.seriesName);
-<<<<<<< HEAD
             return JSON.stringify(metadata).slice(0, 60);
         case "SEND_SUGGESTION":
             if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
@@ -91,15 +80,6 @@ function formatMetadata(event: string, metadata: Record<string, unknown> | null)
             return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
         case "UPDATE_SUGGESTION_STATUS":
             return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
-=======
-            return "Serie #" + String(metadata.seriesId);
-        case "SEND_SUGGESTION":
-            return String(metadata.title ?? metadata.type ?? "");
-        case "UPDATE_SUGGESTION_STATUS":
-            return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
-        case "UPDATE_ROLE":
-            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
         case "UPDATE_USER_STATUS": {
             const usMeta = metadata.targetUserName ? String(metadata.targetUserName) + ": " : "";
             const usChange = String(metadata.oldStatus) + " → " + String(metadata.newStatus);
@@ -178,7 +158,6 @@ export default function AdminActivityLogs() {
         <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Registro de actividad" />
 
-<<<<<<< HEAD
             <AdminHeader
                 icon={ScrollText}
                 title="Actividad"
@@ -212,60 +191,6 @@ export default function AdminActivityLogs() {
                     </div>
                 </FilterDrawer>
             </AdminHeader>
-=======
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                    <SidebarTrigger />
-                    <div className="flex items-center gap-3 min-w-0 max-w-xl mx-auto w-full">
-                        <span className="text-sm font-semibold shrink-0 hidden sm:block">
-                            Actividad
-                        </span>
-                        <div className="relative flex-1 max-w-sm">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                                ref={searchInputRef}
-                                placeholder="Buscar por usuario..."
-                                className="pl-9 bg-secondary/50 border-none"
-                                value={searchText}
-                                onChange={(e) => handleSearchChange(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        if (debounceRef.current) clearTimeout(debounceRef.current);
-                                        updateFilter("search", searchText);
-                                    }
-                                }}
-                            />
-                            {searchText && (
-                                <button onClick={clearSearch} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                                    <X className="size-3" />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                    <FilterDrawer
-                        activeCount={hasActiveFilter ? 1 : 0}
-                        title="Filtrar por evento"
-                        admin
-                    >
-                        <div className="px-6 py-5">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evento</p>
-                            <div className="flex flex-wrap gap-2">
-                                {VALID_EVENTS.map((evt) => (
-                                    <Badge
-                                        key={evt}
-                                        variant={eventFilter === evt ? "default" : "outline"}
-                                        className="cursor-pointer px-3 py-1 text-xs"
-                                        onClick={() => updateFilter("event", eventFilter === evt ? "" : evt)}
-                                    >
-                                        {EVENT_LABELS[evt]}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                    </FilterDrawer>
-                </div>
-            </header>
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 {loading ? (
@@ -296,17 +221,10 @@ export default function AdminActivityLogs() {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border bg-muted/20">
-<<<<<<< HEAD
                                             <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Usuario</th>
                                             <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Evento</th>
                                             <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Detalle</th>
                                             <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Fecha</th>
-=======
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">Usuario</th>
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">Evento</th>
-                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">Detalle</th>
-                                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">Fecha</th>
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
@@ -318,17 +236,10 @@ export default function AdminActivityLogs() {
                                                             {log.user.name[0].toUpperCase()}
                                                         </div>
                                                         <div className="min-w-0">
-<<<<<<< HEAD
                                                             <p className="text-sm font-medium truncate max-w-[160px]">
                                                                 {log.user.name} {log.user.lastname}
                                                             </p>
                                                             <p className="text-xs text-muted-foreground/60 truncate max-w-[160px]">
-=======
-                                                            <p className="text-xs font-medium truncate max-w-[140px]">
-                                                                {log.user.name} {log.user.lastname}
-                                                            </p>
-                                                            <p className="text-xs text-muted-foreground/60 truncate max-w-[140px]">
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                                                                 {log.user.email}
                                                             </p>
                                                         </div>
@@ -337,7 +248,6 @@ export default function AdminActivityLogs() {
                                                 <td className="px-4 py-3">
                                                     <EventBadge event={log.event} />
                                                 </td>
-<<<<<<< HEAD
                                                 <td className="px-4 py-3">
                                                     <span className="text-sm text-muted-foreground/70">
                                                         {formatMetadata(log.event, log.metadata)}
@@ -345,15 +255,6 @@ export default function AdminActivityLogs() {
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <span className="text-sm text-muted-foreground/70 whitespace-nowrap">{formatDateTime(log.createdAt)}</span>
-=======
-                                                <td className="px-3 py-2.5">
-                                                    <span className="text-xs text-muted-foreground/70">
-                                                        {formatMetadata(log.event, log.metadata)}
-                                                    </span>
-                                                </td>
-                                                <td className="px-3 py-2.5 text-right">
-                                                    <span className="text-xs text-muted-foreground/70 whitespace-nowrap">{formatDateTime(log.createdAt)}</span>
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
                                                 </td>
                                             </tr>
                                         ))}
