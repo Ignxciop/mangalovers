@@ -18,6 +18,12 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum FriendStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
 enum SuggestionType {
   BUG
   SUGGESTION
@@ -56,6 +62,8 @@ model User {
   suggestions       Suggestion[]
   reviewedSuggestions Suggestion[] @relation("SuggestionReviewedBy")
   activityLogs      UserActivity[]
+  sentRequests      Friend[]      @relation("SentFriendRequests")
+  receivedRequests  Friend[]      @relation("ReceivedFriendRequests")
 
   @@map("users")
 }
@@ -279,6 +287,24 @@ model UserActivity {
   @@index([event])
   @@index([createdAt])
   @@map("user_activities")
+}
+
+model Friend {
+  id          Int          @id @default(autoincrement())
+  senderId    String
+  receiverId  String
+  status      FriendStatus @default(PENDING)
+  blockedById String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  sender   User @relation("SentFriendRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedFriendRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+  @@index([senderId, status])
+  @@map("friends")
 }
 
 model ScraperRun {
