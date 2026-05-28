@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { getScraperMetrics, getUserMetrics, getContentMetrics, getSystemMetrics } from "@/api/admin";
 import type { ScraperMetricsData, UserMetricsData, ContentMetricsData, SystemMetricsData } from "@/types/admin";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SEO } from "@/components/seo";
+import { AdminHeader } from "@/components/AdminHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -487,18 +487,7 @@ export default function AdminMetrics() {
         <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Métricas del sistema" />
 
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                    <SidebarTrigger />
-                    <div className="flex justify-center min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <BarChart3 className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <span className="text-sm font-semibold">Métricas del sistema</span>
-                        </div>
-                    </div>
-                    <div />
-                </div>
-            </header>
+            <AdminHeader icon={BarChart3} title="Métricas del sistema" />
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 <div className="flex border-b border-border mb-6 overflow-x-auto">

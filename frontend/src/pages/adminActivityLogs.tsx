@@ -2,18 +2,15 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getActivityLogs } from "@/api/admin";
 import type { ActivityLogEntry } from "@/types/admin";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
 import { FilterDrawer } from "@/components/FilterDrawer";
 import { SEO } from "@/components/seo";
+import { AdminHeader } from "@/components/AdminHeader";
 import { cn } from "@/lib/utils";
 import {
     ScrollText,
-    Search,
-    X,
 } from "lucide-react";
 
 const EVENT_LABELS: Record<string, string> = {
@@ -162,59 +159,39 @@ export default function AdminActivityLogs() {
         <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Registro de actividad" />
 
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                    <SidebarTrigger />
-                    <div className="flex justify-center min-w-0">
-                        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                            <div className="hidden sm:flex items-center gap-2 shrink-0">
-                                <ScrollText className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm font-semibold">Actividad</span>
-                            </div>
-                            <div className="w-full max-w-md">
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                    <Input
-                                        ref={searchInputRef}
-                                        placeholder="Buscar por usuario..."
-                                        className="pl-9 pr-8 h-9 text-sm bg-muted/40 border-none"
-                                        value={searchText}
-                                        onChange={(e) => handleSearchChange(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") {
-                                                if (debounceRef.current) clearTimeout(debounceRef.current);
-                                                updateFilter("search", searchText);
-                                            }
-                                        }}
-                                    />
-                                    {searchText && (
-                                        <button onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                                            <X className="size-4" />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
+            <AdminHeader
+                icon={ScrollText}
+                title="Actividad"
+                search={{
+                    placeholder: "Buscar por usuario...",
+                    value: searchText,
+                    onChange: handleSearchChange,
+                    onEnter: (value) => {
+                        if (debounceRef.current) clearTimeout(debounceRef.current);
+                        updateFilter("search", value);
+                    },
+                    onClear: clearSearch,
+                    inputRef: searchInputRef,
+                }}
+            >
+                <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={hasActiveFilter ? 1 : 0} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("event"); next.set("page", "1"); setSearchParams(next); }}>
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evento</p>
+                        <div className="flex flex-wrap gap-2">
+                            {VALID_EVENTS.map((evt) => (
+                                <Badge
+                                    key={evt}
+                                    variant={eventFilter === evt ? "default" : "outline"}
+                                    className="cursor-pointer text-xs px-3 py-1"
+                                    onClick={() => updateFilter("event", eventFilter === evt ? "" : evt)}
+                                >
+                                    {EVENT_LABELS[evt]}
+                                </Badge>
+                            ))}
                         </div>
                     </div>
-                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={hasActiveFilter ? 1 : 0} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("event"); next.set("page", "1"); setSearchParams(next); }}>
-                        <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evento</p>
-                            <div className="flex flex-wrap gap-2">
-                                {VALID_EVENTS.map((evt) => (
-                                    <Badge
-                                        key={evt}
-                                        variant={eventFilter === evt ? "default" : "outline"}
-                                        className="cursor-pointer text-xs px-3 py-1"
-                                        onClick={() => updateFilter("event", eventFilter === evt ? "" : evt)}
-                                    >
-                                        {EVENT_LABELS[evt]}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                    </FilterDrawer>
-                </div>
-            </header>
+                </FilterDrawer>
+            </AdminHeader>
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 {loading ? (

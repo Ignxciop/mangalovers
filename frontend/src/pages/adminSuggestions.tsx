@@ -10,7 +10,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
     Sheet,
@@ -19,17 +18,15 @@ import {
     SheetTitle,
     SheetClose,
 } from "@/components/ui/sheet";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
 import { FilterDrawer } from "@/components/FilterDrawer";
+import { AdminHeader } from "@/components/AdminHeader";
 import { SEO } from "@/components/seo";
 import { timeAgo } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import {
     MessageSquare,
-    Search,
-    X,
     RefreshCw,
     ArrowLeft,
     User,
@@ -280,62 +277,39 @@ export default function AdminSuggestions() {
         <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
             <SEO title="Administrar sugerencias" />
 
-            <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                    <SidebarTrigger />
-                    <div className="flex justify-center min-w-0">
-                        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                            <div className="hidden sm:flex items-center gap-2 shrink-0">
-                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm font-semibold">Sugerencias</span>
-                            </div>
-                            <div className="w-full max-w-md">
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                    <Input
-                                        ref={searchInputRef}
-                                        placeholder="Buscar..."
-                                className="pl-9 pr-8 h-9 text-sm bg-muted/40 border-none"
-                                value={searchText}
-                                onChange={(e) => handleSearchChange(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        if (debounceRef.current) clearTimeout(debounceRef.current);
-                                        updateFilter("search", searchText);
-                                    }
-                                }}
-                            />
-                            {searchText && (
-                                <button
-                                    onClick={clearSearch}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            <AdminHeader
+                icon={MessageSquare}
+                title="Sugerencias"
+                search={{
+                    placeholder: "Buscar...",
+                    value: searchText,
+                    onChange: handleSearchChange,
+                    onEnter: (value) => {
+                        if (debounceRef.current) clearTimeout(debounceRef.current);
+                        updateFilter("search", value);
+                    },
+                    onClear: clearSearch,
+                    inputRef: searchInputRef,
+                }}
+            >
+                <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("type"); next.set("page", "1"); setSearchParams(next); }}>
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tipo</p>
+                        <div className="flex flex-wrap gap-2">
+                            {VALID_TYPES.map((t) => (
+                                <Badge
+                                    key={t}
+                                    variant={typeFilter === t ? "default" : "outline"}
+                                    className="cursor-pointer text-xs px-3 py-1"
+                                    onClick={() => updateFilter("type", typeFilter === t ? "" : t)}
                                 >
-                                    <X className="size-4" />
-                                </button>
-                            )}
-                                </div>
-                            </div>
+                                    {TYPE_LABELS[t as SuggestionType]}
+                                </Badge>
+                            ))}
                         </div>
                     </div>
-                    <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("type"); next.set("page", "1"); setSearchParams(next); }}>
-                        <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tipo</p>
-                            <div className="flex flex-wrap gap-2">
-                                {VALID_TYPES.map((t) => (
-                                    <Badge
-                                        key={t}
-                                        variant={typeFilter === t ? "default" : "outline"}
-                                        className="cursor-pointer text-xs px-3 py-1"
-                                        onClick={() => updateFilter("type", typeFilter === t ? "" : t)}
-                                    >
-                                        {TYPE_LABELS[t as SuggestionType]}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                    </FilterDrawer>
-                </div>
-            </header>
+                </FilterDrawer>
+            </AdminHeader>
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 {loading ? (
