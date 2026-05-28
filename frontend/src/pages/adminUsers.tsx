@@ -73,6 +73,12 @@ const EVENT_LABELS: Record<string, string> = {
     UPDATE_USER_STATUS: "Cambio de estado",
     API_ERROR: "Error de API",
     RATE_LIMIT: "Límite excedido",
+    UPDATE_PROFILE: "Actualizar perfil",
+    SEND_FRIEND_REQUEST: "Solicitar amistad",
+    ACCEPT_FRIEND: "Aceptar amistad",
+    REJECT_FRIEND: "Rechazar amistad",
+    BLOCK_USER: "Bloquear usuario",
+    UNBLOCK_USER: "Desbloquear usuario",
 };
 
 const EVENT_COLORS: Record<string, string> = {
@@ -88,6 +94,12 @@ const EVENT_COLORS: Record<string, string> = {
     UPDATE_USER_STATUS: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
     API_ERROR: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
     RATE_LIMIT: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+    UPDATE_PROFILE: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+    SEND_FRIEND_REQUEST: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+    ACCEPT_FRIEND: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    REJECT_FRIEND: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+    BLOCK_USER: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+    UNBLOCK_USER: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
 };
 
 const STATUS_LABELS: Record<UserStatus, string> = {
@@ -136,28 +148,59 @@ function formatRelative(iso: string) {
     return formatDate(iso);
 }
 
+const ROLE_LABELS: Record<string, string> = { ADMIN: "admin", USER: "usuario" };
+const USER_STATUS_LABELS: Record<string, string> = { ACTIVE: "activo", BANNED: "baneado", SUSPENDED: "suspendido" };
+const SUGGESTION_STATUS_LABELS: Record<string, string> = {
+    OPEN: "abierta", REVIEWING: "revisando", RESOLVED: "resuelta", REJECTED: "rechazada", CLOSED: "cerrada",
+};
+
 function formatLogMetadata(event: string, metadata: Record<string, unknown> | null): string {
     if (!metadata) return "";
     switch (event) {
-        case "MARK_READ":
-            return (metadata.seriesName ? String(metadata.seriesName) + " - " : "") + "Cap. " + (metadata.chapterName ?? metadata.chapterId);
-        case "ADD_FAVORITE":
-        case "REMOVE_FAVORITE":
-            if (metadata.seriesName) return String(metadata.seriesName);
-            return JSON.stringify(metadata).slice(0, 60);
-        case "SEND_SUGGESTION":
-            if (typeof metadata.title === "string") return metadata.title.slice(0, 60);
-            return JSON.stringify(metadata).slice(0, 60);
-        case "UPDATE_ROLE":
-            return (metadata.targetUserName ? String(metadata.targetUserName) + ": " : "") + String(metadata.oldRole) + " → " + String(metadata.newRole);
-        case "UPDATE_SUGGESTION_STATUS":
-            return (metadata.title ? String(metadata.title) + ": " : "") + String(metadata.oldStatus ?? "?") + " → " + String(metadata.newStatus);
-        case "UPDATE_USER_STATUS": {
-            const usMeta = metadata.targetUserName ? String(metadata.targetUserName) + ": " : "";
-            const usChange = String(metadata.oldStatus) + " → " + String(metadata.newStatus);
-            const usUntil = metadata.suspendedUntil ? " (hasta " + new Date(String(metadata.suspendedUntil)).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) + ")" : "";
-            return usMeta + usChange + usUntil;
+        case "REGISTER":
+            return `Se registró con ${metadata.email}`;
+        case "LOGIN": {
+            const parts = [`Inició sesión con ${metadata.email}`];
+            if (metadata.provider) parts.push(`(proveedor: ${metadata.provider})`);
+            return parts.join(" ");
         }
+        case "LOGOUT":
+            return metadata.allSessions ? "Cerró sesión en todos los dispositivos" : "Cerró sesión";
+        case "ADD_FAVORITE":
+            return `Añadió "${metadata.seriesName}" a favoritos`;
+        case "REMOVE_FAVORITE":
+            return `Quitó "${metadata.seriesName}" de favoritos`;
+        case "MARK_READ":
+            return `Leyó "${metadata.chapterName}" de "${metadata.seriesName}"`;
+        case "SEND_SUGGESTION":
+            return `Envió sugerencia: "${metadata.title}"`;
+        case "UPDATE_SUGGESTION_STATUS":
+            return `"${metadata.title}" cambió de ${SUGGESTION_STATUS_LABELS[String(metadata.oldStatus)] ?? metadata.oldStatus} a ${SUGGESTION_STATUS_LABELS[String(metadata.newStatus)] ?? metadata.newStatus}`;
+        case "UPDATE_ROLE":
+            return `${metadata.targetUserName} pasó de ${ROLE_LABELS[String(metadata.oldRole)] ?? metadata.oldRole} a ${ROLE_LABELS[String(metadata.newRole)] ?? metadata.newRole}`;
+        case "UPDATE_USER_STATUS": {
+            let text = `${metadata.targetUserName} pasó de ${USER_STATUS_LABELS[String(metadata.oldStatus)] ?? metadata.oldStatus} a ${USER_STATUS_LABELS[String(metadata.newStatus)] ?? metadata.newStatus}`;
+            if (metadata.suspendedUntil) {
+                text += ` hasta el ${new Date(String(metadata.suspendedUntil)).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+            }
+            return text;
+        }
+        case "API_ERROR":
+            return `Error ${metadata.statusCode} en ${metadata.method} ${metadata.route}${metadata.message ? `: ${metadata.message}` : ""}`;
+        case "RATE_LIMIT":
+            return `Límite excedido en ${metadata.method} ${metadata.route}`;
+        case "SEND_FRIEND_REQUEST":
+            return "Envió una solicitud de amistad";
+        case "ACCEPT_FRIEND":
+            return "Aceptó una solicitud de amistad";
+        case "REJECT_FRIEND":
+            return "Rechazó una solicitud de amistad";
+        case "BLOCK_USER":
+            return "Bloqueó a un usuario";
+        case "UNBLOCK_USER":
+            return "Desbloqueó a un usuario";
+        case "UPDATE_PROFILE":
+            return `Actualizó su perfil: ${metadata.field}`;
         default:
             return JSON.stringify(metadata).slice(0, 60);
     }
