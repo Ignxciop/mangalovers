@@ -8,6 +8,8 @@ interface User {
     lastname: string;
     email: string;
     role: "ADMIN" | "USER";
+    status?: "ACTIVE" | "SUSPENDED" | "BANNED";
+    suspendedUntil?: string | null;
 }
 
 interface AuthState {
@@ -18,6 +20,7 @@ interface AuthState {
 
     setAuth: (accessToken: string, user: User) => void;
     setAccessToken: (accessToken: string) => void;
+    setUserStatus: (status: User["status"], suspendedUntil: User["suspendedUntil"]) => void;
     logout: () => void;
     bootstrap: () => Promise<void>;
 }
@@ -39,6 +42,11 @@ export const useAuthStore = create<AuthState>()(
             },
 
             setAccessToken: (accessToken) => set({ accessToken }),
+
+            setUserStatus: (status, suspendedUntil) => {
+                const user = useAuthStore.getState().user;
+                if (user) set({ user: { ...user, status, suspendedUntil } });
+            },
 
             logout: () => {
                 set({

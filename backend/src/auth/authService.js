@@ -8,6 +8,30 @@ import { RefreshTokenService } from "./refreshTokenService.js";
 import { validateEmail } from "../config/emailAllowed.js";
 import { ConflictError, UnauthorizedError, NotFoundError, ValidationError } from "../utils/errors.js";
 
+function formatSuspendedUntil(date) {
+  return new Date(date).toLocaleString("es-ES", {
+    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+async function checkUserStatus(user) {
+  if (user.status === "BANNED") {
+    throw new UnauthorizedError("Tu cuenta ha sido baneada");
+  }
+  if (user.status === "SUSPENDED") {
+    if (!user.suspendedUntil || new Date(user.suspendedUntil) <= new Date()) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { status: "ACTIVE", suspendedUntil: null },
+      });
+    } else {
+      throw new UnauthorizedError(
+        `Tu cuenta está suspendida hasta el ${formatSuspendedUntil(user.suspendedUntil)}`,
+      );
+    }
+  }
+}
+
 export class AuthService {
   static generateAccessToken(user) {
     return jwt.sign({ userId: user.id, role: user.role }, config.JWT_SECRET, {
@@ -55,6 +79,8 @@ export class AuthService {
     if (!user || !isValidPassword) {
       throw new UnauthorizedError("Credenciales inválidas");
     }
+
+    await checkUserStatus(user);
 
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     user.lastLoginAt = new Date();
@@ -105,9 +131,10 @@ export class AuthService {
           lastname: family_name || "",
           password: "",
         },
-        select: { id: true, email: true, name: true, lastname: true, role: true, status: true, createdAt: true },
+        select: { id: true, email: true, name: true, lastname: true, role: true, status: true, suspendedUntil: true, createdAt: true },
       });
     } else {
+      await checkUserStatus(user);
       await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     }
 
@@ -170,6 +197,17 @@ export class AuthService {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, name: true, lastname: true, role: true, createdAt: true, updatedAt: true },
+    });
+
+    if (!user) throw new NotFoundError("Usuario no encontrado");
+
+    return user;
+  }
+
+  static async getMyStatus(userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { status: true, suspendedUntil: true },
     });
 
     if (!user) throw new NotFoundError("Usuario no encontrado");

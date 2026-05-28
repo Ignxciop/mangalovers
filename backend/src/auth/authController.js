@@ -137,6 +137,15 @@ export async function getMe(req, res, next) {
   }
 }
 
+export async function getMyStatus(req, res, next) {
+  try {
+    const userStatus = await AuthService.getMyStatus(req.user.userId);
+    res.status(200).json({ success: true, data: userStatus });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getActiveSessions(req, res, next) {
   try {
     const sessions = await AuthService.getActiveSessions(req.user.userId);

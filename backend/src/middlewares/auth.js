@@ -3,6 +3,38 @@ import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
 import { UnauthorizedError, ForbiddenError } from "../utils/errors.js";
 
+function formatSuspendedUntil(date) {
+  return new Date(date).toLocaleString("es-ES", {
+    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+async function checkUserStatus(userId) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { status: true, suspendedUntil: true },
+  });
+
+  if (!user) throw new ForbiddenError("Usuario no encontrado");
+
+  if (user.status === "BANNED") {
+    throw new ForbiddenError("Tu cuenta ha sido baneada");
+  }
+
+  if (user.status === "SUSPENDED") {
+    if (!user.suspendedUntil || new Date(user.suspendedUntil) <= new Date()) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { status: "ACTIVE", suspendedUntil: null },
+      });
+    } else {
+      throw new ForbiddenError(
+        `Tu cuenta está suspendida hasta el ${formatSuspendedUntil(user.suspendedUntil)}`,
+      );
+    }
+  }
+}
+
 const lastLoginCache = new Map();
 
 export const authenticate = async (req, res, next) => {
@@ -19,14 +51,7 @@ export const authenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, config.JWT_SECRET);
     req.user = { userId: decoded.userId, role: decoded.role };
 
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
-      select: { status: true },
-    });
-
-    if (user && user.status === "BANNED") {
-      throw new ForbiddenError("Tu cuenta ha sido suspendida");
-    }
+    await checkUserStatus(req.user.userId);
 
     next();
 
@@ -43,6 +68,30 @@ export const authenticate = async (req, res, next) => {
     if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
       return next(error);
     }
+    if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+      return next(new UnauthorizedError("Token inválido o expirado"));
+    }
+    next(error);
+  }
+};
+
+// Middleware que solo verifica el JWT sin checkear status (para polling de usuarios baneados/suspendidos)
+export const authenticateBasic = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) throw new UnauthorizedError("Token no proporcionado");
+
+    const parts = authHeader.split(" ");
+    if (parts.length !== 2 || parts[0] !== "Bearer") {
+      throw new UnauthorizedError("Formato de token inválido");
+    }
+
+    const token = parts[1];
+    const decoded = jwt.verify(token, config.JWT_SECRET);
+    req.user = { userId: decoded.userId, role: decoded.role };
+    next();
+  } catch (error) {
+    if (error instanceof UnauthorizedError) return next(error);
     if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
       return next(new UnauthorizedError("Token inválido o expirado"));
     }

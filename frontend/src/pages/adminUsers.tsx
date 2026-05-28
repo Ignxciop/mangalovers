@@ -18,6 +18,27 @@ import {
     SheetTitle,
     SheetClose,
 } from "@/components/ui/sheet";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel,
+    AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MangaPagination } from "@/components/MangaPagination";
 import { FilterDrawer } from "@/components/FilterDrawer";
@@ -236,6 +257,18 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
                 </Select>
             </div>
 
+            {user.status === "SUSPENDED" && user.suspendedUntil && (
+                <div className="flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                    <Clock className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span className="text-amber-700 dark:text-amber-300">
+                        Suspendido hasta el {new Date(user.suspendedUntil).toLocaleString("es-ES", {
+                            day: "numeric", month: "long", year: "numeric",
+                            hour: "2-digit", minute: "2-digit",
+                        })}
+                    </span>
+                </div>
+            )}
+
             <div className="border-t border-border pt-4 space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Mail className="size-4 shrink-0" />
@@ -329,6 +362,9 @@ export default function AdminUsers() {
     const [sheetOpen, setSheetOpen] = useState(false);
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [suspensionDialogUserId, setSuspensionDialogUserId] = useState<string | null>(null);
+    const [suspensionDate, setSuspensionDate] = useState("");
+    const [banDialogUserId, setBanDialogUserId] = useState<string | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -434,9 +470,23 @@ export default function AdminUsers() {
         }
     };
 
-    const handleStatusChange = async (userId: string, newStatus: UserStatus) => {
+    const handleStatusChange = (userId: string, newStatus: UserStatus) => {
+        if (newStatus === "SUSPENDED") {
+            const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            const offset = defaultDate.getTimezoneOffset();
+            const local = new Date(defaultDate.getTime() - offset * 60000).toISOString().slice(0, 16);
+            setSuspensionDate(local);
+            setSuspensionDialogUserId(userId);
+        } else if (newStatus === "BANNED") {
+            setBanDialogUserId(userId);
+        } else {
+            doStatusChange(userId, newStatus);
+        }
+    };
+
+    const doStatusChange = async (userId: string, newStatus: UserStatus, suspendedUntil?: string) => {
         try {
-            const res = await updateUserStatus(userId, newStatus);
+            const res = await updateUserStatus(userId, newStatus, suspendedUntil);
             fetchUsers();
             toast.success("Estado actualizado", {
                 description: `${res.data.name} ${res.data.lastname} ahora está ${STATUS_LABELS[newStatus].toLowerCase()}`,
@@ -566,6 +616,70 @@ export default function AdminUsers() {
                     </div>
                 )}
             </main>
+
+            <Dialog open={!!suspensionDialogUserId} onOpenChange={(open) => { if (!open) setSuspensionDialogUserId(null); }}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Fecha de suspensión</DialogTitle>
+                        <DialogDescription>
+                            Selecciona hasta cuándo estará suspendido el usuario. No podrá acceder hasta esa fecha.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-2">
+                        <Label htmlFor="suspendedUntil">Suspender hasta</Label>
+                        <Input
+                            id="suspendedUntil"
+                            type="datetime-local"
+                            value={suspensionDate}
+                            onChange={(e) => setSuspensionDate(e.target.value)}
+                            min={new Date().toISOString().slice(0, 16)}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSuspensionDialogUserId(null)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            size="sm"
+                            disabled={!suspensionDate}
+                            onClick={() => {
+                                if (!suspensionDialogUserId) return;
+                                doStatusChange(suspensionDialogUserId, "SUSPENDED", suspensionDate);
+                                setSuspensionDialogUserId(null);
+                            }}
+                        >
+                            Confirmar suspensión
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <AlertDialog open={!!banDialogUserId} onOpenChange={(open) => { if (!open) setBanDialogUserId(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Banear usuario?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. El usuario será bloqueado permanentemente y no podrá acceder a su cuenta.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (!banDialogUserId) return;
+                                doStatusChange(banDialogUserId, "BANNED");
+                                setBanDialogUserId(null);
+                            }}
+                        >
+                            Banear
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <Sheet open={sheetOpen} onOpenChange={(open) => { setSheetOpen(open); if (!open) setSelectedId(null); }}>
                 <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] flex flex-col gap-0 p-0">

@@ -8,6 +8,7 @@ import { AdminRoute } from "@/components/adminRoute.tsx";
 import MainLayout from "./components/layouts/mainLayout.tsx";
 import AdminLayout from "./components/layouts/adminLayout.tsx";
 import { useAuthStore } from "./store/authStore.ts";
+import { useStatusMonitor } from "./hooks/useStatusMonitor.ts";
 
 const Login = lazy(() => import("./pages/loginForm.tsx").then((m) => ({ default: m.Login })));
 const Register = lazy(() => import("./pages/registerForm.tsx").then((m) => ({ default: m.Register })));
@@ -52,6 +53,16 @@ function BootstrappedApp() {
 
     return (
         <BrowserRouter>
+            <AppRoutes />
+        </BrowserRouter>
+    );
+}
+
+function AppRoutes() {
+    useStatusMonitor();
+
+    return (
+        <>
             <a
                 href="#main-content"
                 className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:ring-2 focus:ring-ring focus:rounded-lg focus:text-sm focus:font-medium"
@@ -130,7 +141,7 @@ function BootstrappedApp() {
                 <Route path="*" element={<SmartDirect />} />
             </Routes>
             </Suspense>
-        </BrowserRouter>
+        </>
     );
 }
 

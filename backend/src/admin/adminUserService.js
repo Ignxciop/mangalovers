@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ValidationError } from "../utils/errors.js";
+import { RefreshTokenService } from "../auth/refreshTokenService.js";
 import logger from "../config/logger.js";
 
 export class AdminUserService {
@@ -104,7 +105,7 @@ export class AdminUserService {
       updateData.suspendedUntil = null;
     }
 
-    return prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id: targetUserId },
       data: updateData,
       select: {
@@ -119,6 +120,14 @@ export class AdminUserService {
         createdAt: true,
       },
     });
+
+    if (status === "BANNED" || status === "SUSPENDED") {
+      RefreshTokenService.revokeAllUserTokens(targetUserId).catch((err) =>
+        logger.warn({ err, targetUserId }, "Error revocando tokens al cambiar estado"),
+      );
+    }
+
+    return updated;
   }
 
   static async getStatusHistory(userId) {

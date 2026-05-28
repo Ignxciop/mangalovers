@@ -19,6 +19,8 @@ interface AuthData {
         lastname: string;
         email: string;
         role: "ADMIN" | "USER";
+        status?: "ACTIVE" | "SUSPENDED" | "BANNED";
+        suspendedUntil?: string | null;
     };
 }
 
@@ -26,6 +28,14 @@ interface AuthResponse {
     success: boolean;
     message: string;
     data: AuthData;
+}
+
+interface UserStatusResponse {
+    success: boolean;
+    data: {
+        status: "ACTIVE" | "SUSPENDED" | "BANNED";
+        suspendedUntil: string | null;
+    };
 }
 
 export const register = async (payload: RegisterPayload): Promise<AuthData> => {
@@ -55,6 +65,11 @@ export const googleLogin = async (
         "/auth/google",
         { idToken },
     );
+    return response.data;
+};
+
+export const getMyStatus = async (): Promise<UserStatusResponse["data"]> => {
+    const { data: response } = await api.get<UserStatusResponse>("/auth/status");
     return response.data;
 };
 
