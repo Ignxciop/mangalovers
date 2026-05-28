@@ -134,16 +134,6 @@ function formatRelative(iso: string) {
     return formatDate(iso);
 }
 
-function toDatetimeLocal(iso: string) {
-    const d = new Date(iso);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const h = String(d.getHours()).padStart(2, "0");
-    const min = String(d.getMinutes()).padStart(2, "0");
-    return `${y}-${m}-${day}T${h}:${min}`;
-}
-
 function formatLogMetadata(event: string, metadata: Record<string, unknown> | null): string {
     if (!metadata) return "";
     switch (event) {
@@ -224,7 +214,6 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
     logsLoading: boolean;
     statusHistory: UserStatusHistory | null;
 }) {
-    const [suspendedDate, setSuspendedDate] = useState(user.suspendedUntil ? toDatetimeLocal(user.suspendedUntil) : "");
     const [suspendDraft, setSuspendDraft] = useState(false);
     const [suspendDraftDate, setSuspendDraftDate] = useState("");
     return (
@@ -289,21 +278,6 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
                     </button>
                 </div>
             )}
-            {user.status === "SUSPENDED" && !suspendDraft && (
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground shrink-0">Hasta:</span>
-                    <input
-                        type="datetime-local"
-                        value={suspendedDate}
-                        onChange={(e) => {
-                            setSuspendedDate(e.target.value);
-                            onStatusChange(user.id, "SUSPENDED", e.target.value || undefined);
-                        }}
-                        className="flex-1 h-7 rounded-md border border-input bg-transparent px-2 text-xs"
-                    />
-                </div>
-            )}
-
             {user.status === "SUSPENDED" && user.suspendedUntil && (
                 <div className="flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
                     <Clock className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
