@@ -44,6 +44,8 @@ model User {
   status            UserStatus         @default(ACTIVE)
   suspendedUntil    DateTime?
   avatarUrl         String?
+  alias             String?   @unique
+  aliasChanged      Boolean   @default(false)
   lastLoginAt       DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt

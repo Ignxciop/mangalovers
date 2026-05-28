@@ -199,6 +199,21 @@ export async function updateAvatar(req, res, next) {
   }
 }
 
+export async function updateAlias(req, res, next) {
+  try {
+    const user = await AuthService.updateAlias(req.user.userId, req.body.alias);
+    res.json({ success: true, data: { user } });
+
+    ActivityLogService.logEvent(
+      req.user.userId, "UPDATE_PROFILE",
+      { field: "alias" },
+      req.ip, req.headers["user-agent"],
+    ).catch((err) => logger.warn({ err, userId: req.user.userId, event: "UPDATE_PROFILE" }, "ActivityLog error"));
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getGoogleClientId(req, res, next) {
   try {
     res.json({ success: true, data: { clientId: config.GOOGLE_CLIENT_ID || "" } });

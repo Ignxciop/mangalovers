@@ -40,6 +40,7 @@ export class AdminUserService {
           suspendedUntil: true,
           lastLoginAt: true,
           createdAt: true,
+          avatarUrl: true,
           _count: {
             select: {
               suggestions: true,
@@ -79,6 +80,7 @@ export class AdminUserService {
         suspendedUntil: true,
         lastLoginAt: true,
         createdAt: true,
+        avatarUrl: true,
       },
     });
   }
@@ -118,6 +120,7 @@ export class AdminUserService {
         suspendedUntil: true,
         lastLoginAt: true,
         createdAt: true,
+        avatarUrl: true,
       },
     });
 

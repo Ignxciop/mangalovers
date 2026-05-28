@@ -33,6 +33,7 @@ export class RefreshTokenService {
           select: {
             id: true, email: true, name: true, lastname: true, role: true,
             status: true, suspendedUntil: true,
+            alias: true, aliasChanged: true,
             avatarUrl: true,
             password: true, createdAt: true, updatedAt: true,
           },
