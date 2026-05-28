@@ -32,7 +32,7 @@ const isTest = process.env.VITEST === "true";
 
 const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || "").split(",").map((s) => s.trim()).filter(Boolean);
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(
     cors({
         origin: (origin, callback) => {
