@@ -475,11 +475,7 @@ export default function AdminUsers() {
             setStatusHistory(null);
             setUserLogsLoading(false);
         });
-        getStatusHistory(selectedId, 10).then((res) => {
-            setStatusHistory(res.data);
-        }).catch(() => {
-            setStatusHistory([]);
-        });
+
     }, [selectedId]);
 
     const selected = users.find((u) => u.id === selectedId) ?? null;
@@ -573,7 +569,7 @@ export default function AdminUsers() {
                     inputRef: searchInputRef,
                 }}
             >
-                <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("role"); next.delete("status"); next.set("page", "1"); setSearchParams(next); }}>
+                <FilterDrawer title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("role"); next.delete("status"); next.set("page", "1"); setSearchParams(next); }}>
                     <div className="px-6 py-5 border-b border-border">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rol</p>
                         <div className="flex flex-wrap gap-2">

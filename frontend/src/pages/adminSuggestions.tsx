@@ -291,7 +291,7 @@ export default function AdminSuggestions() {
                     inputRef: searchInputRef,
                 }}
             >
-                <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("type"); next.set("page", "1"); setSearchParams(next); }}>
+                <FilterDrawer title="Filtros" activeFiltersCount={activeFiltersCount} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("type"); next.set("page", "1"); setSearchParams(next); }}>
                     <div className="px-6 py-5 border-b border-border">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tipo</p>
                         <div className="flex flex-wrap gap-2">

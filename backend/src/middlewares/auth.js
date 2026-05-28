@@ -3,38 +3,6 @@ import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
 import { UnauthorizedError, ForbiddenError } from "../utils/errors.js";
 
-function formatSuspendedUntil(date) {
-  return new Date(date).toLocaleString("es-ES", {
-    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
-  });
-}
-
-async function checkUserStatus(userId) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { status: true, suspendedUntil: true },
-  });
-
-  if (!user) throw new ForbiddenError("Usuario no encontrado");
-
-  if (user.status === "BANNED") {
-    throw new ForbiddenError("Tu cuenta ha sido baneada");
-  }
-
-  if (user.status === "SUSPENDED") {
-    if (!user.suspendedUntil || new Date(user.suspendedUntil) <= new Date()) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { status: "ACTIVE", suspendedUntil: null },
-      });
-    } else {
-      throw new ForbiddenError(
-        `Tu cuenta está suspendida hasta el ${formatSuspendedUntil(user.suspendedUntil)}`,
-      );
-    }
-  }
-}
-
 const lastLoginCache = new Map();
 
 function formatRemainingTime(suspendedUntil) {
@@ -85,16 +53,12 @@ export const authenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, config.JWT_SECRET);
     req.user = { userId: decoded.userId, role: decoded.role };
 
-<<<<<<< HEAD
-    await checkUserStatus(req.user.userId);
-=======
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
       select: { id: true, status: true, suspendedUntil: true },
     });
 
     await checkUserStatus(user);
->>>>>>> 4ee2309caea05bafe20313603d154d48f7caa02e
 
     next();
 

@@ -253,9 +253,9 @@ export default function MangaList() {
                         </div>
                     </div>
                     <FilterDrawer
-                        activeCount={activeFiltersCount}
+                        activeFiltersCount={activeFiltersCount}
                         title="Filtros de búsqueda"
-                        onClear={() => {
+                        onClearAll={() => {
                             setSearchParams((prev) => {
                                 prev.delete("status");
                                 prev.delete("type");

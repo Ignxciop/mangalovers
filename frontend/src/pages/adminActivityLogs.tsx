@@ -173,7 +173,7 @@ export default function AdminActivityLogs() {
                     inputRef: searchInputRef,
                 }}
             >
-                <FilterDrawer open={filterSheetOpen} onOpenChange={setFilterSheetOpen} title="Filtros" activeFiltersCount={hasActiveFilter ? 1 : 0} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("event"); next.set("page", "1"); setSearchParams(next); }}>
+                <FilterDrawer title="Filtros" activeFiltersCount={hasActiveFilter ? 1 : 0} onClearAll={() => { const next = new URLSearchParams(searchParams); next.delete("event"); next.set("page", "1"); setSearchParams(next); }}>
                     <div className="px-6 py-5 border-b border-border">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evento</p>
                         <div className="flex flex-wrap gap-2">
