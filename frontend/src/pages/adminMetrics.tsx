@@ -88,7 +88,7 @@ function BarChart({ data, getLabel, getValue, accent = "brand" }: {
                             />
                         </div>
                         <span className="text-[10px] text-muted-foreground truncate w-full text-center">
-                            {label.length > 6 ? label.slice(0, 6) + "..." : label}
+                            {label}
                         </span>
                     </div>
                 );
@@ -186,7 +186,7 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
                 {data.recentRuns.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-8">Sin ejecuciones registradas</p>
                 ) : (
-                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-3">
                         {data.recentRuns.map((run) => (
                             <div key={run.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                                 <div className="flex items-center gap-2.5">
@@ -214,7 +214,7 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="rounded-xl border border-border bg-card p-4 overflow-hidden">
                     <SectionHeader icon={TrendingUp} title="Capítulos por ejecución (últimas 15)" color="sky" />
                     {data.recentRuns.slice(0, 15).reverse().length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-8">Sin datos</p>
@@ -227,7 +227,7 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
                         />
                     )}
                 </div>
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="rounded-xl border border-border bg-card p-4 overflow-hidden">
                     <SectionHeader icon={AlertCircle} title="Errores por ejecución (últimas 15)" color="amber" />
                     {data.recentRuns.slice(0, 15).reverse().length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-8">Sin datos</p>
@@ -257,7 +257,7 @@ function UserTab({ data }: { data: UserMetricsData }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="rounded-xl border border-border bg-card p-4 overflow-hidden">
                     <SectionHeader icon={BarChart3} title="Registros por mes (últimos 12)" color="brand" />
                     {data.monthlyRegistrations.length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-8">Sin datos</p>
@@ -339,7 +339,7 @@ function ContentTab({ data }: { data: ContentMetricsData }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="rounded-xl border border-border bg-card p-4 overflow-hidden">
                     <SectionHeader icon={BarChart3} title="Capítulos por serie" color="sky" />
                     {data.chaptersPerSeries.length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-8">Sin datos</p>
