@@ -75,5 +75,5 @@ export function useStatusMonitor() {
             if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
             pendingRef.current = false;
         };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, navigate]);
 }
