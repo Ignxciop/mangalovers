@@ -85,3 +85,20 @@ export async function unblockUser(userId: string): Promise<void> {
 export async function removeFriend(userId: string): Promise<void> {
   await api.delete(`/friends/${userId}`);
 }
+
+export interface FriendSeriesRead {
+  userId: string;
+  name: string;
+  lastname: string;
+  alias: string | null;
+  avatarUrl: string | null;
+  chapterId: number;
+  chapterNumber: number;
+  chapterName: string;
+  readAt: string;
+}
+
+export async function getFriendReadsForSeries(seriesId: number): Promise<FriendSeriesRead[]> {
+  const { data } = await api.get<{ success: boolean; data: FriendSeriesRead[] }>(`/friends/series/${seriesId}/reads`);
+  return data.data;
+}
