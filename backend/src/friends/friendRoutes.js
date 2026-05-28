@@ -3,11 +3,13 @@ import {
   searchUsers, sendRequest, acceptRequest, rejectRequest,
   blockUser, unblockUser, removeFriend,
   getFriends, getReceivedRequests, getSentRequests, getBlockedUsers,
+  getFriendReadsForSeries,
 } from "./friendController.js";
 import { authenticate } from "../middlewares/auth.js";
 import {
   searchUsersValidator, sendRequestValidator, requestIdParamValidator,
   blockUserValidator, unblockUserValidator, userIdParamValidator,
+  seriesIdParamValidator,
 } from "./friendValidator.js";
 import { validate } from "../utils/validate.js";
 
@@ -23,6 +25,7 @@ router.patch("/request/:id/accept", authenticate, requestIdParamValidator, valid
 router.patch("/request/:id/reject", authenticate, requestIdParamValidator, validate, rejectRequest);
 router.post("/block", authenticate, blockUserValidator, validate, blockUser);
 router.post("/unblock", authenticate, unblockUserValidator, validate, unblockUser);
+router.get("/series/:seriesId/reads", authenticate, seriesIdParamValidator, validate, getFriendReadsForSeries);
 router.delete("/:userId", authenticate, userIdParamValidator, validate, removeFriend);
 
 export default router;

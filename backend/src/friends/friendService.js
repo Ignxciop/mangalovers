@@ -263,6 +263,59 @@ export class FriendService {
     }));
   }
 
+  static async getFriendReadsForSeries(userId, seriesId) {
+    const friendships = await prisma.friend.findMany({
+      where: {
+        OR: [
+          { senderId: userId, status: "ACCEPTED" },
+          { receiverId: userId, status: "ACCEPTED" },
+        ],
+      },
+      select: { senderId: true, receiverId: true },
+    });
+
+    if (friendships.length === 0) return [];
+
+    const friendIds = friendships.map((f) =>
+      f.senderId === userId ? f.receiverId : f.senderId,
+    );
+
+    const reads = await prisma.userChapterRead.findMany({
+      where: {
+        userId: { in: friendIds },
+        chapter: { seriesId: Number(seriesId) },
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, lastname: true, alias: true, avatarUrl: true },
+        },
+        chapter: {
+          select: { id: true, name: true, chapterNumber: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const latestPerFriend = new Map();
+    for (const read of reads) {
+      if (!latestPerFriend.has(read.userId)) {
+        latestPerFriend.set(read.userId, {
+          userId: read.user.id,
+          name: read.user.name,
+          lastname: read.user.lastname,
+          alias: read.user.alias,
+          avatarUrl: read.user.avatarUrl,
+          chapterId: read.chapter.id,
+          chapterNumber: read.chapter.chapterNumber,
+          chapterName: read.chapter.name,
+          readAt: read.createdAt,
+        });
+      }
+    }
+
+    return Array.from(latestPerFriend.values());
+  }
+
   static async getBlockedUsers(userId) {
     const blocks = await prisma.friend.findMany({
       where: { senderId: userId, status: "BLOCKED" },

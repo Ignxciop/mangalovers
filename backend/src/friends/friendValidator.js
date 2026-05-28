@@ -23,3 +23,7 @@ export const unblockUserValidator = [
 export const userIdParamValidator = [
   param("userId").isUUID().withMessage("ID de usuario inválido"),
 ];
+
+export const seriesIdParamValidator = [
+  param("seriesId").isInt({ min: 1 }).toInt().withMessage("ID de serie inválido"),
+];

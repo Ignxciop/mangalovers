@@ -104,6 +104,15 @@ export async function getSentRequests(req, res, next) {
   }
 }
 
+export async function getFriendReadsForSeries(req, res, next) {
+  try {
+    const reads = await FriendService.getFriendReadsForSeries(req.user.userId, req.params.seriesId);
+    res.json({ success: true, data: reads });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getBlockedUsers(req, res, next) {
   try {
     const blocked = await FriendService.getBlockedUsers(req.user.userId);
