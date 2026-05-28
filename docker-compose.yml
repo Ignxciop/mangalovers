@@ -8,6 +8,8 @@ services:
         restart: unless-stopped
         ports:
             - "4008:4008"
+        volumes:
+            - avatars:/app/uploads/avatars
         environment:
             NODE_ENV: production
             PORT: 4008
@@ -60,3 +62,6 @@ networks:
     default:
         name: dokploy-network
         external: true
+
+volumes:
+    avatars:

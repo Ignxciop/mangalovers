@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon -q index.js",
+    "dev": "cross-env PRISMA_CLIENT_ENGINE_TYPE=wasm nodemon -q index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run tests/integration",
@@ -19,6 +19,7 @@
   "packageManager": "pnpm@10.29.3",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "cross-env": "^10.1.0",
     "eslint": "^10.4.0",
     "nodemon": "^3.1.11",
     "prisma": "6.19.1",

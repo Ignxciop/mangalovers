@@ -15,6 +15,8 @@ RUN pnpm install --frozen-lockfile
 COPY prisma ./prisma/
 RUN pnpm prisma generate
 
+RUN mkdir -p /app/uploads/avatars && chown -R nodejs:nodejs /app/uploads
+
 COPY --chown=nodejs:nodejs . .
 
 USER nodejs
