@@ -8,6 +8,7 @@ interface User {
     lastname: string;
     email: string;
     role: "ADMIN" | "USER";
+    avatarUrl?: string | null;
     status?: "ACTIVE" | "SUSPENDED" | "BANNED";
     suspendedUntil?: string | null;
 }

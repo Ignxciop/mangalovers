@@ -119,6 +119,8 @@ app.use("/api/reads/stats", heavyLimiter);
 app.use("/api/manga/recommended", heavyLimiter);
 app.use("/api/favorites", favoriteLimiter);
 
+app.use("/uploads", express.static("uploads"));
+
 app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "OK", message: "Server está activo" });
 });

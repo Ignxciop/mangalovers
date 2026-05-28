@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   register, login, googleLogin, refresh,
   logout, logoutAll, getMe, getMyStatus, getActiveSessions,
-  updateProfile, updatePassword, deleteAccount, getGoogleClientId,
+  updateProfile, updatePassword, updateAvatar, deleteAccount, getGoogleClientId,
 } from "./authController.js";
 import {
   registerValidator, loginValidator, googleLoginValidator,
@@ -10,6 +10,7 @@ import {
 } from "./authValidator.js";
 import { validate } from "../utils/validate.js";
 import { authenticate, authenticateBasic } from "../middlewares/auth.js";
+import { upload } from "../middlewares/uploadAvatar.js";
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.get("/status", authenticateBasic, getMyStatus);
 router.get("/sessions", authenticate, getActiveSessions);
 router.patch("/profile", authenticate, updateProfileValidator, validate, updateProfile);
 router.patch("/password", authenticate, updatePasswordValidator, validate, updatePassword);
+router.put("/avatar", authenticate, upload.single("avatar"), updateAvatar);
 router.delete("/account", authenticate, deleteAccountValidator, validate, deleteAccount);
 
 export default router;

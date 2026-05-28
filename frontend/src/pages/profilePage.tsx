@@ -1,5 +1,5 @@
 import { SEO } from "@/components/seo";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ import {
     Trash2,
     CheckCircle2,
     AlertCircle,
+    Camera,
     Bell,
     BellOff,
     BellRing,
@@ -37,6 +38,98 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/api/axios";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+
+const AVATAR_API = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
+
+function AvatarUpload() {
+    const { user } = useAuth();
+    const setAuth = useAuthStore((s) => s.setAuth);
+    const accessToken = useAuthStore((s) => s.accessToken);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState("");
+
+    const avatarUrl = user?.avatarUrl
+        ? `${AVATAR_API}/uploads/avatars/${user.avatarUrl}`
+        : null;
+
+    async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const allowed = ["image/jpeg", "image/png", "image/webp"];
+        if (!allowed.includes(file.type)) {
+            setError("Solo JPG, PNG o WebP");
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            setError("Máximo 2 MB");
+            return;
+        }
+
+        setUploading(true);
+        setError("");
+
+        try {
+            const fd = new FormData();
+            fd.append("avatar", file);
+            const { data } = await api.put("/auth/avatar", fd, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            setAuth(accessToken!, data.data.user);
+        } catch (err) {
+            setError(
+                (err as { response?: { data?: { message?: string } } })?.response
+                    ?.data?.message ?? "Error al subir avatar",
+            );
+        } finally {
+            setUploading(false);
+            e.target.value = "";
+        }
+    }
+
+    return (
+        <div className="flex flex-col items-center gap-3">
+            <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                className="relative group size-20 rounded-full overflow-hidden bg-muted ring-2 ring-border hover:ring-primary/50 transition-all"
+            >
+                {avatarUrl ? (
+                    <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="size-full object-cover"
+                    />
+                ) : (
+                    <div className="size-full flex items-center justify-center text-2xl font-bold text-muted-foreground">
+                        {user?.name?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                )}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="size-6 text-white" />
+                </div>
+                {uploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <div className="size-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                )}
+            </button>
+            <input
+                ref={inputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleFile}
+            />
+            {error && (
+                <p className="text-xs text-destructive text-center max-w-40">{error}</p>
+            )}
+            <p className="text-xs text-muted-foreground">Haz clic para cambiar foto</p>
+        </div>
+    );
+}
 
 function SuccessAlert({ message }: { message: string }) {
     return (
@@ -613,10 +706,8 @@ export default function ProfilePage() {
 
             <main className="container mx-auto px-4 py-8 max-w-2xl space-y-4">
                 {/* Cabecera de usuario */}
-                <div className="flex items-center gap-4 p-5 rounded-xl border border-border bg-muted/30 mb-6">
-                    <div className="flex items-center justify-center size-14 rounded-xl bg-primary/10 text-primary font-bold text-xl shrink-0">
-                        {user?.name?.[0]?.toUpperCase() ?? "?"}
-                    </div>
+                <div className="flex items-center gap-5 p-5 rounded-xl border border-border bg-muted/30 mb-6">
+                    <AvatarUpload />
                     <div>
                         <p className="font-semibold">
                             {user?.name} {user?.lastname}

@@ -56,7 +56,7 @@ export class AuthService {
 
     const user = await prisma.user.create({
       data: { email, password: hashedPassword, name, lastname },
-      select: { id: true, email: true, name: true, lastname: true, role: true, status: true, createdAt: true },
+      select: { id: true, email: true, name: true, lastname: true, role: true, status: true, avatarUrl: true, createdAt: true },
     });
 
     const accessToken = this.generateAccessToken(user);
@@ -131,7 +131,7 @@ export class AuthService {
           lastname: family_name || "",
           password: "",
         },
-        select: { id: true, email: true, name: true, lastname: true, role: true, status: true, suspendedUntil: true, createdAt: true },
+        select: { id: true, email: true, name: true, lastname: true, role: true, status: true, avatarUrl: true, suspendedUntil: true, createdAt: true },
       });
     } else {
       await checkUserStatus(user);
@@ -149,7 +149,7 @@ export class AuthService {
     logger.info({ event: "GOOGLE_LOGIN", userId: user.id, email: user.email }, "Login con Google");
 
     return {
-      user: { id: user.id, email: user.email, name: user.name, lastname: user.lastname, role: user.role },
+      user: { id: user.id, email: user.email, name: user.name, lastname: user.lastname, role: user.role, avatarUrl: user.avatarUrl },
       accessToken,
       refreshToken: refreshToken.token,
     };
@@ -196,7 +196,7 @@ export class AuthService {
   static async getMe(userId) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, lastname: true, role: true, createdAt: true, updatedAt: true },
+      select: { id: true, email: true, name: true, lastname: true, role: true, avatarUrl: true, createdAt: true, updatedAt: true },
     });
 
     if (!user) throw new NotFoundError("Usuario no encontrado");
@@ -239,7 +239,7 @@ export class AuthService {
     const user = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: { id: true, email: true, name: true, lastname: true, role: true },
+      select: { id: true, email: true, name: true, lastname: true, role: true, avatarUrl: true },
     });
 
     logger.info({ event: "UPDATE_PROFILE", userId, changes: Object.keys(updateData) }, "Perfil actualizado");
@@ -266,6 +266,28 @@ export class AuthService {
     });
 
     logger.info({ event: "UPDATE_PASSWORD", userId }, "Contraseña actualizada");
+  }
+
+  static async updateAvatar(userId, filename) {
+    const old = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+
+    if (old?.avatarUrl) {
+      const { removeAvatar } = await import("../middlewares/uploadAvatar.js");
+      removeAvatar(old.avatarUrl);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: filename },
+      select: { id: true, email: true, name: true, lastname: true, role: true, avatarUrl: true },
+    });
+
+    logger.info({ event: "UPDATE_AVATAR", userId }, "Avatar actualizado");
+
+    return user;
   }
 
   static async deleteAccount(userId, { password }) {
