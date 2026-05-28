@@ -8,6 +8,7 @@ const VALID_EVENTS = new Set([
   "SEND_SUGGESTION", "UPDATE_SUGGESTION_STATUS",
   "UPDATE_ROLE", "UPDATE_USER_STATUS",
   "RATE_LIMIT", "API_ERROR",
+  "UPDATE_PROFILE", "UPDATE_AVATAR",
 ]);
 
 export class ActivityLogService {
