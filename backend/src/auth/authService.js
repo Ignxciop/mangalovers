@@ -4,6 +4,7 @@ import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
 import logger from "../config/logger.js";
+import { removeAvatar } from "../middlewares/uploadAvatar.js";
 import { RefreshTokenService } from "./refreshTokenService.js";
 import { validateEmail } from "../config/emailAllowed.js";
 import { ConflictError, UnauthorizedError, NotFoundError, ValidationError, ForbiddenError } from "../utils/errors.js";
@@ -275,7 +276,6 @@ export class AuthService {
     });
 
     if (old?.avatarUrl) {
-      const { removeAvatar } = await import("../middlewares/uploadAvatar.js");
       removeAvatar(old.avatarUrl);
     }
 

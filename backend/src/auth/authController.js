@@ -2,6 +2,7 @@ import { AuthService } from "./authService.js";
 import { config } from "../config/env.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 import logger from "../config/logger.js";
+import { processAvatar } from "../middlewares/uploadAvatar.js";
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -184,7 +185,8 @@ export async function deleteAccount(req, res, next) {
 
 export async function updateAvatar(req, res, next) {
   try {
-    const user = await AuthService.updateAvatar(req.user.userId, req.file.filename);
+    const filename = await processAvatar(req.file);
+    const user = await AuthService.updateAvatar(req.user.userId, filename);
     res.json({ success: true, data: { user } });
 
     ActivityLogService.logEvent(
