@@ -1,5 +1,5 @@
 import { SEO } from "@/components/seo";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,14 +29,108 @@ import {
     Trash2,
     CheckCircle2,
     AlertCircle,
+    Camera,
     Bell,
     BellOff,
     BellRing,
+    AtSign,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/api/axios";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+
+const AVATAR_API = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
+
+function AvatarUpload() {
+    const { user } = useAuth();
+    const setAuth = useAuthStore((s) => s.setAuth);
+    const accessToken = useAuthStore((s) => s.accessToken);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState("");
+
+    const avatarUrl = user?.avatarUrl
+        ? `${AVATAR_API}/uploads/avatars/${user.avatarUrl}`
+        : null;
+
+    async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const allowed = ["image/jpeg", "image/png", "image/webp"];
+        if (!allowed.includes(file.type)) {
+            setError("Solo JPG, PNG o WebP");
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            setError("Máximo 2 MB");
+            return;
+        }
+
+        setUploading(true);
+        setError("");
+
+        try {
+            const fd = new FormData();
+            fd.append("avatar", file);
+            const { data } = await api.put("/auth/avatar", fd, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            setAuth(accessToken!, data.data.user);
+        } catch (err) {
+            setError(
+                (err as { response?: { data?: { message?: string } } })?.response
+                    ?.data?.message ?? "Error al subir avatar",
+            );
+        } finally {
+            setUploading(false);
+            e.target.value = "";
+        }
+    }
+
+    return (
+        <div className="flex flex-col items-center gap-3">
+            <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                className="relative group size-20 rounded-full overflow-hidden bg-muted ring-2 ring-border hover:ring-primary/50 transition-all"
+            >
+                {avatarUrl ? (
+                    <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="size-full object-cover"
+                    />
+                ) : (
+                    <div className="size-full flex items-center justify-center text-2xl font-bold text-muted-foreground">
+                        {user?.name?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                )}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="size-6 text-white" />
+                </div>
+                {uploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <div className="size-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                )}
+            </button>
+            <input
+                ref={inputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleFile}
+            />
+            {error && (
+                <p className="text-xs text-destructive text-center max-w-40">{error}</p>
+            )}
+            <p className="text-xs text-muted-foreground">Haz clic para cambiar foto</p>
+        </div>
+    );
+}
 
 function SuccessAlert({ message }: { message: string }) {
     return (
@@ -53,6 +147,134 @@ function ErrorAlert({ message }: { message: string }) {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{message}</AlertDescription>
         </Alert>
+    );
+}
+
+function AliasSection() {
+    const { user } = useAuth();
+    const setAuth = useAuthStore((s) => s.setAuth);
+    const accessToken = useAuthStore((s) => s.accessToken);
+    const [alias, setAlias] = useState(user?.alias ?? "");
+    const [editing, setEditing] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+
+    const canChange = !user?.aliasChanged;
+
+    async function handleSave() {
+        if (!alias.trim()) {
+            setError("El alias no puede estar vacío");
+            return;
+        }
+        if (alias.length < 3 || alias.length > 30) {
+            setError("El alias debe tener entre 3 y 30 caracteres");
+            return;
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(alias)) {
+            setError("Solo letras, números y guion bajo");
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            const { data } = await api.patch("/auth/alias", { alias });
+            setAuth(accessToken!, data.data.user);
+            setSuccess("Alias actualizado correctamente");
+            setEditing(false);
+        } catch (err) {
+            setError(
+                (err as { response?: { data?: { message?: string } } })?.response
+                    ?.data?.message ?? "Error al actualizar alias",
+            );
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-9 rounded-lg bg-primary/10 text-primary">
+                        <AtSign className="size-4" />
+                    </div>
+                    <div>
+                        <CardTitle className="text-base">Alias</CardTitle>
+                        <CardDescription className="text-xs">
+                            {canChange
+                                ? "Elige un alias único para que otros usuarios te encuentren. Solo puedes hacerlo una vez."
+                                : "Ya has personalizado tu alias. No puedes volver a cambiarlo."}
+                        </CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {editing ? (
+                    <div className="space-y-3">
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+                            <Input
+                                value={alias}
+                                onChange={(e) => setAlias(e.target.value)}
+                                placeholder="tu_alias"
+                                className="pl-7"
+                                maxLength={30}
+                                autoFocus
+                                disabled={loading}
+                            />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setEditing(false);
+                                    setAlias(user?.alias ?? "");
+                                    setError("");
+                                }}
+                                disabled={loading}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button size="sm" onClick={handleSave} disabled={loading}>
+                                {loading ? "Guardando…" : "Guardar"}
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <AtSign className="size-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">
+                                    {user?.alias ?? "sin alias"}
+                                </span>
+                            </div>
+                            {canChange && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setEditing(true)}
+                                >
+                                    Cambiar
+                                </Button>
+                            )}
+                        </div>
+                        {!canChange && (
+                            <p className="text-xs text-muted-foreground">
+                                Ya has utilizado tu cambio único de alias.
+                            </p>
+                        )}
+                    </div>
+                )}
+                {success && <SuccessAlert message={success} />}
+                {error && <ErrorAlert message={error} />}
+            </CardContent>
+        </Card>
     );
 }
 
@@ -613,10 +835,8 @@ export default function ProfilePage() {
 
             <main className="container mx-auto px-4 py-8 max-w-2xl space-y-4">
                 {/* Cabecera de usuario */}
-                <div className="flex items-center gap-4 p-5 rounded-xl border border-border bg-muted/30 mb-6">
-                    <div className="flex items-center justify-center size-14 rounded-xl bg-primary/10 text-primary font-bold text-xl shrink-0">
-                        {user?.name?.[0]?.toUpperCase() ?? "?"}
-                    </div>
+                <div className="flex items-center gap-5 p-5 rounded-xl border border-border bg-muted/30 mb-6">
+                    <AvatarUpload />
                     <div>
                         <p className="font-semibold">
                             {user?.name} {user?.lastname}
@@ -624,10 +844,16 @@ export default function ProfilePage() {
                         <p className="text-sm text-muted-foreground">
                             {user?.email}
                         </p>
+                        {user?.alias && (
+                            <p className="text-xs text-muted-foreground/70 mt-0.5">
+                                @{user.alias}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <ProfileSection />
+                <AliasSection />
                 <PasswordSection />
                 <NotificationSection />
                 <DeleteAccountSection />

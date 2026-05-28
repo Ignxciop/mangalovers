@@ -4,6 +4,7 @@ import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../config/prisma.js";
 import { config } from "../config/env.js";
 import logger from "../config/logger.js";
+import { removeAvatar } from "../middlewares/uploadAvatar.js";
 import { RefreshTokenService } from "./refreshTokenService.js";
 import { validateEmail } from "../config/emailAllowed.js";
 import { ConflictError, UnauthorizedError, NotFoundError, ValidationError, ForbiddenError } from "../utils/errors.js";
@@ -32,6 +33,12 @@ async function checkUserStatus(user) {
   }
 }
 
+function generateAlias(name) {
+  const base = name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 15) || "user";
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return `${base}_${suffix}`;
+}
+
 export class AuthService {
   static generateAccessToken(user) {
     return jwt.sign({ userId: user.id, role: user.role }, config.JWT_SECRET, {
@@ -40,7 +47,7 @@ export class AuthService {
   }
 
   static async register(userData) {
-    const { email, password, name, lastname } = userData;
+    const { email, password, name, lastname, alias } = userData;
 
     const emailValidation = validateEmail(email);
     if (!emailValidation.valid) {
@@ -52,11 +59,20 @@ export class AuthService {
       throw new ConflictError("El usuario ya existe.");
     }
 
+    if (alias) {
+      const existingAlias = await prisma.user.findUnique({ where: { alias } });
+      if (existingAlias) {
+        throw new ConflictError("El alias ya está en uso.");
+      }
+    }
+
+    const finalAlias = alias || generateAlias(name);
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword, name, lastname },
-      select: { id: true, email: true, name: true, lastname: true, role: true, status: true, createdAt: true },
+      data: { email, password: hashedPassword, name, lastname, alias: finalAlias, aliasChanged: !!alias },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, status: true, avatarUrl: true, createdAt: true },
     });
 
     const accessToken = this.generateAccessToken(user);
@@ -124,14 +140,16 @@ export class AuthService {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
+      const alias = generateAlias(given_name || "user");
       user = await prisma.user.create({
         data: {
           email,
           name: given_name || "Usuario",
           lastname: family_name || "",
           password: "",
+          alias,
         },
-        select: { id: true, email: true, name: true, lastname: true, role: true, status: true, suspendedUntil: true, createdAt: true },
+        select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, status: true, avatarUrl: true, suspendedUntil: true, createdAt: true },
       });
     } else {
       await checkUserStatus(user);
@@ -149,7 +167,7 @@ export class AuthService {
     logger.info({ event: "GOOGLE_LOGIN", userId: user.id, email: user.email }, "Login con Google");
 
     return {
-      user: { id: user.id, email: user.email, name: user.name, lastname: user.lastname, role: user.role },
+      user: { id: user.id, email: user.email, name: user.name, lastname: user.lastname, alias: user.alias, aliasChanged: user.aliasChanged, role: user.role, avatarUrl: user.avatarUrl },
       accessToken,
       refreshToken: refreshToken.token,
     };
@@ -196,7 +214,7 @@ export class AuthService {
   static async getMe(userId) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, lastname: true, role: true, createdAt: true, updatedAt: true },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true, createdAt: true, updatedAt: true },
     });
 
     if (!user) throw new NotFoundError("Usuario no encontrado");
@@ -239,7 +257,7 @@ export class AuthService {
     const user = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: { id: true, email: true, name: true, lastname: true, role: true },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true },
     });
 
     logger.info({ event: "UPDATE_PROFILE", userId, changes: Object.keys(updateData) }, "Perfil actualizado");
@@ -266,6 +284,53 @@ export class AuthService {
     });
 
     logger.info({ event: "UPDATE_PASSWORD", userId }, "Contraseña actualizada");
+  }
+
+  static async updateAvatar(userId, filename) {
+    const old = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+
+    if (old?.avatarUrl) {
+      removeAvatar(old.avatarUrl);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: filename },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true },
+    });
+
+    logger.info({ event: "UPDATE_AVATAR", userId }, "Avatar actualizado");
+
+    return user;
+  }
+
+  static async updateAlias(userId, alias) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { aliasChanged: true },
+    });
+
+    if (user.aliasChanged) {
+      throw new ValidationError("Ya has cambiado tu alias anteriormente. Solo puedes hacerlo una vez.");
+    }
+
+    const existingAlias = await prisma.user.findUnique({ where: { alias } });
+    if (existingAlias) {
+      throw new ConflictError("El alias ya está en uso.");
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: { alias, aliasChanged: true },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true },
+    });
+
+    logger.info({ event: "UPDATE_ALIAS", userId, alias }, "Alias actualizado");
+
+    return updated;
   }
 
   static async deleteAccount(userId, { password }) {

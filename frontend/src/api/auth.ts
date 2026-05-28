@@ -5,6 +5,7 @@ export interface RegisterPayload {
     lastname: string;
     email: string;
     password: string;
+    alias?: string;
 }
 
 export interface LoginPayload {
@@ -19,6 +20,8 @@ interface AuthData {
         lastname: string;
         email: string;
         role: "ADMIN" | "USER";
+        alias?: string | null;
+        aliasChanged?: boolean;
         status?: "ACTIVE" | "SUSPENDED" | "BANNED";
         suspendedUntil?: string | null;
     };
@@ -79,4 +82,12 @@ export const fetchGoogleClientId = async (): Promise<string> => {
         data: { clientId: string };
     }>("/auth/google-client-id");
     return response.data.clientId;
+};
+
+export const updateAlias = async (alias: string) => {
+    const { data: response } = await api.patch<{
+        success: boolean;
+        data: { user: AuthData["user"] };
+    }>("/auth/alias", { alias });
+    return response.data;
 };

@@ -32,7 +32,7 @@ const isTest = process.env.VITEST === "true";
 
 const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || "").split(",").map((s) => s.trim()).filter(Boolean);
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(
     cors({
         origin: (origin, callback) => {
@@ -43,7 +43,7 @@ app.use(
             }
         },
         credentials: true,
-        methods: ["GET", "POST", "PATCH", "DELETE"],
+        methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
         allowedHeaders: ["Content-Type", "Authorization"],
     }),
 );
@@ -118,6 +118,8 @@ app.use("/api/reads/full-stats", heavyLimiter);
 app.use("/api/reads/stats", heavyLimiter);
 app.use("/api/manga/recommended", heavyLimiter);
 app.use("/api/favorites", favoriteLimiter);
+
+app.use("/uploads", express.static("uploads"));
 
 app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "OK", message: "Server está activo" });

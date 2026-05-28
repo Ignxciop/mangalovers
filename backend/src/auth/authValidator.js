@@ -18,6 +18,13 @@ export const registerValidator = [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage("El apellido debe tener entre 2 y 100 caracteres"),
+  body("alias")
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage("El alias debe tener entre 3 y 30 caracteres")
+    .matches(/^[a-zA-Z0-9_]+$/)
+    .withMessage("El alias solo puede contener letras, números y guion bajo"),
 ];
 
 export const loginValidator = [
@@ -53,4 +60,15 @@ export const updatePasswordValidator = [
 
 export const deleteAccountValidator = [
   body("password").notEmpty().withMessage("La contraseña es requerida"),
+];
+
+export const updateAliasValidator = [
+  body("alias")
+    .trim()
+    .notEmpty()
+    .withMessage("El alias es requerido")
+    .isLength({ min: 3, max: 30 })
+    .withMessage("El alias debe tener entre 3 y 30 caracteres")
+    .matches(/^[a-zA-Z0-9_]+$/)
+    .withMessage("El alias solo puede contener letras, números y guion bajo"),
 ];

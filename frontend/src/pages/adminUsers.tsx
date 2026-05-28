@@ -58,6 +58,8 @@ import {
     ArrowLeft,
 } from "lucide-react";
 
+const AVATAR_API = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
+
 const EVENT_LABELS: Record<string, string> = {
     REGISTER: "Registro",
     LOGIN: "Inicio de sesión",
@@ -177,9 +179,17 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
             )}
         >
             <div className="flex items-center gap-3">
-                <div className="size-9 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
-                    {user.name[0].toUpperCase()}
-                </div>
+                {user.avatarUrl ? (
+                    <img
+                        src={`${AVATAR_API}/uploads/avatars/${user.avatarUrl}`}
+                        alt=""
+                        className="size-9 rounded-full object-cover shrink-0"
+                    />
+                ) : (
+                    <div className="size-9 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
+                        {user.name[0].toUpperCase()}
+                    </div>
+                )}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-medium truncate">{user.name} {user.lastname}</span>
@@ -220,9 +230,17 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
         <div className="space-y-5">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-sm font-bold text-muted-foreground">
-                        {user.name[0].toUpperCase()}
-                    </div>
+                    {user.avatarUrl ? (
+                        <img
+                            src={`${AVATAR_API}/uploads/avatars/${user.avatarUrl}`}
+                            alt=""
+                            className="size-10 rounded-full object-cover shrink-0"
+                        />
+                    ) : (
+                        <div className="size-10 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-sm font-bold text-muted-foreground">
+                            {user.name[0].toUpperCase()}
+                        </div>
+                    )}
                     <div className="min-w-0">
                         <h2 className="text-base font-semibold leading-snug">{user.name} {user.lastname}</h2>
                         <div className="flex items-center gap-2">

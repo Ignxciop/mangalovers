@@ -13,6 +13,8 @@ import {
     ScrollText,
 } from "lucide-react";
 
+const AVATAR_API = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
+
 const EVENT_LABELS: Record<string, string> = {
     REGISTER: "Registro",
     LOGIN: "Inicio de sesión",
@@ -232,9 +234,17 @@ export default function AdminActivityLogs() {
                                             <tr key={log.id} className="hover:bg-muted/30 transition-colors">
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
-                                                            {log.user.name[0].toUpperCase()}
-                                                        </div>
+                                                        {log.user.avatarUrl ? (
+                                                            <img
+                                                                src={`${AVATAR_API}/uploads/avatars/${log.user.avatarUrl}`}
+                                                                alt=""
+                                                                className="size-8 rounded-full object-cover shrink-0"
+                                                            />
+                                                        ) : (
+                                                            <div className="size-8 rounded-full bg-muted-foreground/10 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
+                                                                {log.user.name[0].toUpperCase()}
+                                                            </div>
+                                                        )}
                                                         <div className="min-w-0">
                                                             <p className="text-sm font-medium truncate max-w-[160px]">
                                                                 {log.user.name} {log.user.lastname}

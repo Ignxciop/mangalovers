@@ -78,7 +78,7 @@ export class ActivityLogService {
         take: limit,
         include: {
           user: {
-            select: { id: true, name: true, lastname: true, email: true },
+            select: { id: true, name: true, lastname: true, email: true, avatarUrl: true },
           },
         },
       }),

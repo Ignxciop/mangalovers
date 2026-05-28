@@ -12,7 +12,7 @@ import {
     SidebarGroupContent,
     useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -110,6 +110,13 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                 >
                     <div className="relative shrink-0">
                         <Avatar className="h-8 w-8 rounded-lg">
+                            {user?.avatarUrl && (
+                                <AvatarImage
+                                    src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ?? ""}/uploads/avatars/${user.avatarUrl}`}
+                                    alt={user.name ?? ""}
+                                    className="rounded-lg object-cover"
+                                />
+                            )}
                             <AvatarFallback
                                 className={cn(
                                     "rounded-lg text-xs font-bold",
@@ -148,6 +155,11 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                                         ? user?.email
                                         : "Sin cuenta"}
                                 </span>
+                                {isAuthenticated && user?.alias && (
+                                    <span className="text-muted-foreground/60 truncate text-[11px]">
+                                        @{user.alias}
+                                    </span>
+                                )}
                             </div>
                             <EllipsisVertical className="ml-auto size-4 text-muted-foreground shrink-0" />
                         </>
@@ -172,6 +184,13 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                     >
                         <div className="relative shrink-0">
                             <Avatar className="h-10 w-10 rounded-xl">
+                                {user?.avatarUrl && (
+                                    <AvatarImage
+                                        src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ?? ""}/uploads/avatars/${user.avatarUrl}`}
+                                        alt={user.name ?? ""}
+                                        className="rounded-xl object-cover"
+                                    />
+                                )}
                                 <AvatarFallback
                                     className={cn(
                                         "rounded-xl text-sm font-bold",
@@ -207,6 +226,11 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                                     ? user?.email
                                     : "Navegando sin cuenta"}
                             </span>
+                            {isAuthenticated && user?.alias && (
+                                <span className="text-muted-foreground/60 truncate text-[11px]">
+                                    @{user.alias}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </DropdownMenuLabel>
