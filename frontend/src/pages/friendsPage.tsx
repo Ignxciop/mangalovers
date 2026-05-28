@@ -147,6 +147,10 @@ function SearchSection() {
                 <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0">
                   <Clock className="size-3.5" /> Pendiente
                 </span>
+              ) : user._friendStatus === "BLOCKED" ? (
+                <span className="text-xs text-destructive flex items-center gap-1 shrink-0">
+                  <Ban className="size-3.5" /> Bloqueado
+                </span>
               ) : (
                 <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={() => handleSendRequest(user.id)}>
                   <UserPlus className="size-3.5" /> Agregar

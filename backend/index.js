@@ -129,6 +129,7 @@ app.use("/api/manga/recommended", heavyLimiter);
 app.use("/api/favorites", favoriteLimiter);
 app.use("/api/friends/request", friendLimiter);
 app.use("/api/friends/block", friendLimiter);
+app.use("/api/friends/search", friendLimiter);
 
 app.use("/uploads", express.static("uploads"));
 

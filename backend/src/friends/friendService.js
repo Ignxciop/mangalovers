@@ -7,33 +7,27 @@ export class FriendService {
       throw new ValidationError("La búsqueda debe tener al menos 2 caracteres");
     }
 
-    const blockedUserIds = new Set();
-
-    const blockedByMe = await prisma.friend.findMany({
-      where: { senderId: currentUserId, status: "BLOCKED" },
-      select: { receiverId: true },
-    });
-    blockedByMe.forEach((f) => blockedUserIds.add(f.receiverId));
-
-    const blockedMe = await prisma.friend.findMany({
+    const blockedMe = new Set();
+    const blockedByMeResult = await prisma.friend.findMany({
       where: { receiverId: currentUserId, status: "BLOCKED" },
       select: { senderId: true },
     });
-    blockedMe.forEach((f) => blockedUserIds.add(f.senderId));
+    blockedMeResult.forEach((f) => blockedMe.add(f.senderId));
 
-    const friendIds = new Set();
     const friendships = await prisma.friend.findMany({
       where: {
         OR: [
-          { senderId: currentUserId, status: { in: ["PENDING", "ACCEPTED"] } },
-          { receiverId: currentUserId, status: { in: ["PENDING", "ACCEPTED"] } },
+          { senderId: currentUserId },
+          { receiverId: currentUserId },
         ],
       },
-      select: { senderId: true, receiverId: true },
+      select: { senderId: true, receiverId: true, status: true },
     });
+
+    const friendStatus = new Map();
     friendships.forEach((f) => {
       const otherId = f.senderId === currentUserId ? f.receiverId : f.senderId;
-      friendIds.add(otherId);
+      friendStatus.set(otherId, f.status);
     });
 
     const users = await prisma.user.findMany({
@@ -60,16 +54,10 @@ export class FriendService {
     });
 
     return users
-      .filter((u) => !blockedUserIds.has(u.id))
+      .filter((u) => !blockedMe.has(u.id))
       .map((u) => ({
         ...u,
-        _friendStatus: friendIds.has(u.id)
-          ? (friendships.find(
-              (f) =>
-                (f.senderId === currentUserId && f.receiverId === u.id) ||
-                (f.receiverId === currentUserId && f.senderId === u.id),
-            )?.status ?? null)
-          : null,
+        _friendStatus: friendStatus.get(u.id) ?? null,
       }));
   }
 
@@ -132,18 +120,9 @@ export class FriendService {
   }
 
   static async rejectRequest(userId, requestId) {
-    const request = await prisma.friend.findUnique({
-      where: { id: requestId },
+    await prisma.friend.deleteMany({
+      where: { id: requestId, receiverId: userId, status: "PENDING" },
     });
-    if (!request) throw new NotFoundError("Solicitud no encontrada");
-    if (request.receiverId !== userId) {
-      throw new ForbiddenError("No puedes rechazar esta solicitud");
-    }
-    if (request.status !== "PENDING") {
-      throw new ConflictError("La solicitud ya fue procesada");
-    }
-
-    await prisma.friend.delete({ where: { id: requestId } });
   }
 
   static async blockUser(currentUserId, targetUserId) {
@@ -197,7 +176,7 @@ export class FriendService {
   }
 
   static async removeFriend(currentUserId, friendUserId) {
-    const friendship = await prisma.friend.findFirst({
+    await prisma.friend.deleteMany({
       where: {
         OR: [
           { senderId: currentUserId, receiverId: friendUserId, status: "ACCEPTED" },
@@ -205,9 +184,6 @@ export class FriendService {
         ],
       },
     });
-    if (!friendship) throw new NotFoundError("Amistad no encontrada");
-
-    await prisma.friend.delete({ where: { id: friendship.id } });
   }
 
   static async getFriends(userId) {
@@ -294,26 +270,20 @@ export class FriendService {
         },
       },
       orderBy: { createdAt: "desc" },
+      distinct: ["userId"],
     });
 
-    const latestPerFriend = new Map();
-    for (const read of reads) {
-      if (!latestPerFriend.has(read.userId)) {
-        latestPerFriend.set(read.userId, {
-          userId: read.user.id,
-          name: read.user.name,
-          lastname: read.user.lastname,
-          alias: read.user.alias,
-          avatarUrl: read.user.avatarUrl,
-          chapterId: read.chapter.id,
-          chapterNumber: read.chapter.number,
-          chapterName: read.chapter.name,
-          readAt: read.createdAt,
-        });
-      }
-    }
-
-    return Array.from(latestPerFriend.values());
+    return reads.map((read) => ({
+      userId: read.user.id,
+      name: read.user.name,
+      lastname: read.user.lastname,
+      alias: read.user.alias,
+      avatarUrl: read.user.avatarUrl,
+      chapterId: read.chapter.id,
+      chapterNumber: read.chapter.number,
+      chapterName: read.chapter.name,
+      readAt: read.createdAt,
+    }));
   }
 
   static async getBlockedUsers(userId) {

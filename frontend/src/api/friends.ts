@@ -32,7 +32,7 @@ export interface BlockedUser {
 }
 
 export interface SearchUserResult extends FriendUser {
-  _friendStatus: "PENDING" | "ACCEPTED" | null;
+  _friendStatus: "PENDING" | "ACCEPTED" | "BLOCKED" | null;
 }
 
 export async function getFriends(): Promise<Friend[]> {
