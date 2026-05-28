@@ -45,6 +45,8 @@ import {
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { MangaPagination } from "@/components/MangaPagination";
+import { getSeriesActivity } from "@/api/friends";
+import { FriendAvatars } from "@/components/FriendAvatars";
 
 function chaptersLeft(fav: Favorite): number {
     const read = parseFloat(fav.lastReadChapterName ?? "0");
@@ -72,11 +74,13 @@ const FavoriteListItem = memo(function FavoriteListItem({
     fromUrl,
     onRequestRemove,
     onStatusChange,
+    friends,
 }: {
     fav: Favorite;
     fromUrl: string;
     onRequestRemove: (seriesId: number) => void;
     onStatusChange: (seriesId: number, status: string) => void;
+    friends: { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[];
 }) {
     return (
         <div className="group animate-fade-in-up">
@@ -100,6 +104,11 @@ const FavoriteListItem = memo(function FavoriteListItem({
                                 : "Al día"}
                         </div>
                     )}
+                {friends.length > 0 && (
+                    <div className="absolute bottom-2 right-2 z-10">
+                        <FriendAvatars friends={friends} size="xs" />
+                    </div>
+                )}
             </Link>
 
             <button
@@ -249,6 +258,14 @@ export default function FavoritesList() {
             .catch(() => setFavorites([]))
             .finally(() => setLoading(false));
     }, []);
+
+    const [activityMap, setActivityMap] = useState<Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>>({});
+
+    useEffect(() => {
+        if (favorites.length === 0) return;
+        const ids = favorites.map((f) => f.seriesId);
+        getSeriesActivity(ids).then(setActivityMap).catch(() => setActivityMap({}));
+    }, [favorites]);
 
     function setSearch(value: string) {
         setSearchParams((prev) => {
@@ -644,6 +661,7 @@ export default function FavoritesList() {
                                         fromUrl={fromUrl}
                                         onRequestRemove={setRemovingId}
                                         onStatusChange={handleStatusChange}
+                                        friends={activityMap[fav.seriesId] ?? []}
                                     />
                                 ))}
                             </div>

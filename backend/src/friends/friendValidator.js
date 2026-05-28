@@ -27,3 +27,9 @@ export const userIdParamValidator = [
 export const seriesIdParamValidator = [
   param("seriesId").isInt({ min: 1 }).toInt().withMessage("ID de serie inválido"),
 ];
+
+export const seriesActivityValidator = [
+  query("seriesIds")
+    .matches(/^\d+(,\d+)*$/)
+    .withMessage("IDs de serie inválidos. Formato: 1,2,3"),
+];

@@ -32,16 +32,16 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 
 ### Stack tecnológico
 
-| Capa | Tecnología |
-|---|---|
-| **Frontend** | React 19, TypeScript 5.9, Vite 7, Tailwind CSS 4, shadcn/ui, Zustand, React Router 7 |
-| **Backend** | Node.js 20, Express 5, JavaScript (ESM) |
-| **Base de datos** | PostgreSQL con Prisma ORM 6 |
-| **Autenticación** | JWT con refresh token rotation (bcryptjs + jsonwebtoken) |
-| **Notificaciones** | Web Push API con VAPID |
-| **Scraping** | Axios + node-cron (automático cada hora) |
-| **Infraestructura** | Docker + Docker Compose, Nginx, Cloudflare Tunnel |
-| **Calidad** | ESLint + typescript-eslint, GitHub Actions CI |
+| Capa                | Tecnología                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| **Frontend**        | React 19, TypeScript 5.9, Vite 7, Tailwind CSS 4, shadcn/ui, Zustand, React Router 7 |
+| **Backend**         | Node.js 20, Express 5, JavaScript (ESM)                                              |
+| **Base de datos**   | PostgreSQL con Prisma ORM 6                                                          |
+| **Autenticación**   | JWT con refresh token rotation (bcryptjs + jsonwebtoken)                             |
+| **Notificaciones**  | Web Push API con VAPID                                                               |
+| **Scraping**        | Axios + node-cron (automático cada hora)                                             |
+| **Infraestructura** | Docker + Docker Compose, Nginx, Cloudflare Tunnel                                    |
+| **Calidad**         | ESLint + typescript-eslint, GitHub Actions CI                                        |
 
 ### Arquitectura
 
@@ -73,72 +73,72 @@ Cualquier persona interesada en leer manga, manhwa o manhua en español que quie
 
 ### API endpoints principales
 
-| Método | Endpoint | Auth | Descripción |
-|---|---|---|---|
-| GET | `/api/health` | No | Health check del servidor |
-| **Auth** | | | |
-| POST | `/api/auth/register` | No | Registro de usuario |
-| POST | `/api/auth/login` | No | Inicio de sesión |
-| POST | `/api/auth/google` | No | Inicio de sesión con Google |
-| POST | `/api/auth/refresh` | No | Renovar token JWT |
-| POST | `/api/auth/logout` | Sí | Cerrar sesión |
-| POST | `/api/auth/logout-all` | Sí | Cerrar todas las sesiones activas |
-| GET | `/api/auth/me` | Sí | Perfil del usuario autenticado |
-| GET | `/api/auth/sessions` | Sí | Sesiones activas |
-| PATCH | `/api/auth/profile` | Sí | Actualizar perfil |
-| PATCH | `/api/auth/password` | Sí | Cambiar contraseña |
-| DELETE | `/api/auth/account` | Sí | Eliminar cuenta |
-| GET | `/api/auth/google-client-id` | No | Obtener client ID de Google OAuth |
-| **Manga** | | | |
-| GET | `/api/manga` | Optional | Listado paginado con filtros (search, status, genre, sort, type) |
-| GET | `/api/manga/latest` | Optional | Últimas series actualizadas |
-| GET | `/api/manga/genres` | No | Todos los géneros disponibles |
-| GET | `/api/manga/recommended` | Sí | Recomendaciones basadas en géneros más leídos |
-| GET | `/api/manga/:slug` | Optional | Detalle de serie con sus capítulos |
-| GET | `/api/manga/capitulo/:slug/:chapterId/pages` | Optional | Páginas de un capítulo con navegación prev/next |
-| **Favoritos** | | | |
-| GET | `/api/favorites` | Sí | Favoritos del usuario con progreso |
-| GET | `/api/favorites/:seriesId` | Sí | Verificar si una serie está en favoritos |
-| POST | `/api/favorites` | Sí | Agregar o actualizar favorito (status: Siguiendo/Terminado) |
-| DELETE | `/api/favorites/:seriesId` | Sí | Eliminar favorito |
-| **Lectura** | | | |
-| GET | `/api/reads/series/:seriesId` | Sí | IDs de capítulos leídos de una serie |
-| POST | `/api/reads/chapter/:chapterId/toggle` | Sí | Marcar/desmarcar capítulo como leído |
-| POST | `/api/reads/chapter/:chapterId/mark-until` | Sí | Marcar todos los capítulos hasta este como leídos |
-| GET | `/api/reads/stats` | Sí | Estadísticas de lectura |
-| GET | `/api/reads/full-stats` | Sí | Estadísticas detalladas con heatmap, rachas, géneros |
-| **Amigos** | | | |
-| GET | `/api/friends` | Sí | Lista de amigos aceptados |
-| GET | `/api/friends/requests/received` | Sí | Solicitudes de amistad recibidas |
-| GET | `/api/friends/requests/sent` | Sí | Solicitudes de amistad enviadas |
-| GET | `/api/friends/blocked` | Sí | Usuarios bloqueados |
-| GET | `/api/friends/search?q=` | Sí | Buscar usuarios por nombre/apellido/apodo |
-| POST | `/api/friends/request` | Sí | Enviar solicitud de amistad |
-| PATCH | `/api/friends/request/:id/accept` | Sí | Aceptar solicitud |
-| PATCH | `/api/friends/request/:id/reject` | Sí | Rechazar solicitud |
-| POST | `/api/friends/block` | Sí | Bloquear usuario |
-| POST | `/api/friends/unblock` | Sí | Desbloquear usuario |
-| DELETE | `/api/friends/:userId` | Sí | Eliminar amigo |
-| GET | `/api/friends/series/:seriesId/reads` | Sí | Último capítulo leído por cada amigo en una serie |
-| **Notificaciones** | | | |
-| GET | `/api/notifications/vapid-public-key` | No | Clave pública VAPID para Web Push |
-| POST | `/api/notifications/subscribe` | Sí | Suscribirse a notificaciones push |
-| DELETE | `/api/notifications/unsubscribe` | Sí | Cancelar suscripción push |
-| GET | `/api/notifications/status` | Sí | Estado de la suscripción push |
-| **Admin** | | | |
-| GET | `/api/admin/metrics/overview` | Admin | Dashboard general (usuarios, series, sugerencias, scraper) |
-| GET | `/api/admin/metrics/scrapers` | Admin | Métricas detalladas de scrapers (timeline, proveedores) |
-| GET | `/api/admin/metrics/users` | Admin | Métricas de usuarios (registros, activos, top lectores) |
-| GET | `/api/admin/metrics/content` | Admin | Métricas de contenido (géneros, histograma, estado) |
-| GET | `/api/admin/metrics/system` | Admin | Métricas del sistema (eventos, errores, rate limits) |
-| GET | `/api/admin/users` | Admin | Lista paginada de usuarios |
-| PATCH | `/api/admin/users/:id/role` | Admin | Cambiar rol de usuario |
-| PATCH | `/api/admin/users/:id/status` | Admin | Cambiar estado de usuario |
-| GET | `/api/admin/users/:id/activity` | Admin | Actividad de un usuario |
-| GET | `/api/admin/suggestions` | Admin | Sugerencias paginadas |
-| PATCH | `/api/admin/suggestions/:id/status` | Admin | Cambiar estado de sugerencia |
-| GET | `/api/admin/activity` | Admin | Registro de actividad global |
-| GET | `/api/admin/metrics` | Admin | Métricas generales del sistema |
+| Método             | Endpoint                                     | Auth     | Descripción                                                      |
+| ------------------ | -------------------------------------------- | -------- | ---------------------------------------------------------------- |
+| GET                | `/api/health`                                | No       | Health check del servidor                                        |
+| **Auth**           |                                              |          |                                                                  |
+| POST               | `/api/auth/register`                         | No       | Registro de usuario                                              |
+| POST               | `/api/auth/login`                            | No       | Inicio de sesión                                                 |
+| POST               | `/api/auth/google`                           | No       | Inicio de sesión con Google                                      |
+| POST               | `/api/auth/refresh`                          | No       | Renovar token JWT                                                |
+| POST               | `/api/auth/logout`                           | Sí       | Cerrar sesión                                                    |
+| POST               | `/api/auth/logout-all`                       | Sí       | Cerrar todas las sesiones activas                                |
+| GET                | `/api/auth/me`                               | Sí       | Perfil del usuario autenticado                                   |
+| GET                | `/api/auth/sessions`                         | Sí       | Sesiones activas                                                 |
+| PATCH              | `/api/auth/profile`                          | Sí       | Actualizar perfil                                                |
+| PATCH              | `/api/auth/password`                         | Sí       | Cambiar contraseña                                               |
+| DELETE             | `/api/auth/account`                          | Sí       | Eliminar cuenta                                                  |
+| GET                | `/api/auth/google-client-id`                 | No       | Obtener client ID de Google OAuth                                |
+| **Manga**          |                                              |          |                                                                  |
+| GET                | `/api/manga`                                 | Optional | Listado paginado con filtros (search, status, genre, sort, type) |
+| GET                | `/api/manga/latest`                          | Optional | Últimas series actualizadas                                      |
+| GET                | `/api/manga/genres`                          | No       | Todos los géneros disponibles                                    |
+| GET                | `/api/manga/recommended`                     | Sí       | Recomendaciones basadas en géneros más leídos                    |
+| GET                | `/api/manga/:slug`                           | Optional | Detalle de serie con sus capítulos                               |
+| GET                | `/api/manga/capitulo/:slug/:chapterId/pages` | Optional | Páginas de un capítulo con navegación prev/next                  |
+| **Favoritos**      |                                              |          |                                                                  |
+| GET                | `/api/favorites`                             | Sí       | Favoritos del usuario con progreso                               |
+| GET                | `/api/favorites/:seriesId`                   | Sí       | Verificar si una serie está en favoritos                         |
+| POST               | `/api/favorites`                             | Sí       | Agregar o actualizar favorito (status: Siguiendo/Terminado)      |
+| DELETE             | `/api/favorites/:seriesId`                   | Sí       | Eliminar favorito                                                |
+| **Lectura**        |                                              |          |                                                                  |
+| GET                | `/api/reads/series/:seriesId`                | Sí       | IDs de capítulos leídos de una serie                             |
+| POST               | `/api/reads/chapter/:chapterId/toggle`       | Sí       | Marcar/desmarcar capítulo como leído                             |
+| POST               | `/api/reads/chapter/:chapterId/mark-until`   | Sí       | Marcar todos los capítulos hasta este como leídos                |
+| GET                | `/api/reads/stats`                           | Sí       | Estadísticas de lectura                                          |
+| GET                | `/api/reads/full-stats`                      | Sí       | Estadísticas detalladas con heatmap, rachas, géneros             |
+| **Amigos**         |                                              |          |                                                                  |
+| GET                | `/api/friends`                               | Sí       | Lista de amigos aceptados                                        |
+| GET                | `/api/friends/requests/received`             | Sí       | Solicitudes de amistad recibidas                                 |
+| GET                | `/api/friends/requests/sent`                 | Sí       | Solicitudes de amistad enviadas                                  |
+| GET                | `/api/friends/blocked`                       | Sí       | Usuarios bloqueados                                              |
+| GET                | `/api/friends/search?q=`                     | Sí       | Buscar usuarios por nombre/apellido/apodo                        |
+| POST               | `/api/friends/request`                       | Sí       | Enviar solicitud de amistad                                      |
+| PATCH              | `/api/friends/request/:id/accept`            | Sí       | Aceptar solicitud                                                |
+| PATCH              | `/api/friends/request/:id/reject`            | Sí       | Rechazar solicitud                                               |
+| POST               | `/api/friends/block`                         | Sí       | Bloquear usuario                                                 |
+| POST               | `/api/friends/unblock`                       | Sí       | Desbloquear usuario                                              |
+| DELETE             | `/api/friends/:userId`                       | Sí       | Eliminar amigo                                                   |
+| GET                | `/api/friends/series/:seriesId/reads`        | Sí       | Último capítulo leído por cada amigo en una serie                |
+| **Notificaciones** |                                              |          |                                                                  |
+| GET                | `/api/notifications/vapid-public-key`        | No       | Clave pública VAPID para Web Push                                |
+| POST               | `/api/notifications/subscribe`               | Sí       | Suscribirse a notificaciones push                                |
+| DELETE             | `/api/notifications/unsubscribe`             | Sí       | Cancelar suscripción push                                        |
+| GET                | `/api/notifications/status`                  | Sí       | Estado de la suscripción push                                    |
+| **Admin**          |                                              |          |                                                                  |
+| GET                | `/api/admin/metrics/overview`                | Admin    | Dashboard general (usuarios, series, sugerencias, scraper)       |
+| GET                | `/api/admin/metrics/scrapers`                | Admin    | Métricas detalladas de scrapers (timeline, proveedores)          |
+| GET                | `/api/admin/metrics/users`                   | Admin    | Métricas de usuarios (registros, activos, top lectores)          |
+| GET                | `/api/admin/metrics/content`                 | Admin    | Métricas de contenido (géneros, histograma, estado)              |
+| GET                | `/api/admin/metrics/system`                  | Admin    | Métricas del sistema (eventos, errores, rate limits)             |
+| GET                | `/api/admin/users`                           | Admin    | Lista paginada de usuarios                                       |
+| PATCH              | `/api/admin/users/:id/role`                  | Admin    | Cambiar rol de usuario                                           |
+| PATCH              | `/api/admin/users/:id/status`                | Admin    | Cambiar estado de usuario                                        |
+| GET                | `/api/admin/users/:id/activity`              | Admin    | Actividad de un usuario                                          |
+| GET                | `/api/admin/suggestions`                     | Admin    | Sugerencias paginadas                                            |
+| PATCH              | `/api/admin/suggestions/:id/status`          | Admin    | Cambiar estado de sugerencia                                     |
+| GET                | `/api/admin/activity`                        | Admin    | Registro de actividad global                                     |
+| GET                | `/api/admin/metrics`                         | Admin    | Métricas generales del sistema                                   |
 
 ### Ejecutar localmente
 
@@ -169,10 +169,10 @@ docker compose up -d
 
 Cada `push` a cualquier rama y cada `pull_request` hacia `main` ejecuta automáticamente:
 
-| Workflow | Disparador | Pasos |
-|---|---|---|
-| **CI** | Push a cualquier rama, PR a `main` | `backend`: install → prisma generate → migrate → lint → test · `frontend`: install → lint → build |
-| **Promote staging** | Push a `staging` | Espera 10 min de estabilidad → Crea/actualiza PR `staging` → `main` |
+| Workflow            | Disparador                         | Pasos                                                                                             |
+| ------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **CI**              | Push a cualquier rama, PR a `main` | `backend`: install → prisma generate → migrate → lint → test · `frontend`: install → lint → build |
+| **Promote staging** | Push a `staging`                   | Espera 10 min de estabilidad → Crea/actualiza PR `staging` → `main`                               |
 
 Los tests del backend requieren una base de datos PostgreSQL efímera que GitHub Actions levanta como service container. Las credenciales y claves se pasan como variables de entorno inline (sin secrets de producción).
 

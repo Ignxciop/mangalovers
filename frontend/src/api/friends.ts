@@ -102,3 +102,20 @@ export async function getFriendReadsForSeries(seriesId: number): Promise<FriendS
   const { data } = await api.get<{ success: boolean; data: FriendSeriesRead[] }>(`/friends/series/${seriesId}/reads`);
   return data.data;
 }
+
+export interface SimpleFriend {
+  userId: string;
+  name: string;
+  lastname: string;
+  alias: string | null;
+  avatarUrl: string | null;
+}
+
+export async function getSeriesActivity(seriesIds: number[]): Promise<Record<number, SimpleFriend[]>> {
+  if (seriesIds.length === 0) return {};
+  const { data } = await api.get<{ success: boolean; data: Record<number, SimpleFriend[]> }>(
+    "/friends/series-activity",
+    { params: { seriesIds: seriesIds.join(",") } },
+  );
+  return data.data;
+}
