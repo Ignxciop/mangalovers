@@ -11,6 +11,7 @@ export interface AdminUser {
     suspendedUntil: string | null;
     lastLoginAt: string | null;
     createdAt: string;
+    avatarUrl?: string | null;
     _count: {
         suggestions: number;
         favorites: number;
@@ -42,6 +43,7 @@ export interface UpdateRoleResponse {
         suspendedUntil: string | null;
         lastLoginAt: string | null;
         createdAt: string;
+        avatarUrl?: string | null;
     };
 }
 
@@ -58,6 +60,7 @@ export interface UpdateStatusResponse {
         suspendedUntil: string | null;
         lastLoginAt: string | null;
         createdAt: string;
+        avatarUrl?: string | null;
     };
 }
 
@@ -276,6 +279,7 @@ export interface ActivityLogEntry {
         name: string;
         lastname: string;
         email: string;
+        avatarUrl?: string | null;
     };
 }
 

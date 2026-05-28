@@ -33,6 +33,7 @@ import {
     Bell,
     BellOff,
     BellRing,
+    AtSign,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
@@ -146,6 +147,134 @@ function ErrorAlert({ message }: { message: string }) {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{message}</AlertDescription>
         </Alert>
+    );
+}
+
+function AliasSection() {
+    const { user } = useAuth();
+    const setAuth = useAuthStore((s) => s.setAuth);
+    const accessToken = useAuthStore((s) => s.accessToken);
+    const [alias, setAlias] = useState(user?.alias ?? "");
+    const [editing, setEditing] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+
+    const canChange = !user?.aliasChanged;
+
+    async function handleSave() {
+        if (!alias.trim()) {
+            setError("El alias no puede estar vacío");
+            return;
+        }
+        if (alias.length < 3 || alias.length > 30) {
+            setError("El alias debe tener entre 3 y 30 caracteres");
+            return;
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(alias)) {
+            setError("Solo letras, números y guion bajo");
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            const { data } = await api.patch("/auth/alias", { alias });
+            setAuth(accessToken!, data.data.user);
+            setSuccess("Alias actualizado correctamente");
+            setEditing(false);
+        } catch (err) {
+            setError(
+                (err as { response?: { data?: { message?: string } } })?.response
+                    ?.data?.message ?? "Error al actualizar alias",
+            );
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-9 rounded-lg bg-primary/10 text-primary">
+                        <AtSign className="size-4" />
+                    </div>
+                    <div>
+                        <CardTitle className="text-base">Alias</CardTitle>
+                        <CardDescription className="text-xs">
+                            {canChange
+                                ? "Elige un alias único para que otros usuarios te encuentren. Solo puedes hacerlo una vez."
+                                : "Ya has personalizado tu alias. No puedes volver a cambiarlo."}
+                        </CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {editing ? (
+                    <div className="space-y-3">
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+                            <Input
+                                value={alias}
+                                onChange={(e) => setAlias(e.target.value)}
+                                placeholder="tu_alias"
+                                className="pl-7"
+                                maxLength={30}
+                                autoFocus
+                                disabled={loading}
+                            />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setEditing(false);
+                                    setAlias(user?.alias ?? "");
+                                    setError("");
+                                }}
+                                disabled={loading}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button size="sm" onClick={handleSave} disabled={loading}>
+                                {loading ? "Guardando…" : "Guardar"}
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <AtSign className="size-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">
+                                    {user?.alias ?? "sin alias"}
+                                </span>
+                            </div>
+                            {canChange && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setEditing(true)}
+                                >
+                                    Cambiar
+                                </Button>
+                            )}
+                        </div>
+                        {!canChange && (
+                            <p className="text-xs text-muted-foreground">
+                                Ya has utilizado tu cambio único de alias.
+                            </p>
+                        )}
+                    </div>
+                )}
+                {success && <SuccessAlert message={success} />}
+                {error && <ErrorAlert message={error} />}
+            </CardContent>
+        </Card>
     );
 }
 
@@ -715,10 +844,16 @@ export default function ProfilePage() {
                         <p className="text-sm text-muted-foreground">
                             {user?.email}
                         </p>
+                        {user?.alias && (
+                            <p className="text-xs text-muted-foreground/70 mt-0.5">
+                                @{user.alias}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <ProfileSection />
+                <AliasSection />
                 <PasswordSection />
                 <NotificationSection />
                 <DeleteAccountSection />

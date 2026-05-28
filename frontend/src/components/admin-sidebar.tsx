@@ -155,6 +155,11 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                                         ? user?.email
                                         : "Sin cuenta"}
                                 </span>
+                                {isAuthenticated && user?.alias && (
+                                    <span className="text-muted-foreground/60 truncate text-[11px]">
+                                        @{user.alias}
+                                    </span>
+                                )}
                             </div>
                             <EllipsisVertical className="ml-auto size-4 text-muted-foreground shrink-0" />
                         </>
@@ -221,6 +226,11 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                                     ? user?.email
                                     : "Navegando sin cuenta"}
                             </span>
+                            {isAuthenticated && user?.alias && (
+                                <span className="text-muted-foreground/60 truncate text-[11px]">
+                                    @{user.alias}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </DropdownMenuLabel>

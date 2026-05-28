@@ -192,8 +192,13 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                             <span className="text-muted-foreground truncate text-[11px]">
                                                 {isAuthenticated
                                                     ? user?.email
-                                                    : "Sin cuenta"}
+                                                    : ""}
                                             </span>
+                                            {isAuthenticated && user?.alias && (
+                                                <span className="text-muted-foreground/60 truncate text-[11px]">
+                                                    @{user.alias}
+                                                </span>
+                                            )}
                                         </div>
                                         <EllipsisVertical className="ml-auto size-4 text-muted-foreground shrink-0" />
                                     </>
@@ -261,6 +266,11 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                                 ? user?.email
                                                 : "Navegando sin cuenta"}
                                         </span>
+                                        {isAuthenticated && user?.alias && (
+                                            <span className="text-muted-foreground/60 truncate text-[11px]">
+                                                @{user.alias}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </DropdownMenuLabel>

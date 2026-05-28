@@ -23,6 +23,7 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
         email: "",
         password: "",
         repeatpassword: "",
+        alias: "",
     });
 
     const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -65,7 +66,13 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
             return;
         }
 
-        const { ...payload } = form;
+        const payload = {
+            name: form.name,
+            lastname: form.lastname,
+            email: form.email,
+            password: form.password,
+            alias: form.alias || undefined,
+        };
         await register(payload);
     };
 
@@ -139,6 +146,23 @@ export function Register({ className, ...props }: React.ComponentProps<"div">) {
                                     Usaremos esta información para contactarte.
                                     No compartiremos tu correo electrónico con
                                     nadie más.
+                                </FieldDescription>
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="alias">
+                                    Alias
+                                </FieldLabel>
+                                <Input
+                                    id="alias"
+                                    type="text"
+                                    name="alias"
+                                    placeholder="tu_alias"
+                                    value={form.alias}
+                                    onChange={handleChange}
+                                    maxLength={30}
+                                />
+                                <FieldDescription>
+                                    Cómo te conocerán los demás usuarios. Déjalo vacío para generar uno automáticamente.
                                 </FieldDescription>
                             </Field>
                             <Field>
