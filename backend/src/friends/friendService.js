@@ -290,7 +290,7 @@ export class FriendService {
           select: { id: true, name: true, lastname: true, alias: true, avatarUrl: true },
         },
         chapter: {
-          select: { id: true, name: true, chapterNumber: true },
+          select: { id: true, name: true, number: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -306,7 +306,7 @@ export class FriendService {
           alias: read.user.alias,
           avatarUrl: read.user.avatarUrl,
           chapterId: read.chapter.id,
-          chapterNumber: read.chapter.chapterNumber,
+          chapterNumber: read.chapter.number,
           chapterName: read.chapter.name,
           readAt: read.createdAt,
         });
