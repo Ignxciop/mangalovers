@@ -102,3 +102,55 @@ export async function getFriendReadsForSeries(seriesId: number): Promise<FriendS
   const { data } = await api.get<{ success: boolean; data: FriendSeriesRead[] }>(`/friends/series/${seriesId}/reads`);
   return data.data;
 }
+
+export interface SimpleFriend {
+  userId: string;
+  name: string;
+  lastname: string;
+  alias: string | null;
+  avatarUrl: string | null;
+}
+
+export async function getSeriesActivity(seriesIds: number[]): Promise<Record<number, SimpleFriend[]>> {
+  if (seriesIds.length === 0) return {};
+  const { data } = await api.get<{ success: boolean; data: Record<number, SimpleFriend[]> }>(
+    "/friends/series-activity",
+    { params: { seriesIds: seriesIds.join(",") } },
+  );
+  return data.data;
+}
+
+export interface FriendActivity {
+  id: string;
+  userId: string;
+  event: "MARK_READ" | "ADD_FAVORITE" | "REMOVE_FAVORITE";
+  metadata: {
+    chapterId?: number;
+    chapterName?: string;
+    seriesId?: number;
+    seriesName?: string;
+  };
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    lastname: string;
+    alias: string | null;
+    avatarUrl: string | null;
+  };
+}
+
+export interface ActivityFeedResponse {
+  success: boolean;
+  data: FriendActivity[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function getActivityFeed(page = 1, limit = 20): Promise<ActivityFeedResponse> {
+  const { data } = await api.get<ActivityFeedResponse>("/friends/feed", {
+    params: { page, limit },
+  });
+  return data;
+}

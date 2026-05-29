@@ -11,6 +11,8 @@ import { useAuthStore } from "@/store/authStore";
 import { useFavoriteIds } from "@/hooks/useFavoriteIds";
 import { getLocalLastReadName } from "@/hooks/useReadChapters";
 import { timeAgo } from "@/lib/date";
+import { getSeriesActivity } from "@/api/friends";
+import { FriendAvatars } from "@/components/FriendAvatars";
 import {
     Clock,
     Flame,
@@ -183,10 +185,12 @@ const MangaCard = memo(function MangaCard({
     manga,
     index,
     isFavorited,
+    friends,
 }: {
     manga: Manga;
     index: number;
     isFavorited?: boolean;
+    friends: { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[];
 }) {
     return (
         <div className="group animate-fade-in-up" style={{ animationDelay: `${index * 30}ms` }}>
@@ -203,6 +207,11 @@ const MangaCard = memo(function MangaCard({
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/20 via-transparent to-transparent" />
+                {friends.length > 0 && (
+                  <div className="absolute bottom-2 right-2 z-10">
+                    <FriendAvatars friends={friends} size="xs" />
+                  </div>
+                )}
                 {(() => {
                     const localLastRead = manga.lastReadChapterName ?? getLocalLastReadName(manga.id);
                     return (
@@ -264,11 +273,13 @@ const StatsSkeleton = memo(function StatsSkeleton() {
 
 export default function Home() {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    const user = useAuthStore((s) => s.user);
     const [mangas, setMangas] = useState<Manga[]>([]);
     const [stats, setStats] = useState<ReadingStats | null>(null);
     const [loadingLatest, setLoadingLatest] = useState(true);
     const [loadingStats, setLoadingStats] = useState(false);
     const [error, setError] = useState(false);
+    const [activityMap, setActivityMap] = useState<Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>>({});
     const { favoriteIds } = useFavoriteIds();
 
     const { pull, refreshing } = usePullToRefresh(useCallback(() => {
@@ -281,6 +292,12 @@ export default function Home() {
             .catch(() => setError(true))
             .finally(() => setLoadingLatest(false));
     }, []);
+
+    useEffect(() => {
+        if (!user || mangas.length === 0) { setActivityMap({}); return; }
+        const ids = mangas.map((m) => m.id);
+        getSeriesActivity(ids).then(setActivityMap).catch(() => setActivityMap({}));
+    }, [mangas, user]);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -384,6 +401,7 @@ export default function Home() {
                                           manga={manga}
                                           index={i}
                                           isFavorited={favoriteIds.has(manga.id)}
+                                          friends={activityMap[manga.id] ?? []}
                                       />
                                   ))}
                         </div>

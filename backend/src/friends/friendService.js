@@ -286,6 +286,90 @@ export class FriendService {
     }));
   }
 
+  static async getSeriesActivity(userId, seriesIds) {
+    const friendships = await prisma.friend.findMany({
+      where: {
+        OR: [
+          { senderId: userId, status: "ACCEPTED" },
+          { receiverId: userId, status: "ACCEPTED" },
+        ],
+      },
+      select: { senderId: true, receiverId: true },
+    });
+
+    if (friendships.length === 0) return {};
+
+    const friendIds = friendships.map((f) =>
+      f.senderId === userId ? f.receiverId : f.senderId,
+    );
+
+    const ids = seriesIds.map(Number);
+
+    const [reads, favorites] = await Promise.all([
+      prisma.userChapterRead.findMany({
+        where: {
+          userId: { in: friendIds },
+          chapter: { seriesId: { in: ids } },
+        },
+        include: {
+          user: {
+            select: { id: true, name: true, lastname: true, alias: true, avatarUrl: true },
+          },
+          chapter: { select: { seriesId: true } },
+        },
+        distinct: ["userId", "chapterId"],
+      }),
+      prisma.userFavorite.findMany({
+        where: {
+          userId: { in: friendIds },
+          seriesId: { in: ids },
+        },
+        include: {
+          user: {
+            select: { id: true, name: true, lastname: true, alias: true, avatarUrl: true },
+          },
+        },
+      }),
+    ]);
+
+    const map = {};
+
+    for (const read of reads) {
+      const sid = read.chapter.seriesId;
+      if (!map[sid]) map[sid] = new Map();
+      if (!map[sid].has(read.user.id)) {
+        map[sid].set(read.user.id, {
+          userId: read.user.id,
+          name: read.user.name,
+          lastname: read.user.lastname,
+          alias: read.user.alias,
+          avatarUrl: read.user.avatarUrl,
+        });
+      }
+    }
+
+    for (const fav of favorites) {
+      const sid = fav.seriesId;
+      if (!map[sid]) map[sid] = new Map();
+      if (!map[sid].has(fav.user.id)) {
+        map[sid].set(fav.user.id, {
+          userId: fav.user.id,
+          name: fav.user.name,
+          lastname: fav.user.lastname,
+          alias: fav.user.alias,
+          avatarUrl: fav.user.avatarUrl,
+        });
+      }
+    }
+
+    const result = {};
+    for (const [sid, userMap] of Object.entries(map)) {
+      result[sid] = Array.from(userMap.values());
+    }
+
+    return result;
+  }
+
   static async getBlockedUsers(userId) {
     const blocks = await prisma.friend.findMany({
       where: { senderId: userId, status: "BLOCKED" },
@@ -300,5 +384,43 @@ export class FriendService {
       user: b.receiver,
       blockedAt: b.updatedAt,
     }));
+  }
+
+  static async getActivityFeed(userId, page = 1, limit = 20) {
+    const friends = await prisma.friend.findMany({
+      where: {
+        status: "ACCEPTED",
+        OR: [{ senderId: userId }, { receiverId: userId }],
+      },
+      select: { senderId: true, receiverId: true },
+    });
+
+    const friendIds = friends.map((f) =>
+      f.senderId === userId ? f.receiverId : f.senderId,
+    );
+
+    if (friendIds.length === 0) return { data: [], total: 0 };
+
+    const where = {
+      userId: { in: friendIds },
+      event: { in: ["MARK_READ", "ADD_FAVORITE", "REMOVE_FAVORITE"] },
+    };
+
+    const [data, total] = await Promise.all([
+      prisma.userActivity.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          user: {
+            select: { id: true, name: true, lastname: true, alias: true, avatarUrl: true },
+          },
+        },
+      }),
+      prisma.userActivity.count({ where }),
+    ]);
+
+    return { data, total };
   }
 }

@@ -21,15 +21,20 @@ import { getLocalLastReadName } from "@/hooks/useReadChapters";
 import { useFavoriteIds } from "@/hooks/useFavoriteIds";
 import { MangaPagination } from "@/components/MangaPagination";
 import type { Manga } from "@/types/manga";
+import { useAuthStore } from "@/store/authStore";
+import { getSeriesActivity } from "@/api/friends";
+import { FriendAvatars } from "@/components/FriendAvatars";
 
 const MangaListItem = memo(function MangaListItem({
     manga,
     isFavorited,
     backUrl,
+    friends,
 }: {
     manga: Manga;
     isFavorited: boolean;
     backUrl: string;
+    friends: { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[];
 }) {
     return (
         <div className="group animate-fade-in-up">
@@ -43,6 +48,11 @@ const MangaListItem = memo(function MangaListItem({
                 {isFavorited && (
                     <div className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-black/50 text-rose-400 pointer-events-none">
                         <Heart className="h-3 w-3 fill-rose-400" />
+                    </div>
+                )}
+                {friends.length > 0 && (
+                    <div className="absolute bottom-2 right-2 z-10">
+                        <FriendAvatars friends={friends} size="xs" />
                     </div>
                 )}
                 {(() => {
@@ -205,7 +215,15 @@ export default function MangaList() {
     });
 
     const mangas = data?.data ?? [];
+    const user = useAuthStore((s) => s.user);
     const { favoriteIds } = useFavoriteIds();
+    const [activityMap, setActivityMap] = useState<Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>>({});
+
+    useEffect(() => {
+        if (!user || !data?.data?.length) return;
+        const ids = data.data.map((m: Manga) => m.id);
+        getSeriesActivity(ids).then(setActivityMap).catch(() => setActivityMap({}));
+    }, [data, user]);
 
     const activeFiltersCount = [
         status,
@@ -443,6 +461,7 @@ export default function MangaList() {
                             manga={manga}
                             isFavorited={favoriteIds.has(manga.id)}
                             backUrl={backUrl}
+                            friends={activityMap[manga.id] ?? []}
                         />
                     ))}
                 </div>
