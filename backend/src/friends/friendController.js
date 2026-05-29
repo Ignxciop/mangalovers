@@ -131,3 +131,14 @@ export async function getSeriesActivity(req, res, next) {
     next(error);
   }
 }
+
+export async function getActivityFeed(req, res, next) {
+  try {
+    const page = Math.max(1, parseInt(req.query.page ?? "1", 10));
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit ?? "20", 10)));
+    const result = await FriendService.getActivityFeed(req.user.userId, page, limit);
+    res.json({ success: true, data: result.data, total: result.total, page, limit });
+  } catch (error) {
+    next(error);
+  }
+}

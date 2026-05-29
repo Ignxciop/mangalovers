@@ -385,4 +385,42 @@ export class FriendService {
       blockedAt: b.updatedAt,
     }));
   }
+
+  static async getActivityFeed(userId, page = 1, limit = 20) {
+    const friends = await prisma.friend.findMany({
+      where: {
+        status: "ACCEPTED",
+        OR: [{ senderId: userId }, { receiverId: userId }],
+      },
+      select: { senderId: true, receiverId: true },
+    });
+
+    const friendIds = friends.map((f) =>
+      f.senderId === userId ? f.receiverId : f.senderId,
+    );
+
+    if (friendIds.length === 0) return { data: [], total: 0 };
+
+    const where = {
+      userId: { in: friendIds },
+      event: { in: ["MARK_READ", "ADD_FAVORITE", "REMOVE_FAVORITE"] },
+    };
+
+    const [data, total] = await Promise.all([
+      prisma.userActivity.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          user: {
+            select: { id: true, name: true, lastname: true, alias: true, avatarUrl: true },
+          },
+        },
+      }),
+      prisma.userActivity.count({ where }),
+    ]);
+
+    return { data, total };
+  }
 }

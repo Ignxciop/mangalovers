@@ -119,3 +119,38 @@ export async function getSeriesActivity(seriesIds: number[]): Promise<Record<num
   );
   return data.data;
 }
+
+export interface FriendActivity {
+  id: string;
+  userId: string;
+  event: "MARK_READ" | "ADD_FAVORITE" | "REMOVE_FAVORITE";
+  metadata: {
+    chapterId?: number;
+    chapterName?: string;
+    seriesId?: number;
+    seriesName?: string;
+  };
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    lastname: string;
+    alias: string | null;
+    avatarUrl: string | null;
+  };
+}
+
+export interface ActivityFeedResponse {
+  success: boolean;
+  data: FriendActivity[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export async function getActivityFeed(page = 1, limit = 20): Promise<ActivityFeedResponse> {
+  const { data } = await api.get<ActivityFeedResponse>("/friends/feed", {
+    params: { page, limit },
+  });
+  return data;
+}
