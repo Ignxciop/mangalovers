@@ -463,7 +463,7 @@ export class FriendService {
       f.senderId === userId ? f.receiverId : f.senderId,
     );
 
-    if (friendIds.length === 0) return { data: [], total: 0 };
+    friendIds.push(userId);
 
     const where = {
       userId: { in: friendIds },

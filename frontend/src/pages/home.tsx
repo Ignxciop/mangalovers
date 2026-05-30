@@ -5,8 +5,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CoverImage } from "@/components/coverImage";
-import { fetchLatestManga, fetchReadingStats } from "@/api/manga";
-import type { Manga } from "@/types/manga";
+import { fetchLatestManga, fetchReadingStats, fetchRecommended } from "@/api/manga";
+import type { Manga, RecommendedSeries } from "@/types/manga";
+import { RecommendedSection } from "@/components/recommended-section";
 import { useAuthStore } from "@/store/authStore";
 import { useFavoriteIds } from "@/hooks/useFavoriteIds";
 import { getLocalLastReadName } from "@/hooks/useReadChapters";
@@ -30,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { toast } from "sonner";
 import { SearchBar } from "@/components/search-bar";
 import {
     ContinueReadingSection,
@@ -279,17 +281,38 @@ export default function Home() {
     const [loadingLatest, setLoadingLatest] = useState(true);
     const [loadingStats, setLoadingStats] = useState(false);
     const [error, setError] = useState(false);
+    const [recommended, setRecommended] = useState<RecommendedSeries[]>([]);
+    const [basedOn, setBasedOn] = useState<string[]>([]);
+    const [loadingRecommended, setLoadingRecommended] = useState(false);
     const [activityMap, setActivityMap] = useState<Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>>({});
+    const [recActivityMap, setRecActivityMap] = useState<Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>>({});
     const { favoriteIds } = useFavoriteIds();
 
-    const { pull, refreshing } = usePullToRefresh(useCallback(() => {
-        window.location.reload();
-    }, []));
+    const handleRefresh = useCallback(async () => {
+        try {
+            const latest = await fetchLatestManga(24);
+            setMangas(latest);
+            if (isAuthenticated) {
+                const statsData = await fetchReadingStats();
+                setStats(statsData);
+                const recData = await fetchRecommended();
+                setRecommended(recData.series);
+                setBasedOn(recData.basedOn);
+            }
+        } catch {
+            toast.error("Error al actualizar");
+        }
+    }, [isAuthenticated]);
+
+    const { pull, refreshing } = usePullToRefresh(handleRefresh);
 
     useEffect(() => {
         fetchLatestManga(24)
             .then(setMangas)
-            .catch(() => setError(true))
+            .catch(() => {
+                setError(true);
+                toast.error("No se pudieron cargar las actualizaciones");
+            })
             .finally(() => setLoadingLatest(false));
     }, []);
 
@@ -314,6 +337,27 @@ export default function Home() {
         }
         load();
     }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        setLoadingRecommended(true);
+        fetchRecommended()
+            .then((data) => {
+                setRecommended(data.series);
+                setBasedOn(data.basedOn);
+            })
+            .catch(() => {
+                setRecommended([]);
+                setBasedOn([]);
+            })
+            .finally(() => setLoadingRecommended(false));
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (!user || recommended.length === 0) { setRecActivityMap({}); return; }
+        const ids = recommended.map((r) => r.id);
+        getSeriesActivity(ids).then(setRecActivityMap).catch(() => setRecActivityMap({}));
+    }, [recommended, user]);
 
     return (
         <>
@@ -365,6 +409,15 @@ export default function Home() {
                                 stats && <StatsSection stats={stats} />
                             )}
                         </div>
+                    )}
+
+                    {isAuthenticated && (
+                        <RecommendedSection
+                            items={recommended}
+                            basedOn={basedOn}
+                            loading={loadingRecommended}
+                            friendActivity={recActivityMap}
+                        />
                     )}
 
                     <section aria-labelledby="latest-updates-heading">

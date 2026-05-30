@@ -36,7 +36,7 @@ import {
     Sun,
     LogOut,
 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
@@ -56,8 +56,8 @@ function NavItem({
     const isActive = location.pathname === href;
 
     return (
-        <a
-            href={href}
+        <Link
+            to={href}
             className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative",
                 isActive
@@ -78,11 +78,12 @@ function NavItem({
             {!collapsed && isActive && (
                 <ChevronRight className="ml-auto size-3 opacity-60" />
             )}
-        </a>
+        </Link>
     );
 }
 
 function AdminUserCard({ collapsed }: { collapsed: boolean }) {
+    const navigate = useNavigate();
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const user = useAuthStore((s) => s.user);
     const storeLogout = useAuthStore((s) => s.logout);
@@ -150,13 +151,13 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                                         ? `${user?.name} ${user?.lastname}`
                                         : "Invitado"}
                                 </span>
-                                <span className="text-muted-foreground truncate text-[11px]">
+                                <span className="text-muted-foreground truncate text-xs">
                                     {isAuthenticated
                                         ? user?.email
                                         : "Sin cuenta"}
                                 </span>
                                 {isAuthenticated && user?.alias && (
-                                    <span className="text-muted-foreground/60 truncate text-[11px]">
+                                    <span className="text-muted-foreground/60 truncate text-xs">
                                         @{user.alias}
                                     </span>
                                 )}
@@ -227,7 +228,7 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                                     : "Navegando sin cuenta"}
                             </span>
                             {isAuthenticated && user?.alias && (
-                                <span className="text-muted-foreground/60 truncate text-[11px]">
+                                <span className="text-muted-foreground/60 truncate text-xs">
                                     @{user.alias}
                                 </span>
                             )}
@@ -260,7 +261,7 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                         </span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        onSelect={() => (window.location.href = "/")}
+                        onSelect={() => navigate("/")}
                         className="rounded-lg cursor-pointer gap-2.5"
                     >
                         <UserRound className="h-4 w-4 text-muted-foreground" />
@@ -289,8 +290,8 @@ export function AdminSidebar() {
             <SidebarHeader
                 className={cn("py-5", collapsed ? "items-center px-2" : "px-4")}
             >
-                <a
-                    href="/admin/dashboard"
+                <Link
+                    to="/admin/dashboard"
                     className={cn(
                         "flex items-center gap-2.5 transition-[gap,opacity]",
                         collapsed && "justify-center",
@@ -309,7 +310,7 @@ export function AdminSidebar() {
                             </span>
                         </div>
                     )}
-                </a>
+                </Link>
             </SidebarHeader>
 
             <SidebarContent className={cn("px-2", collapsed && "px-1")}>

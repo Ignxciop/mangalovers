@@ -35,7 +35,7 @@ export class RefreshTokenService {
             status: true, suspendedUntil: true,
             alias: true, aliasChanged: true,
             avatarUrl: true,
-            password: true, createdAt: true, updatedAt: true,
+            createdAt: true, updatedAt: true,
           },
         },
       },

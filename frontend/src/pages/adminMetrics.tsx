@@ -484,12 +484,12 @@ export default function AdminMetrics() {
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
+        <div className="min-h-screen bg-background flex flex-col">
             <SEO title="Métricas del sistema" />
 
             <AdminHeader icon={BarChart3} title="Métricas del sistema" />
 
-            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
+            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0 overflow-x-hidden">
                 <div className="flex border-b border-border mb-6 overflow-x-auto">
                     {TABS.map((t) => (
                         <button

@@ -68,6 +68,23 @@ export interface ChapterPages {
     }[];
 }
 
+export interface RecommendedSeries {
+    id: number;
+    name: string;
+    slug: string;
+    cover: string | null;
+    status: string | null;
+    chapterCount: number;
+    type: string | null;
+    score: number;
+    genres: string[];
+}
+
+export interface RecommendedResponse {
+    series: RecommendedSeries[];
+    basedOn: string[];
+}
+
 export interface Favorite {
     id: number;
     userId: string;

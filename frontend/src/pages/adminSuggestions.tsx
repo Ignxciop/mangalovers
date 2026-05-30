@@ -273,7 +273,7 @@ export default function AdminSuggestions() {
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
+        <div className="min-h-screen bg-background flex flex-col">
             <SEO title="Administrar sugerencias" />
 
             <AdminHeader
@@ -310,7 +310,7 @@ export default function AdminSuggestions() {
                 </FilterDrawer>
             </AdminHeader>
 
-            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
+            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0 overflow-x-hidden">
                 {loading ? (
                     <div className="flex gap-5 flex-1 min-h-0">
                         <div className="flex flex-col w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 gap-2">
