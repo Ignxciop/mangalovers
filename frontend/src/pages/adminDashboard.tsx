@@ -166,12 +166,12 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
+        <div className="min-h-screen bg-background flex flex-col">
             <SEO title="Panel de Administración" />
 
             <AdminHeader icon={Activity} title="Panel de Administración" />
 
-            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
+            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0 overflow-x-hidden">
                 {loading ? (
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

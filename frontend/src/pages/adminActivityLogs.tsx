@@ -200,7 +200,7 @@ export default function AdminActivityLogs() {
     const hasActiveFilter = eventFilter !== "";
 
     return (
-        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
+        <div className="min-h-screen bg-background flex flex-col">
             <SEO title="Registro de actividad" />
 
             <AdminHeader
@@ -237,7 +237,7 @@ export default function AdminActivityLogs() {
                 </FilterDrawer>
             </AdminHeader>
 
-            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
+            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0 overflow-x-hidden">
                 {loading ? (
                     <div className="space-y-3">
                         <Skeleton className="h-10 rounded-lg" />
