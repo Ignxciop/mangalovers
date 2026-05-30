@@ -16,12 +16,26 @@ import { Button } from "@/components/ui/button";
 import { ChapterImage } from "@/components/chapterImage";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { useReadChapters } from "@/hooks/useReadChapters";
+import { useKeyboardReader } from "@/hooks/useKeyboardReader";
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { useEffect, useRef, useState, useMemo } from "react";
+import {
+    useEffect,
+    useRef,
+    useState,
+    useMemo,
+    useCallback,
+    forwardRef,
+    useImperativeHandle,
+} from "react";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { toast } from "sonner";
-
 const STORAGE_KEY = "reader_prefs";
 type ReadMode = "cascade" | "pagination";
 
@@ -204,15 +218,84 @@ export function ChapterNav({
     );
 }
 
-function PaginationReader({
-    pages,
-    zoom,
-}: {
-    pages: { id: number; url: string }[];
-    zoom: number;
-}) {
+export interface PaginationReaderHandle {
+    prevPage: () => void;
+    nextPage: () => void;
+}
+
+const PaginationReader = forwardRef<
+    PaginationReaderHandle,
+    {
+        pages: { id: number; url: string }[];
+        zoom: number;
+        onChapterChange: (direction: "prev" | "next") => void;
+        hasPrevChapter: boolean;
+        hasNextChapter: boolean;
+    }
+>(function PaginationReader(
+    { pages, zoom, onChapterChange, hasPrevChapter, hasNextChapter },
+    ref,
+) {
     const [currentPage, setCurrentPage] = useState(0);
+    const [tapFeedback, setTapFeedback] = useState<"left" | "right" | null>(
+        null,
+    );
+    const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const page = pages[currentPage];
+
+    useImperativeHandle(
+        ref,
+        () => ({
+            prevPage() {
+                if (currentPage > 0) {
+                    setCurrentPage((p) => p - 1);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                } else if (hasPrevChapter) {
+                    onChapterChange("prev");
+                }
+            },
+            nextPage() {
+                if (currentPage < pages.length - 1) {
+                    setCurrentPage((p) => p + 1);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                } else if (hasNextChapter) {
+                    onChapterChange("next");
+                }
+            },
+        }),
+        [
+            currentPage,
+            pages.length,
+            hasPrevChapter,
+            hasNextChapter,
+            onChapterChange,
+        ],
+    );
+
+    function goToPage(page: number) {
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function showFeedback(side: "left" | "right") {
+        setTapFeedback(side);
+        if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = setTimeout(() => setTapFeedback(null), 300);
+    }
+
+    function handleTap(side: "left" | "right") {
+        if (side === "left" && currentPage > 0) {
+            goToPage(currentPage - 1);
+            showFeedback("left");
+        } else if (side === "right" && currentPage < pages.length - 1) {
+            goToPage(currentPage + 1);
+            showFeedback("right");
+        }
+    }
+
+    if (!pages.length) {
+        return null;
+    }
 
     return (
         <div className="flex flex-col items-center gap-4">
@@ -222,19 +305,40 @@ function PaginationReader({
                     width: "100%",
                     margin: "0 auto",
                 }}
+                className="relative"
             >
                 <ChapterImage
                     key={page.id}
                     src={page.url}
                     alt={`Página ${currentPage + 1}`}
                 />
+                <div className="absolute inset-0 flex">
+                    <button
+                        className="flex-1 h-full active:bg-white/5 transition-colors"
+                        onClick={() => handleTap("left")}
+                        aria-label="Página anterior"
+                    />
+                    <button
+                        className="flex-1 h-full active:bg-white/5 transition-colors"
+                        onClick={() => handleTap("right")}
+                        aria-label="Página siguiente"
+                    />
+                </div>
+                {tapFeedback && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-black/30 rounded-full p-3">
+                            {tapFeedback === "left" ? (
+                                <ChevronLeft className="h-6 w-6 text-white" />
+                            ) : (
+                                <ChevronRight className="h-6 w-6 text-white" />
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
             <div className="flex items-center gap-3 py-2">
                 <button
-                    onClick={() => {
-                        setCurrentPage((p) => Math.max(0, p - 1));
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    onClick={() => goToPage(Math.max(0, currentPage - 1))}
                     disabled={currentPage === 0}
                     className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-30"
                 >
@@ -244,12 +348,9 @@ function PaginationReader({
                     {currentPage + 1} / {pages.length}
                 </span>
                 <button
-                    onClick={() => {
-                        setCurrentPage((p) =>
-                            Math.min(pages.length - 1, p + 1),
-                        );
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    onClick={() =>
+                        goToPage(Math.min(pages.length - 1, currentPage + 1))
+                    }
                     disabled={currentPage === pages.length - 1}
                     className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-30"
                 >
@@ -258,7 +359,66 @@ function PaginationReader({
             </div>
         </div>
     );
-}
+});
+
+const ChapterSelect = forwardRef<
+    HTMLButtonElement,
+    {
+        chapters: { id: number; name: string }[];
+        currentChapterId: string;
+        slug: string;
+    }
+>(function ChapterSelect({ chapters, currentChapterId, slug }, ref) {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const sorted = useMemo(
+        () =>
+            [...chapters].sort((a, b) => {
+                const numA = Number.parseFloat(a.name);
+                const numB = Number.parseFloat(b.name);
+                if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+                    return numB - numA;
+                }
+                return b.name.localeCompare(a.name);
+            }),
+        [chapters],
+    );
+
+    return (
+        <Select
+            value={currentChapterId}
+            onValueChange={(id) => {
+                navigate(`/manga/${slug}/capitulo/${id}`, {
+                    state: { from: location.state?.from ?? "/mangas" },
+                });
+            }}
+        >
+            <SelectTrigger
+                ref={ref}
+                size="sm"
+                className="w-auto min-w-[80px] text-xs border-white/10 bg-white/5"
+            >
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent
+                align="end"
+                style={{ maxHeight: "18rem" }}
+                className="overflow-y-auto overscroll-contain [&_[data-slot='select-scroll-up-button']]:hidden [&_[data-slot='select-scroll-down-button']]:hidden"
+            >
+                {sorted.map((ch) => (
+                    <SelectItem
+                        key={ch.id}
+                        value={String(ch.id)}
+                        className="text-xs"
+                    >
+                        Cap. {ch.name}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    );
+});
 
 export default function ChapterReader() {
     const { slug, chapterId } = useParams<{
@@ -270,14 +430,19 @@ export default function ChapterReader() {
     const location = useLocation();
     const from = location.state?.from ?? "/mangas";
 
-    const { chapter, loading, error, refetch: refetchChapter } = useChapterPages(
-        slug ?? null,
-        chapterId ? Number(chapterId) : null,
-    );
+    const {
+        chapter,
+        loading,
+        error,
+        refetch: refetchChapter,
+    } = useChapterPages(slug ?? null, chapterId ? Number(chapterId) : null);
 
     const { series, refetch: refetchSeries } = useSeriesDetail(slug ?? "");
     const chapters = useMemo(() => series?.chapters ?? [], [series]);
-    const { readIds, markUntil, refetch } = useReadChapters(series?.id ?? 0, chapters);
+    const { readIds, markUntil, refetch } = useReadChapters(
+        series?.id ?? 0,
+        chapters,
+    );
     const prevChapterIdRef = useRef(chapterId);
 
     useEffect(() => {
@@ -291,10 +456,14 @@ export default function ChapterReader() {
 
     const [prefs, setPrefs] = useState<ReaderPrefs>(loadPrefs);
 
-    const { pull, refreshing } = usePullToRefresh(() => Promise.all([refetchChapter(), refetchSeries()]));
+    const paginationRef = useRef<PaginationReaderHandle>(null);
+    const chapterSelectRef = useRef<HTMLButtonElement>(null);
+
+    const { pull, refreshing } = usePullToRefresh(() =>
+        Promise.all([refetchChapter(), refetchSeries()]),
+    );
 
     const markUntilRef = useRef(markUntil);
-    const pendingMarkRef = useRef<number | null>(null);
     useEffect(() => {
         markUntilRef.current = markUntil;
     });
@@ -302,17 +471,84 @@ export default function ChapterReader() {
     useEffect(() => {
         if (!chapter || !series) return;
         if (readIds.has(chapter.chapterId)) return;
-        if (pendingMarkRef.current === chapter.chapterId) return;
 
-        pendingMarkRef.current = chapter.chapterId;
-        markUntilRef.current(chapter.chapterId).then(() => {
-            toast.success(`Cap. ${chapter.name} marcado como leído`);
-        }).finally(() => {
-            if (pendingMarkRef.current === chapter.chapterId) {
-                pendingMarkRef.current = null;
-            }
-        });
+        markUntilRef.current(chapter.chapterId).finally(() => {});
     }, [chapter, series, readIds]);
+
+    const handlePrevPage = useCallback(() => {
+        if (prefs.mode === "pagination") {
+            paginationRef.current?.prevPage();
+        } else {
+            window.scrollBy({
+                top: -window.innerHeight * 0.8,
+                behavior: "smooth",
+            });
+        }
+    }, [prefs.mode]);
+
+    const handleNextPage = useCallback(() => {
+        if (prefs.mode === "pagination") {
+            paginationRef.current?.nextPage();
+        } else {
+            window.scrollBy({
+                top: window.innerHeight * 0.8,
+                behavior: "smooth",
+            });
+        }
+    }, [prefs.mode]);
+
+    const handleToggleMode = useCallback(() => {
+        const next: ReadMode =
+            prefs.mode === "cascade" ? "pagination" : "cascade";
+        const updated = { ...prefs, mode: next };
+        setPrefs(updated);
+        savePrefs(updated);
+    }, [prefs]);
+
+    const handleToggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+            document.exitFullscreen().catch(() => {});
+        }
+    }, []);
+
+    const handleEscape = useCallback(() => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+    }, []);
+
+    const handleChapterChange = useCallback(
+        (direction: "prev" | "next") => {
+            if (direction === "prev" && chapter?.prev) {
+                navigate(`/manga/${slug}/capitulo/${chapter.prev.id}`, {
+                    state: { from },
+                });
+            } else if (direction === "next" && chapter?.next) {
+                markUntilRef.current(chapter.next.id);
+                navigate(`/manga/${slug}/capitulo/${chapter.next.id}`, {
+                    state: { from },
+                });
+            }
+        },
+        [chapter, slug, navigate, from],
+    );
+
+    useKeyboardReader(
+        {
+            onPrevPage: handlePrevPage,
+            onNextPage: handleNextPage,
+            onToggleMode: handleToggleMode,
+            onToggleFullscreen: handleToggleFullscreen,
+            onOpenChapterSelector: useCallback(
+                () => chapterSelectRef.current?.focus(),
+                [],
+            ),
+            onEscape: handleEscape,
+        },
+        !loading && !error && !!chapter,
+    );
 
     function updateMode(mode: ReadMode) {
         const updated = { ...prefs, mode };
@@ -335,7 +571,7 @@ export default function ChapterReader() {
         };
     }, [chapter]);
 
-    const currentChapterNumber = chapter ? parseFloat(chapter.name) : 0;
+    const currentChapterNumber = chapter ? Number.parseFloat(chapter.name) : 0;
     const totalChapters = series?.chapters.length ?? 0;
 
     const chaptersLeft =
@@ -344,7 +580,8 @@ export default function ChapterReader() {
                   0,
                   totalChapters -
                       series!.chapters.filter(
-                          (c) => parseFloat(c.name) <= currentChapterNumber,
+                          (c) =>
+                              Number.parseFloat(c.name) <= currentChapterNumber,
                       ).length,
               )
             : null;
@@ -364,20 +601,32 @@ export default function ChapterReader() {
         return (
             <>
                 <SEO
-                    title={chapter ? `${chapter.series.name} — Cap. ${chapter.name}` : "Cargando..."}
-                    description={chapter ? `Lee el capítulo ${chapter.name} de ${chapter.series.name} en Mangalovers.` : undefined}
-                    canonicalPath={chapter ? `/manga/${slug}/capitulo/${chapterId}` : undefined}
+                    title={
+                        chapter
+                            ? `${chapter.series.name} — Cap. ${chapter.name}`
+                            : "Cargando..."
+                    }
+                    description={
+                        chapter
+                            ? `Lee el capítulo ${chapter.name} de ${chapter.series.name} en Mangalovers.`
+                            : undefined
+                    }
+                    canonicalPath={
+                        chapter
+                            ? `/manga/${slug}/capitulo/${chapterId}`
+                            : undefined
+                    }
                 />
                 <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b] flex flex-col items-center py-10 gap-4 px-4">
-                <Skeleton className="h-5 w-40 mb-6" />
-                {Array.from({ length: 6 }).map((_, i) => (
-                    <Skeleton
-                        key={i}
-                        className="w-full max-w-2xl h-96 rounded-lg"
-                    />
-                ))}
-            </div>
-        </>
+                    <Skeleton className="h-5 w-40 mb-6" />
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <Skeleton
+                            key={i}
+                            className="w-full max-w-2xl h-96 rounded-lg"
+                        />
+                    ))}
+                </div>
+            </>
         );
     }
 
@@ -386,17 +635,19 @@ export default function ChapterReader() {
             <>
                 <SEO title="Capítulo no encontrado" noIndex />
                 <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center px-4">
-                <h2 className="text-xl font-bold">Capítulo no encontrado</h2>
-                <button
-                    onClick={() =>
-                        navigate(`/manga/${slug}`, { state: { from } })
-                    }
-                    className="text-sm text-primary underline underline-offset-4"
-                >
-                    Volver a la serie
-                </button>
-            </div>
-        </>
+                    <h2 className="text-xl font-bold">
+                        Capítulo no encontrado
+                    </h2>
+                    <button
+                        onClick={() =>
+                            navigate(`/manga/${slug}`, { state: { from } })
+                        }
+                        className="text-sm text-primary underline underline-offset-4"
+                    >
+                        Volver a la serie
+                    </button>
+                </div>
+            </>
         );
     }
 
@@ -407,15 +658,32 @@ export default function ChapterReader() {
                 description={`Lee el capítulo ${chapter.name} de ${chapter.series.name} en Mangalovers.`}
                 canonicalPath={`/manga/${slug}/capitulo/${chapterId}`}
             />
-            <JsonLd schema={{
-                "@context": "https://schema.org",
-                "@type": "BreadcrumbList",
-                "itemListElement": [
-                    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://mangalovers.josenunez.cl/" },
-                    { "@type": "ListItem", "position": 2, "name": chapter.series.name, "item": `https://mangalovers.josenunez.cl/manga/${slug}` },
-                    { "@type": "ListItem", "position": 3, "name": `Cap. ${chapter.name}`, "item": `https://mangalovers.josenunez.cl/manga/${slug}/capitulo/${chapterId}` },
-                ],
-            }} />
+            <JsonLd
+                schema={{
+                    "@context": "https://schema.org",
+                    "@type": "BreadcrumbList",
+                    itemListElement: [
+                        {
+                            "@type": "ListItem",
+                            position: 1,
+                            name: "Inicio",
+                            item: "https://mangalovers.josenunez.cl/",
+                        },
+                        {
+                            "@type": "ListItem",
+                            position: 2,
+                            name: chapter.series.name,
+                            item: `https://mangalovers.josenunez.cl/manga/${slug}`,
+                        },
+                        {
+                            "@type": "ListItem",
+                            position: 3,
+                            name: `Cap. ${chapter.name}`,
+                            item: `https://mangalovers.josenunez.cl/manga/${slug}/capitulo/${chapterId}`,
+                        },
+                    ],
+                }}
+            />
             <PullToRefresh pull={pull} refreshing={refreshing} />
 
             <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b]">
@@ -424,44 +692,31 @@ export default function ChapterReader() {
                         headerVisible ? "translate-y-0" : "-translate-y-full"
                     }`}
                 >
-                    {/* Mobile layout */}
-                    <div className="md:hidden justify-center container mx-auto px-4 h-14 flex items-center gap-4 max-w-3xl">
-                        <SidebarTrigger />
-                        <button
-                            onClick={() =>
-                                navigate(`/manga/${slug}`, { state: { from } })
-                            }
-                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
-                        >
-                            <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                            <span className="truncate max-w-[250px] sm:max-w-[200px]">
-                                {chapter.series.name}
-                            </span>
-                        </button>
-                        <span className="text-muted-foreground/50 shrink-0">
-                            /
-                        </span>
-                        <span className="text-sm text-foreground shrink-0">
-                            {chapter.name}
-                        </span>
-                    </div>
-                    {/* Desktop layout */}
-                    <div className="hidden md:grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4 container mx-auto">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <button
-                                onClick={() =>
-                                    navigate(`/manga/${slug}`, { state: { from } })
-                                }
-                                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
-                            >
-                                <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-                                <span className="truncate">{chapter.series.name}</span>
-                            </button>
+                    <div className="container mx-auto max-w-3xl">
+                        <div className="grid grid-cols-[auto_1fr_auto] items-center px-4 h-14 md:h-16">
+                            <SidebarTrigger />
+                            <div className="flex justify-center min-w-0">
+                                <button
+                                    onClick={() =>
+                                        navigate(`/manga/${slug}`, {
+                                            state: { from },
+                                        })
+                                    }
+                                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group truncate"
+                                >
+                                    <ChevronLeft className="h-4 w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
+                                    <span className="truncate max-w-[240px] md:max-w-[250px]">
+                                        {chapter.series.name}
+                                    </span>
+                                </button>
+                            </div>
+                            <ChapterSelect
+                                ref={chapterSelectRef}
+                                chapters={chapters}
+                                currentChapterId={chapterId!}
+                                slug={slug!}
+                            />
                         </div>
-                        <span className="text-sm text-muted-foreground shrink-0">
-                            Cap. {chapter.name}
-                        </span>
                     </div>
                 </div>
 
@@ -495,8 +750,12 @@ export default function ChapterReader() {
                 ) : (
                     <PaginationReader
                         key={chapter.pages[0]?.id ?? chapterId}
+                        ref={paginationRef}
                         pages={chapter.pages}
                         zoom={prefs.zoom}
+                        onChapterChange={handleChapterChange}
+                        hasPrevChapter={!!chapter.prev}
+                        hasNextChapter={!!chapter.next}
                     />
                 )}
 
@@ -515,7 +774,10 @@ export default function ChapterReader() {
                                     : `Faltan ${chaptersLeft} ${chaptersLeft === 1 ? "capítulo" : "capítulos"}`}
                             </span>
                         </div>
-                        <Progress value={progressPercent} className="h-1.5 [&>div]:bg-gradient-to-r [&>div]:from-brand [&>div]:to-brand-cyan" />
+                        <Progress
+                            value={progressPercent}
+                            className="h-1.5 [&>div]:bg-gradient-to-r [&>div]:from-brand [&>div]:to-brand-cyan"
+                        />
                     </div>
                 )}
 

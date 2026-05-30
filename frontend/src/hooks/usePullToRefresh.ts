@@ -15,14 +15,20 @@ export function usePullToRefresh(onRefresh: () => void) {
 
     useEffect(() => {
         const handleTouchStart = (e: TouchEvent) => {
-            if (window.scrollY === 0) {
-                startY.current = e.touches[0].clientY;
-                pulling.current = true;
-            }
+            if (window.scrollY !== 0) return;
+
+            const target = e.target as HTMLElement;
+            if (target.closest("[data-slot='select-content']")) return;
+
+            startY.current = e.touches[0].clientY;
+            pulling.current = true;
         };
 
         const handleTouchMove = (e: TouchEvent) => {
             if (!pulling.current) return;
+
+            const target = e.target as HTMLElement;
+            if (target.closest("[data-slot='select-content']")) return;
 
             const currentY = e.touches[0].clientY;
             const diff = currentY - startY.current;
