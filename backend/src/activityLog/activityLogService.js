@@ -96,15 +96,13 @@ export class ActivityLogService {
 
   static async getEventsByTargetUser(targetUserId, limit = 10) {
     try {
-      const data = await prisma.$queryRawUnsafe(
-        `SELECT * FROM user_activities
-         WHERE event = 'UPDATE_USER_STATUS'
-         AND metadata->>'targetUserId' = $1
-         ORDER BY "createdAt" DESC
-         LIMIT $2`,
-        targetUserId,
-        limit,
-      );
+      const data = await prisma.$queryRaw`
+        SELECT * FROM user_activities
+        WHERE event = 'UPDATE_USER_STATUS'
+        AND metadata->>'targetUserId' = ${targetUserId}
+        ORDER BY "createdAt" DESC
+        LIMIT ${limit}
+      `;
       return data;
     } catch (error) {
       logger.error({ err: error.message, targetUserId }, "ActivityLog: error al obtener eventos por target");
