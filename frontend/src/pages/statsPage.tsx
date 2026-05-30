@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchFullStats } from "@/api/manga";
+import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import {
     BookOpen,
@@ -454,6 +455,7 @@ export default function StatsPage() {
                 setStats(data);
             } catch {
                 setStats(null);
+                toast.error("No se pudieron cargar las estadísticas");
             } finally {
                 setLoading(false);
             }

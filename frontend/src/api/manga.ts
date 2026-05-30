@@ -4,6 +4,7 @@ import type {
     MangaListResponse,
     SeriesDetail,
     ChapterPages,
+    RecommendedResponse,
 } from "@/types/manga";
 
 export async function fetchLatestManga(limit = 16): Promise<Manga[]> {
@@ -99,7 +100,7 @@ export async function fetchFullStats() {
     return data;
 }
 
-export async function fetchRecommended() {
-    const { data } = await api.get("/manga/recommended");
+export async function fetchRecommended(): Promise<RecommendedResponse> {
+    const { data } = await api.get<RecommendedResponse>("/manga/recommended");
     return data;
 }

@@ -45,7 +45,7 @@ import {
     Shield,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getReceivedRequestsCount } from "@/api/friends";
 import { SidebarMenuBadge } from "@/components/ui/sidebar";
@@ -87,8 +87,8 @@ function NavItem({
     }
 
     return (
-        <a
-            href={href}
+        <Link
+            to={href}
             className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative",
                 isActive
@@ -116,7 +116,7 @@ function NavItem({
             {!collapsed && isActive && (
                 <ChevronRight className="ml-auto size-3 opacity-60" />
             )}
-        </a>
+        </Link>
     );
 }
 
@@ -127,6 +127,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
     collapsed: boolean;
     onOpenSuggestions: () => void;
 }) {
+    const navigate = useNavigate();
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const user = useAuthStore((s) => s.user);
     const storeLogout = useAuthStore((s) => s.logout);
@@ -138,7 +139,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
             // Silenciar error del lado del servidor
         }
         storeLogout();
-        window.location.href = "/";
+        navigate("/");
     };
 
     return (
@@ -314,8 +315,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             onSelect={() =>
-                                                (window.location.href =
-                                                    "/perfil")
+                                                navigate("/perfil")
                                             }
                                             className="rounded-lg cursor-pointer gap-2.5"
                                         >
@@ -332,8 +332,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                         {user?.role === "ADMIN" && (
                                             <DropdownMenuItem
                                                 onSelect={() =>
-                                                    (                                                    window.location.href =
-                                                        "/admin/dashboard")
+                                                    navigate("/admin/dashboard")
                                                 }
                                                 className="rounded-lg cursor-pointer gap-2.5"
                                             >
@@ -355,8 +354,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             onSelect={() =>
-                                                (window.location.href =
-                                                    "/acceso")
+                                                navigate("/acceso")
                                             }
                                             className="rounded-lg cursor-pointer gap-2.5 text-primary focus:text-primary focus:bg-primary/10"
                                         >
@@ -408,8 +406,8 @@ export function AppSidebar() {
             <SidebarHeader
                 className={cn("py-5", collapsed ? "items-center px-2" : "px-4")}
             >
-                <a
-                    href="/"
+                <Link
+                    to="/"
                     className={cn(
                         "flex items-center gap-2.5 transition-[gap,opacity]",
                         collapsed && "justify-center",
@@ -423,7 +421,7 @@ export function AppSidebar() {
                             Mangalovers
                         </span>
                     )}
-                </a>
+                </Link>
             </SidebarHeader>
 
             <SidebarContent className={cn("px-2", collapsed && "px-1")}>

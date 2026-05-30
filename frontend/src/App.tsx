@@ -1,6 +1,6 @@
 import { useEffect, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/toaster";
 import AuthLayout from "./components/layouts/authLayout.tsx";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ProtectedRoute, GuestRoute } from "@/components/protectedRoutes.tsx";
@@ -150,13 +150,7 @@ function AppRoutes() {
 function App() {
     return (
         <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-            <Toaster
-                position="top-right"
-                toastOptions={{
-                    duration: 3000,
-                    className: "text-sm",
-                }}
-            />
+            <Toaster />
             <BootstrappedApp />
         </ThemeProvider>
     );

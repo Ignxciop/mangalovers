@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { toast } from "sonner";
 
 const STORAGE_KEY = "reader_prefs";
 type ReadMode = "cascade" | "pagination";
@@ -306,7 +307,9 @@ export default function ChapterReader() {
         if (pendingMarkRef.current === chapter.chapterId) return;
 
         pendingMarkRef.current = chapter.chapterId;
-        markUntilRef.current(chapter.chapterId).finally(() => {
+        markUntilRef.current(chapter.chapterId).then(() => {
+            toast.success(`Cap. ${chapter.name} marcado como leído`);
+        }).finally(() => {
             if (pendingMarkRef.current === chapter.chapterId) {
                 pendingMarkRef.current = null;
             }

@@ -47,6 +47,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { MangaPagination } from "@/components/MangaPagination";
 import { getSeriesActivity } from "@/api/friends";
 import { FriendAvatars } from "@/components/FriendAvatars";
+import { toast } from "sonner";
 
 function chaptersLeft(fav: Favorite): number {
     const read = parseFloat(fav.lastReadChapterName ?? "0");
@@ -328,21 +329,31 @@ export default function FavoritesList() {
 
     const handleStatusChange = useCallback(
         async (seriesId: number, newStatus: string) => {
-            await upsertFavorite(seriesId, newStatus);
-            setFavorites((prev) =>
-                prev.map((f) =>
-                    f.seriesId === seriesId
-                        ? { ...f, status: newStatus as "Siguiendo" | "Terminado" }
-                        : f,
-                ),
-            );
+            try {
+                await upsertFavorite(seriesId, newStatus);
+                setFavorites((prev) =>
+                    prev.map((f) =>
+                        f.seriesId === seriesId
+                            ? { ...f, status: newStatus as "Siguiendo" | "Terminado" }
+                            : f,
+                    ),
+                );
+                toast.success(`Marcado como ${newStatus}`);
+            } catch {
+                toast.error("Error al cambiar estado");
+            }
         },
         [],
     );
 
     const handleRemove = useCallback(async (seriesId: number) => {
-        await deleteFavorite(seriesId);
-        setFavorites((prev) => prev.filter((f) => f.seriesId !== seriesId));
+        try {
+            await deleteFavorite(seriesId);
+            setFavorites((prev) => prev.filter((f) => f.seriesId !== seriesId));
+            toast.success("Favorito eliminado");
+        } catch {
+            toast.error("Error al eliminar favorito");
+        }
     }, []);
 
     const filtered = useMemo(() => {

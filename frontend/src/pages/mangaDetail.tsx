@@ -36,6 +36,7 @@ import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useAuthStore } from "@/store/authStore";
 import { getFriendReadsForSeries, type FriendSeriesRead } from "@/api/friends";
+import { toast } from "sonner";
 
 const AVATAR_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
 
@@ -503,11 +504,19 @@ export default function MangaDetail() {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() =>
-                                            favStatus
-                                                ? removeFav()
-                                                : saveFav("Siguiendo")
-                                        }
+                                        onClick={async () => {
+                                            try {
+                                                if (favStatus) {
+                                                    await removeFav();
+                                                    toast.success("Favorito eliminado");
+                                                } else {
+                                                    await saveFav("Siguiendo");
+                                                    toast.success("Añadido a favoritos");
+                                                }
+                                            } catch {
+                                                toast.error("Error al cambiar favorito");
+                                            }
+                                        }}
                                         className={
                                             favStatus
                                                 ? "border-rose-500/30 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
@@ -534,17 +543,27 @@ export default function MangaDetail() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuItem
-                                                    onClick={() =>
-                                                        saveFav("Siguiendo")
-                                                    }
+                                                    onClick={async () => {
+                                                        try {
+                                                            await saveFav("Siguiendo");
+                                                            toast.success("Marcado como Siguiendo");
+                                                        } catch {
+                                                            toast.error("Error al actualizar");
+                                                        }
+                                                    }}
                                                     className="cursor-pointer"
                                                 >
                                                     Siguiendo
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
-                                                    onClick={() =>
-                                                        saveFav("Terminado")
-                                                    }
+                                                    onClick={async () => {
+                                                        try {
+                                                            await saveFav("Terminado");
+                                                            toast.success("Marcado como Terminado");
+                                                        } catch {
+                                                            toast.error("Error al actualizar");
+                                                        }
+                                                    }}
                                                     className="cursor-pointer"
                                                 >
                                                     Terminado
@@ -553,48 +572,37 @@ export default function MangaDetail() {
                                         </DropdownMenu>
                                     )}
 
-                                    {typeof navigator.share === "function" && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={async () => {
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => {
+                                            if (typeof navigator.share === "function") {
                                                 const shareData: ShareData = {
                                                     title: series.name,
-                                                    text:
-                                                        series.summary ??
-                                                        `Lee ${series.name} en Mangalovers`,
+                                                    text: series.summary ?? `Lee ${series.name} en Mangalovers`,
                                                     url: window.location.href,
                                                 };
                                                 try {
                                                     if (!series.cover) throw new Error();
                                                     const res = await fetch(series.cover);
                                                     const blob = await res.blob();
-                                                    const file = new File(
-                                                        [blob],
-                                                        `${series.name}.jpg`,
-                                                        { type: blob.type },
-                                                    );
+                                                    const file = new File([blob], `${series.name}.jpg`, { type: blob.type });
                                                     shareData.files = [file];
-                                                } catch {
-                                                    /* ignorar */
-                                                }
-                                                if (
-                                                    navigator.canShare?.(shareData)
-                                                ) {
+                                                } catch { /* ignorar */ }
+                                                if (navigator.canShare?.(shareData)) {
                                                     await navigator.share(shareData);
                                                 } else {
-                                                    await navigator.share({
-                                                        title: shareData.title,
-                                                        text: shareData.text,
-                                                        url: shareData.url,
-                                                    });
+                                                    await navigator.share({ title: shareData.title, text: shareData.text, url: shareData.url });
                                                 }
-                                            }}
-                                        >
-                                            <Share2 className="h-4 w-4" />
-                                            Compartir
-                                        </Button>
-                                    )}
+                                            } else {
+                                                await navigator.clipboard.writeText(window.location.href);
+                                                toast.success("Enlace copiado al portapapeles");
+                                            }
+                                        }}
+                                    >
+                                        <Share2 className="h-4 w-4" />
+                                        Compartir
+                                    </Button>
                                 </div>
                             )}
 
