@@ -86,6 +86,15 @@ export async function getFriends(req, res, next) {
   }
 }
 
+export async function countReceivedRequests(req, res, next) {
+  try {
+    const data = await FriendService.countReceivedRequests(req.user.userId);
+    res.json({ success: true, data: { count: data } });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getReceivedRequests(req, res, next) {
   try {
     const requests = await FriendService.getReceivedRequests(req.user.userId);

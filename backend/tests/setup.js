@@ -19,6 +19,7 @@ const TABLE_NAMES = [
     "Page",
     "Chapter",
     "series_aliases",
+    "friends",
     "Series",
     "Genre",
     "Provider",
