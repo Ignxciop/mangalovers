@@ -40,6 +40,11 @@ export async function getFriends(): Promise<Friend[]> {
   return data.data;
 }
 
+export async function getReceivedRequestsCount(): Promise<number> {
+  const { data } = await api.get<{ success: boolean; data: { count: number } }>("/friends/requests/received/count");
+  return data.data.count;
+}
+
 export async function getReceivedRequests(): Promise<FriendRequest[]> {
   const { data } = await api.get<{ success: boolean; data: FriendRequest[] }>("/friends/requests/received");
   return data.data;

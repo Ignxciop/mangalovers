@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   searchUsers, sendRequest, acceptRequest, rejectRequest,
   blockUser, unblockUser, removeFriend,
-  getFriends, getReceivedRequests, getSentRequests, getBlockedUsers,
+  getFriends, countReceivedRequests, getReceivedRequests, getSentRequests, getBlockedUsers,
   getFriendReadsForSeries, getSeriesActivity, getActivityFeed,
 } from "./friendController.js";
 import { authenticate } from "../middlewares/auth.js";
@@ -16,6 +16,7 @@ import { validate } from "../utils/validate.js";
 const router = Router();
 
 router.get("/", authenticate, getFriends);
+router.get("/requests/received/count", authenticate, countReceivedRequests);
 router.get("/requests/received", authenticate, getReceivedRequests);
 router.get("/requests/sent", authenticate, getSentRequests);
 router.get("/blocked", authenticate, getBlockedUsers);

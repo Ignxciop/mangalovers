@@ -7,6 +7,7 @@ import favoriteRoutes from "../../src/favorite/favoriteRoutes.js";
 import readRoutes from "../../src/read/readRoutes.js";
 import notificationRoutes from "../../src/notifications/notificationRoutes.js";
 import suggestionRoutes from "../../src/suggestions/suggestionRoutes.js";
+import friendRoutes from "../../src/friends/friendRoutes.js";
 import adminRoutes from "../../src/admin/adminUserRoutes.js";
 import activityLogRoutes from "../../src/activityLog/activityLogRoutes.js";
 
@@ -24,6 +25,7 @@ export function buildApp() {
     app.use("/api/reads", readRoutes);
     app.use("/api/notifications", notificationRoutes);
     app.use("/api/suggestions", suggestionRoutes);
+    app.use("/api/friends", friendRoutes);
     app.use("/api/admin", adminRoutes);
     app.use("/api/admin", activityLogRoutes);
 

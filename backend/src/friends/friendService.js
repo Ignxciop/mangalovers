@@ -1,5 +1,57 @@
+import webpush from "web-push";
 import { prisma } from "../config/prisma.js";
+import { config } from "../config/env.js";
+import logger from "../config/logger.js";
 import { ConflictError, NotFoundError, ForbiddenError, ValidationError } from "../utils/errors.js";
+
+try {
+  webpush.setVapidDetails(
+    `mailto:${config.VAPID_EMAIL}`,
+    config.VAPID_PUBLIC_KEY,
+    config.VAPID_PRIVATE_KEY,
+  );
+} catch (error) {
+  logger.warn({ err: error }, "Error configurando VAPID en friendService");
+}
+
+async function sendFriendRequestPush(senderId, receiverId) {
+  if (!config.VAPID_PUBLIC_KEY || !config.VAPID_PRIVATE_KEY) return;
+
+  const [sender, subscriptions] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: senderId },
+      select: { name: true, lastname: true },
+    }),
+    prisma.pushSubscription.findMany({
+      where: { userId: receiverId },
+    }),
+  ]);
+
+  if (!sender || subscriptions.length === 0) return;
+
+  const payload = {
+    title: "Nueva solicitud de amistad",
+    body: `${sender.name} ${sender.lastname} te envió una solicitud de amistad`,
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/badge-72x72.png",
+    tag: "friend-request",
+    data: { url: "/amigos" },
+  };
+
+  for (const subscription of subscriptions) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
+        JSON.stringify(payload),
+      );
+    } catch (error) {
+      if (error.statusCode === 410 || error.statusCode === 404) {
+        await prisma.pushSubscription.delete({ where: { id: subscription.id } }).catch(() => {});
+      }
+      logger.warn({ subscriptionId: subscription.id }, "Error enviando push de solicitud de amistad");
+    }
+  }
+}
 
 export class FriendService {
   static async searchUsers(query, currentUserId) {
@@ -96,9 +148,15 @@ export class FriendService {
       }
     }
 
-    return prisma.friend.create({
+    const friend = await prisma.friend.create({
       data: { senderId: currentUserId, receiverId, status: "PENDING" },
     });
+
+    sendFriendRequestPush(currentUserId, receiverId).catch((err) =>
+      logger.warn({ err }, "Error en push de solicitud de amistad"),
+    );
+
+    return friend;
   }
 
   static async acceptRequest(userId, requestId) {
@@ -204,6 +262,12 @@ export class FriendService {
     return friendships.map((f) => {
       const friend = f.senderId === userId ? f.receiver : f.sender;
       return { friendshipId: f.id, ...friend, friendSince: f.updatedAt };
+    });
+  }
+
+  static async countReceivedRequests(userId) {
+    return prisma.friend.count({
+      where: { receiverId: userId, status: "PENDING" },
     });
   }
 

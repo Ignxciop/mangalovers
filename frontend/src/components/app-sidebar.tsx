@@ -25,7 +25,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
 import { SuggestionForm } from "@/components/suggestion-form";
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import {
     UserRound,
     EllipsisVertical,
@@ -47,16 +47,20 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { getReceivedRequestsCount } from "@/api/friends";
+import { SidebarMenuBadge } from "@/components/ui/sidebar";
 
 function NavItem({
     href,
     icon: Icon,
     label,
+    badge,
     disabled = false,
 }: {
     href: string;
     icon: React.ElementType;
     label: string;
+    badge?: number;
     disabled?: boolean;
 }) {
     const { state, isMobile } = useSidebar();
@@ -104,6 +108,11 @@ function NavItem({
                 )}
             />
             {!collapsed && <span>{label}</span>}
+            {!collapsed && badge != null && badge > 0 && (
+                <SidebarMenuBadge className="relative right-auto bg-gradient-to-r from-brand/90 to-brand-cyan/90 text-white text-[10px] font-extrabold leading-none min-w-[20px] h-[18px] px-1.5 flex items-center justify-center rounded-full shadow-sm shadow-brand/20 ring-1 ring-white/10 animate-in fade-in zoom-in duration-200">
+                    {badge > 99 ? "99+" : badge}
+                </SidebarMenuBadge>
+            )}
             {!collapsed && isActive && (
                 <ChevronRight className="ml-auto size-3 opacity-60" />
             )}
@@ -370,6 +379,24 @@ export function AppSidebar() {
     const { state, isMobile } = useSidebar();
     const collapsed = !isMobile && state === "collapsed";
     const [showSuggestionForm, setShowSuggestionForm] = useState(false);
+    const [pendingFriendCount, setPendingFriendCount] = useState(0);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const fetchCount = async () => {
+            try {
+                const count = await getReceivedRequestsCount();
+                setPendingFriendCount(count);
+            } catch {
+                // Silenciar error
+            }
+        };
+
+        fetchCount();
+        const interval = setInterval(fetchCount, 30000);
+        return () => clearInterval(interval);
+    }, [isAuthenticated]);
 
     return (
         <>
@@ -430,6 +457,7 @@ export function AppSidebar() {
                                     icon={Users}
                                     label="Amigos"
                                     disabled={!isAuthenticated}
+                                    badge={pendingFriendCount}
                                 />
                                 <NavItem
                                     href="/estadisticas"
