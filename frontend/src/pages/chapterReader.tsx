@@ -270,12 +270,12 @@ export default function ChapterReader() {
     const location = useLocation();
     const from = location.state?.from ?? "/mangas";
 
-    const { chapter, loading, error } = useChapterPages(
+    const { chapter, loading, error, refetch: refetchChapter } = useChapterPages(
         slug ?? null,
         chapterId ? Number(chapterId) : null,
     );
 
-    const { series } = useSeriesDetail(slug ?? "");
+    const { series, refetch: refetchSeries } = useSeriesDetail(slug ?? "");
     const chapters = useMemo(() => series?.chapters ?? [], [series]);
     const { readIds, markUntil, refetch } = useReadChapters(series?.id ?? 0, chapters);
     const prevChapterIdRef = useRef(chapterId);
@@ -291,9 +291,7 @@ export default function ChapterReader() {
 
     const [prefs, setPrefs] = useState<ReaderPrefs>(loadPrefs);
 
-    const { pull, refreshing } = usePullToRefresh(() => {
-        window.location.reload();
-    });
+    const { pull, refreshing } = usePullToRefresh(() => Promise.all([refetchChapter(), refetchSeries()]));
 
     const markUntilRef = useRef(markUntil);
     const pendingMarkRef = useRef<number | null>(null);

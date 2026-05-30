@@ -249,9 +249,16 @@ export default function FavoritesList() {
     const sortBy = (searchParams.get("sort") ?? "reciente") as SortBy;
     const page = Number(searchParams.get("page") ?? "1");
 
-    const { pull, refreshing } = usePullToRefresh(useCallback(() => {
-        window.location.reload();
-    }, []));
+    const handleRefresh = useCallback(async () => {
+        try {
+            const data = await fetchFavorites();
+            setFavorites(data);
+        } catch {
+            setFavorites([]);
+        }
+    }, []);
+
+    const { pull, refreshing } = usePullToRefresh(handleRefresh);
 
     useEffect(() => {
         fetchFavorites()

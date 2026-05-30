@@ -233,7 +233,7 @@ export default function MangaDetail() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const user = useAuthStore((s) => s.user);
-    const { series, loading, error } = useSeriesDetail(slug ?? "");
+    const { series, loading, error, refetch: refetchSeries } = useSeriesDetail(slug ?? "");
     const {
         status: favStatus,
         loading: favLoading,
@@ -295,9 +295,7 @@ export default function MangaDetail() {
         return chaptersSorted[chaptersSorted.length - 1] ?? null;
     }, [series, chaptersSorted]);
 
-    const { pull, refreshing } = usePullToRefresh(() => {
-        window.location.reload();
-    });
+    const { pull, refreshing } = usePullToRefresh(refetchSeries);
 
     useEffect(() => {
         if (!series) return;

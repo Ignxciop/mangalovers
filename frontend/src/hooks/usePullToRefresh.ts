@@ -41,12 +41,19 @@ export function usePullToRefresh(onRefresh: () => void) {
             if (pullRef.current > 80) {
                 setRefreshing(true);
 
-                setTimeout(() => {
-                    onRefreshRef.current();
-                    setRefreshing(false);
-                    setPull(0);
-                    pullRef.current = 0;
-                }, 600);
+                const startTime = Date.now();
+                const result = onRefreshRef.current();
+                const minDuration = 600;
+
+                Promise.resolve(result).then(() => {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = Math.max(0, minDuration - elapsed);
+                    setTimeout(() => {
+                        setRefreshing(false);
+                        setPull(0);
+                        pullRef.current = 0;
+                    }, remaining);
+                });
             } else {
                 setPull(0);
                 pullRef.current = 0;

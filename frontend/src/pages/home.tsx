@@ -288,9 +288,23 @@ export default function Home() {
     const [recActivityMap, setRecActivityMap] = useState<Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>>({});
     const { favoriteIds } = useFavoriteIds();
 
-    const { pull, refreshing } = usePullToRefresh(useCallback(() => {
-        window.location.reload();
-    }, []));
+    const handleRefresh = useCallback(async () => {
+        try {
+            const latest = await fetchLatestManga(24);
+            setMangas(latest);
+            if (isAuthenticated) {
+                const statsData = await fetchReadingStats();
+                setStats(statsData);
+                const recData = await fetchRecommended();
+                setRecommended(recData.series);
+                setBasedOn(recData.basedOn);
+            }
+        } catch {
+            toast.error("Error al actualizar");
+        }
+    }, [isAuthenticated]);
+
+    const { pull, refreshing } = usePullToRefresh(handleRefresh);
 
     useEffect(() => {
         fetchLatestManga(24)
