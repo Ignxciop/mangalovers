@@ -45,8 +45,10 @@ function MangaDetailSkeleton() {
         <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-10">
                 <Skeleton className="h-5 w-24 mb-10" />
-                <div className="flex gap-10">
-                    <Skeleton className="w-64 shrink-0 aspect-[2/3] rounded-xl" />
+                <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
+                    <div className="md:w-56 lg:w-64 shrink-0">
+                        <Skeleton className="w-full aspect-[2/3] rounded-xl" />
+                    </div>
                     <div className="flex-1 space-y-4 pt-2">
                         <Skeleton className="h-10 w-3/4" />
                         <Skeleton className="h-4 w-1/3" />
