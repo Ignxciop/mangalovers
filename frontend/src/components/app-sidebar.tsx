@@ -382,10 +382,7 @@ export function AppSidebar() {
     const [pendingFriendCount, setPendingFriendCount] = useState(0);
 
     useEffect(() => {
-        if (!isAuthenticated) {
-            setPendingFriendCount(0);
-            return;
-        }
+        if (!isAuthenticated) return;
 
         const fetchCount = async () => {
             try {
