@@ -108,7 +108,7 @@ function NavItem({
                 )}
             />
             {!collapsed && <span>{label}</span>}
-            {!collapsed && badge > 0 && (
+            {!collapsed && badge != null && badge > 0 && (
                 <SidebarMenuBadge className="relative right-auto bg-gradient-to-r from-brand/90 to-brand-cyan/90 text-white text-[10px] font-extrabold leading-none min-w-[20px] h-[18px] px-1.5 flex items-center justify-center rounded-full shadow-sm shadow-brand/20 ring-1 ring-white/10 animate-in fade-in zoom-in duration-200">
                     {badge > 99 ? "99+" : badge}
                 </SidebarMenuBadge>
