@@ -151,13 +151,13 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                                         ? `${user?.name} ${user?.lastname}`
                                         : "Invitado"}
                                 </span>
-                                <span className="text-muted-foreground truncate text-[11px]">
+                                <span className="text-muted-foreground truncate text-xs">
                                     {isAuthenticated
                                         ? user?.email
                                         : "Sin cuenta"}
                                 </span>
                                 {isAuthenticated && user?.alias && (
-                                    <span className="text-muted-foreground/60 truncate text-[11px]">
+                                    <span className="text-muted-foreground/60 truncate text-xs">
                                         @{user.alias}
                                     </span>
                                 )}
@@ -228,7 +228,7 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                                     : "Navegando sin cuenta"}
                             </span>
                             {isAuthenticated && user?.alias && (
-                                <span className="text-muted-foreground/60 truncate text-[11px]">
+                                <span className="text-muted-foreground/60 truncate text-xs">
                                     @{user.alias}
                                 </span>
                             )}

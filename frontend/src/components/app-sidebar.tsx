@@ -200,13 +200,13 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                                     ? `${user?.name} ${user?.lastname}`
                                                     : "Invitado"}
                                             </span>
-                                            <span className="text-muted-foreground truncate text-[11px]">
+                                            <span className="text-muted-foreground truncate text-xs">
                                                 {isAuthenticated
                                                     ? user?.email
                                                     : ""}
                                             </span>
                                             {isAuthenticated && user?.alias && (
-                                                <span className="text-muted-foreground/60 truncate text-[11px]">
+                                                <span className="text-muted-foreground/60 truncate text-xs">
                                                     @{user.alias}
                                                 </span>
                                             )}
@@ -278,7 +278,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                                 : "Navegando sin cuenta"}
                                         </span>
                                         {isAuthenticated && user?.alias && (
-                                            <span className="text-muted-foreground/60 truncate text-[11px]">
+                                            <span className="text-muted-foreground/60 truncate text-xs">
                                                 @{user.alias}
                                             </span>
                                         )}
