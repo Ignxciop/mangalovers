@@ -153,9 +153,9 @@ export interface ActivityFeedResponse {
   limit: number;
 }
 
-export async function getActivityFeed(page = 1, limit = 20): Promise<ActivityFeedResponse> {
+export async function getActivityFeed(page = 1, limit = 20, scope?: "own" | "friends"): Promise<ActivityFeedResponse> {
   const { data } = await api.get<ActivityFeedResponse>("/friends/feed", {
-    params: { page, limit },
+    params: { page, limit, ...(scope ? { scope } : {}) },
   });
   return data;
 }
