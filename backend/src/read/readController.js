@@ -1,6 +1,7 @@
 import {
   getReadChapterIds, toggleChapterRead,
   markChaptersUntil, getUserReadingStats, getFullStats,
+  upsertChapterProgress, getChapterProgress, getSeriesProgress,
 } from "./readService.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 import logger from "../config/logger.js";
@@ -77,6 +78,37 @@ export async function handleGetFullStats(req, res, next) {
   try {
     const stats = await getFullStats(req.user.userId);
     res.json(stats);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleUpsertProgress(req, res, next) {
+  try {
+    const { chapterId } = req.params;
+    const { pageNumber, percentage } = req.body;
+    const result = await upsertChapterProgress(req.user.userId, chapterId, { pageNumber, percentage });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleGetChapterProgress(req, res, next) {
+  try {
+    const { chapterId } = req.params;
+    const progress = await getChapterProgress(req.user.userId, chapterId);
+    res.json(progress);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleGetSeriesProgress(req, res, next) {
+  try {
+    const { seriesId } = req.params;
+    const progress = await getSeriesProgress(req.user.userId, seriesId);
+    res.json(progress);
   } catch (error) {
     next(error);
   }

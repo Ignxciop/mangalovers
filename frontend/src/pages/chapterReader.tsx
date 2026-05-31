@@ -17,6 +17,7 @@ import { ChapterImage } from "@/components/chapterImage";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
 import { useReadChapters } from "@/hooks/useReadChapters";
 import { useKeyboardReader } from "@/hooks/useKeyboardReader";
+import { useChapterProgress } from "@/hooks/useChapterProgress";
 import {
     Select,
     SelectTrigger,
@@ -221,6 +222,7 @@ export function ChapterNav({
 export interface PaginationReaderHandle {
     prevPage: () => void;
     nextPage: () => void;
+    goToPage: (page: number) => void;
 }
 
 const PaginationReader = forwardRef<
@@ -231,9 +233,10 @@ const PaginationReader = forwardRef<
         onChapterChange: (direction: "prev" | "next") => void;
         hasPrevChapter: boolean;
         hasNextChapter: boolean;
+        onPageChange?: (page: number) => void;
     }
 >(function PaginationReader(
-    { pages, zoom, onChapterChange, hasPrevChapter, hasNextChapter },
+    { pages, zoom, onChapterChange, hasPrevChapter, hasNextChapter, onPageChange },
     ref,
 ) {
     const [currentPage, setCurrentPage] = useState(0);
@@ -262,6 +265,11 @@ const PaginationReader = forwardRef<
                     onChapterChange("next");
                 }
             },
+            goToPage(page: number) {
+                const target = Math.max(0, Math.min(page, pages.length - 1));
+                setCurrentPage(target);
+                window.scrollTo({ top: 0, behavior: "instant" });
+            },
         }),
         [
             currentPage,
@@ -271,6 +279,10 @@ const PaginationReader = forwardRef<
             onChapterChange,
         ],
     );
+
+    useEffect(() => {
+        onPageChange?.(currentPage);
+    }, [currentPage, onPageChange]);
 
     function goToPage(page: number) {
         setCurrentPage(page);
@@ -468,6 +480,15 @@ export default function ChapterReader() {
         markUntilRef.current = markUntil;
     });
 
+    const [paginationPage, setPaginationPage] = useState(0);
+
+    const { restore, savedPage, loaded } = useChapterProgress({
+        chapterId: Number(chapterId),
+        totalPages: chapter?.pages.length ?? 0,
+        readMode: prefs.mode,
+        currentPage: prefs.mode === "pagination" ? paginationPage : undefined,
+    });
+
     useEffect(() => {
         if (!chapter || !series) return;
         if (readIds.has(chapter.chapterId)) return;
@@ -565,11 +586,41 @@ export default function ChapterReader() {
     useEffect(() => {
         if (!chapter) return;
         document.title = `${chapter.series.name} — Cap. ${chapter.name}`;
-        window.scrollTo(0, 0);
         return () => {
             document.title = "Mangalovers";
         };
     }, [chapter]);
+
+    useEffect(() => {
+        if (!chapter || !loaded) return;
+
+        if (prefs.mode === "cascade") {
+            let attempts = 0;
+            const maxAttempts = 15;
+            const timers: ReturnType<typeof setTimeout>[] = [];
+
+            function tryRestore() {
+                if (restore()) return true;
+                attempts++;
+                if (attempts < maxAttempts) {
+                    const delay = 300 * Math.pow(1.4, attempts);
+                    const t = setTimeout(tryRestore, delay);
+                    timers.push(t);
+                }
+                return false;
+            }
+
+            tryRestore();
+            return () => timers.forEach(clearTimeout);
+        }
+
+        if (prefs.mode === "pagination" && savedPage != null && savedPage > 0) {
+            const t = setTimeout(() => {
+                paginationRef.current?.goToPage(savedPage);
+            }, 300);
+            return () => clearTimeout(t);
+        }
+    }, [chapter, loaded, prefs.mode, restore, savedPage]);
 
     const currentChapterNumber = chapter ? Number.parseFloat(chapter.name) : 0;
     const totalChapters = series?.chapters.length ?? 0;
@@ -740,11 +791,12 @@ export default function ChapterReader() {
                         style={{ maxWidth: `${prefs.zoom}px`, width: "100%" }}
                     >
                         {chapter.pages.map((page, index) => (
-                            <ChapterImage
-                                key={page.id}
-                                src={page.url}
-                                alt={`Página ${index + 1}`}
-                            />
+                            <div key={page.id} data-chapter-image={index} className="w-full scroll-mt-16">
+                                <ChapterImage
+                                    src={page.url}
+                                    alt={`Página ${index + 1}`}
+                                />
+                            </div>
                         ))}
                     </div>
                 ) : (
@@ -756,6 +808,7 @@ export default function ChapterReader() {
                         onChapterChange={handleChapterChange}
                         hasPrevChapter={!!chapter.prev}
                         hasNextChapter={!!chapter.next}
+                        onPageChange={setPaginationPage}
                     />
                 )}
 

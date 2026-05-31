@@ -95,6 +95,24 @@ export async function fetchReadingStats() {
     return data;
 }
 
+export async function upsertChapterProgress(
+    chapterId: number,
+    body: { pageNumber?: number | null; percentage?: number | null },
+): Promise<{ pageNumber: number | null; percentage: number | null }> {
+    const { data } = await api.put(`/reads/chapter/${chapterId}/progress`, body);
+    return data;
+}
+
+export async function fetchChapterProgress(chapterId: number): Promise<{ pageNumber: number | null; percentage: number | null } | null> {
+    const { data } = await api.get(`/reads/chapter/${chapterId}/progress`);
+    return data;
+}
+
+export async function fetchSeriesProgress(seriesId: number): Promise<Array<{ chapterId: number; pageNumber: number | null; percentage: number | null; updatedAt: string }>> {
+    const { data } = await api.get(`/reads/series/${seriesId}/progress`);
+    return data;
+}
+
 export async function fetchFullStats() {
     const { data } = await api.get("/reads/full-stats");
     return data;
