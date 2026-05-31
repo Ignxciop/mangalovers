@@ -30,7 +30,7 @@ const RecommendedCard = memo(function RecommendedCard({
                         <FriendAvatars friends={friends} size="xs" />
                     </div>
                 )}
-                <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
+                <div className="absolute top-2 left-2 flex flex-wrap gap-1">
                     {item.genres.slice(0, 2).map((genre) => (
                         <Badge
                             key={genre}
