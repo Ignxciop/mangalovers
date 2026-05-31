@@ -595,6 +595,11 @@ export default function ChapterReader() {
         if (!chapter || !loaded) return;
 
         if (prefs.mode === "cascade") {
+            if (savedPage == null) {
+                window.scrollTo(0, 0);
+                return;
+            }
+
             let attempts = 0;
             const maxAttempts = 15;
             const timers: ReturnType<typeof setTimeout>[] = [];
