@@ -58,6 +58,7 @@ model User {
   refreshTokens     RefreshToken[]
   favorites         UserFavorite[]
   chapterReads      UserChapterRead[]
+  chapterProgress   UserChapterProgress[]
   pushSubscriptions PushSubscription[]
   suggestions       Suggestion[]
   reviewedSuggestions Suggestion[] @relation("SuggestionReviewedBy")
@@ -154,6 +155,7 @@ model Chapter {
   pages            Page[]
   providerChapters ProviderChapter[]
   reads         UserChapterRead[]
+  progress      UserChapterProgress[]
 
   pagesScraped Boolean @default(false)
 
@@ -270,6 +272,21 @@ model UserChapterRead {
 
   @@unique([userId, chapterId])
   @@map("user_chapter_reads")
+}
+
+model UserChapterProgress {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  chapterId  Int
+  pageNumber Int?
+  percentage Int?
+  updatedAt  DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chapterId])
+  @@map("user_chapter_progress")
 }
 
 model UserActivity {

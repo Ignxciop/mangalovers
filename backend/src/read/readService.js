@@ -145,6 +145,54 @@ export async function unmarkChaptersFrom(userId, chapterId) {
   return { updated: chapters.length };
 }
 
+// ─── Progress tracking ────────────────────────────────────────
+
+export async function upsertChapterProgress(userId, chapterId, { pageNumber, percentage }) {
+  const chapter = await prisma.chapter.findUnique({
+    where: { id: Number(chapterId) },
+    select: { id: true },
+  });
+  if (!chapter) throw new NotFoundError("Chapter not found");
+
+  const data = {
+    userId,
+    chapterId: Number(chapterId),
+    pageNumber: pageNumber ?? null,
+    percentage: percentage ?? null,
+  };
+
+  return prisma.userChapterProgress.upsert({
+    where: { userId_chapterId: { userId, chapterId: Number(chapterId) } },
+    create: data,
+    update: { pageNumber: data.pageNumber, percentage: data.percentage },
+  });
+}
+
+export async function getChapterProgress(userId, chapterId) {
+  const progress = await prisma.userChapterProgress.findUnique({
+    where: { userId_chapterId: { userId, chapterId: Number(chapterId) } },
+  });
+  return progress;
+}
+
+export async function getSeriesProgress(userId, seriesId) {
+  const progresses = await prisma.userChapterProgress.findMany({
+    where: {
+      userId,
+      chapter: { seriesId: Number(seriesId) },
+    },
+    select: {
+      chapterId: true,
+      pageNumber: true,
+      percentage: true,
+      updatedAt: true,
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return progresses;
+}
+
 export async function getUserReadingStats(userId) {
   const totalChaptersRead = await prisma.userChapterRead.count({ where: { userId } });
 
