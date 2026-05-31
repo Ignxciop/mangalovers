@@ -141,7 +141,7 @@ describe("MangaDetail", () => {
 
         it("renderiza lista de capítulos", () => {
             renderPage();
-            expect(screen.getByText("3 disponibles")).toBeInTheDocument();
+            expect(screen.getByText("Antiguo → Nuevo")).toBeInTheDocument();
         });
 
         it("renderiza badge de estado Activo", () => {

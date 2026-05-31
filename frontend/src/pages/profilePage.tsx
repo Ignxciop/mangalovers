@@ -680,7 +680,6 @@ export function NotificationSection() {
 }
 
 function ActivitySection() {
-    const user = useAuthStore((s) => s.user);
     const [activities, setActivities] = useState<FriendActivity[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -689,10 +688,9 @@ function ActivitySection() {
         async function load() {
             setLoading(true);
             try {
-                const res = await getActivityFeed(1, 10);
+                const res = await getActivityFeed(1, 10, "own");
                 if (cancelled) return;
-                const own = res.data.filter((a) => a.userId === user?.id);
-                setActivities(own);
+                setActivities(res.data);
             } catch {
                 if (!cancelled) setActivities([]);
             } finally {
@@ -701,7 +699,7 @@ function ActivitySection() {
         }
         load();
         return () => { cancelled = true; };
-    }, [user?.id]);
+    }, []);
 
     function eventConfig(event: FriendActivity) {
         switch (event.event) {
