@@ -37,7 +37,8 @@ import { useState, useMemo, useEffect, memo, useCallback } from "react";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useAuthStore } from "@/store/authStore";
-import { getFriendReadsForSeries, type FriendSeriesRead } from "@/api/friends";
+import { getFriendReadsForSeries, type FriendSeriesRead, type SimpleFriend } from "@/api/friends";
+import { FriendAvatars } from "@/components/FriendAvatars";
 import { toast } from "sonner";
 
 const AVATAR_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
@@ -300,6 +301,24 @@ export default function MangaDetail() {
             map.set(read.chapterId, arr);
         }
         return map;
+    }, [friendReads]);
+
+    const friendAvatars = useMemo(() => {
+        const seen = new Set<string>();
+        const unique: SimpleFriend[] = [];
+        for (const read of friendReads) {
+            if (!seen.has(read.userId)) {
+                seen.add(read.userId);
+                unique.push({
+                    userId: read.userId,
+                    name: read.name,
+                    lastname: read.lastname,
+                    alias: read.alias,
+                    avatarUrl: read.avatarUrl,
+                });
+            }
+        }
+        return unique;
     }, [friendReads]);
 
     const chaptersSorted = useMemo(() => {
@@ -670,13 +689,13 @@ export default function MangaDetail() {
                             {/* Lista de capítulos */}
                             <div>
                                 <div className="flex items-center justify-between mb-3">
-                                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                                        Capítulos
-                                    </p>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[11px] text-muted-foreground">
-                                            {series.chapters.length} disponibles
-                                        </span>
+                                        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                                            Capítulos
+                                        </p>
+                                        <FriendAvatars friends={friendAvatars} size="xs" />
+                                    </div>
+                                    <div className="flex items-center gap-2">
                                         <Button
                                             variant="ghost"
                                             size="sm"
