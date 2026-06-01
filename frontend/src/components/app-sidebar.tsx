@@ -65,7 +65,7 @@ function NavItem({
     badge?: number;
     disabled?: boolean;
 }) {
-    const { state, isMobile } = useSidebar();
+    const { state, isMobile, setOpenMobile } = useSidebar();
     const collapsed = !isMobile && state === "collapsed";
     const location = useLocation();
     const isActive = location.pathname === href;
@@ -88,9 +88,16 @@ function NavItem({
         );
     }
 
+    const handleClick = () => {
+        if (isMobile) {
+            setOpenMobile(false);
+        }
+    };
+
     return (
         <Link
             to={href}
+            onClick={handleClick}
             className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative",
                 isActive
@@ -134,6 +141,13 @@ const SidebarUserSection = memo(function SidebarUserSection({
     const user = useAuthStore((s) => s.user);
     const storeLogout = useAuthStore((s) => s.logout);
     const { theme, setTheme } = useTheme();
+    const { setOpenMobile } = useSidebar();
+
+    const closeMobileAndNavigate = (path: string) => {
+        setOpenMobile(false);
+        setTimeout(() => navigate(path), 350);
+    };
+
     const handleLogout = async () => {
         try {
             await api.post("/auth/logout");
@@ -141,7 +155,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
             // Silenciar error del lado del servidor
         }
         storeLogout();
-        navigate("/");
+        closeMobileAndNavigate("/");
     };
 
     return (
@@ -316,9 +330,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                     <>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
-                                            onSelect={() =>
-                                                navigate("/perfil")
-                                            }
+                                            onSelect={() => closeMobileAndNavigate("/perfil")}
                                             className="rounded-lg cursor-pointer gap-2.5"
                                         >
                                             <Settings className="h-4 w-4 text-muted-foreground" />
@@ -333,9 +345,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                         </DropdownMenuItem>
                                         {user?.role === "ADMIN" && (
                                             <DropdownMenuItem
-                                                onSelect={() =>
-                                                    setTimeout(() => navigate("/admin/dashboard"), 0)
-                                                }
+                                                onSelect={() => closeMobileAndNavigate("/admin/dashboard")}
                                                 className="rounded-lg cursor-pointer gap-2.5"
                                             >
                                                 <Shield className="h-4 w-4 text-muted-foreground" />
@@ -355,9 +365,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                     <>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
-                                            onSelect={() =>
-                                                navigate("/acceso")
-                                            }
+                                            onSelect={() => closeMobileAndNavigate("/acceso")}
                                             className="rounded-lg cursor-pointer gap-2.5 text-primary focus:text-primary focus:bg-primary/10"
                                         >
                                             <LogIn className="h-4 w-4" />

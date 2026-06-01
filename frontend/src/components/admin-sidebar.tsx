@@ -51,14 +51,21 @@ function NavItem({
     icon: React.ElementType;
     label: string;
 }) {
-    const { state, isMobile } = useSidebar();
+    const { state, isMobile, setOpenMobile } = useSidebar();
     const collapsed = !isMobile && state === "collapsed";
     const location = useLocation();
     const isActive = location.pathname === href;
 
+    const handleClick = () => {
+        if (isMobile) {
+            setOpenMobile(false);
+        }
+    };
+
     return (
         <Link
             to={href}
+            onClick={handleClick}
             className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative",
                 isActive
@@ -89,6 +96,12 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
     const user = useAuthStore((s) => s.user);
     const storeLogout = useAuthStore((s) => s.logout);
     const { theme, setTheme } = useTheme();
+    const { setOpenMobile } = useSidebar();
+
+    const handleNavigateToUser = () => {
+        setOpenMobile(false);
+        setTimeout(() => navigate("/"), 350);
+    };
 
     const handleLogout = async () => {
         try {
@@ -262,7 +275,7 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                         </span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        onSelect={() => setTimeout(() => navigate("/"), 0)}
+                        onSelect={handleNavigateToUser}
                         className="rounded-lg cursor-pointer gap-2.5"
                     >
                         <UserRound className="h-4 w-4 text-muted-foreground" />
