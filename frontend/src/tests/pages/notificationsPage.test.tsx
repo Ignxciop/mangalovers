@@ -19,7 +19,7 @@ vi.mock("@/api/notifications", () => ({
     markAllNotificationsAsRead: vi.fn(),
 }));
 
-let authState = { user: { id: "u1" } };
+let authState: { user: { id: string } | null } = { user: { id: "u1" } };
 const mockAuthStore = vi.hoisted(() => vi.fn((selector) => selector ? selector(authState) : authState));
 vi.mock("@/store/authStore", () => ({
     useAuthStore: mockAuthStore,
@@ -35,9 +35,9 @@ vi.mock("sonner", () => ({
 import { getNotifications, getUnreadNotificationCount, markNotificationAsRead, markAllNotificationsAsRead } from "@/api/notifications";
 
 const NOTIFICATIONS_MOCK = [
-    { id: "1", userId: "u1", type: "FRIEND_REQUEST", title: "Solicitud de amistad", body: "Juan te envió una solicitud", data: null, read: false, createdAt: "2026-05-28T10:00:00Z" },
-    { id: "2", userId: "u1", type: "NEW_CHAPTER", title: "Nuevo capítulo", body: "One Piece capítulo 1124 disponible", data: { slug: "one-piece" }, read: false, createdAt: "2026-05-28T09:00:00Z" },
-    { id: "3", userId: "u1", type: "FRIEND_ACCEPTED", title: "Solicitud aceptada", body: "María aceptó tu solicitud", data: null, read: true, createdAt: "2026-05-27T08:00:00Z" },
+    { id: "1", userId: "u1", type: "FRIEND_REQUEST" as const, title: "Solicitud de amistad", body: "Juan te envió una solicitud", data: null, read: false, createdAt: "2026-05-28T10:00:00Z" },
+    { id: "2", userId: "u1", type: "NEW_CHAPTER" as const, title: "Nuevo capítulo", body: "One Piece capítulo 1124 disponible", data: { slug: "one-piece" }, read: false, createdAt: "2026-05-28T09:00:00Z" },
+    { id: "3", userId: "u1", type: "FRIEND_ACCEPTED" as const, title: "Solicitud aceptada", body: "María aceptó tu solicitud", data: null, read: true, createdAt: "2026-05-27T08:00:00Z" },
 ];
 
 function renderPage() {
@@ -170,7 +170,7 @@ it("navega al hacer click en notificación de nuevo capítulo", async () => {
 });
 
 it("no renderiza notificaciones cuando no hay usuario autenticado", () => {
-    authState = { user: null as { id: string } | null };
+    authState = { user: null };
     renderPage();
     expect(screen.queryByText("Notificaciones")).not.toBeInTheDocument();
 });
