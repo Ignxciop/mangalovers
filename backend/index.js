@@ -20,7 +20,9 @@ import sitemapRoutes from "./src/sitemap/sitemapRoutes.js";
 import suggestionRoutes from "./src/suggestions/suggestionRoutes.js";
 import friendRoutes from "./src/friends/friendRoutes.js";
 import adminRoutes from "./src/admin/adminUserRoutes.js";
+import adminAnnouncementRoutes from "./src/admin/adminAnnouncementRoutes.js";
 import activityLogRoutes from "./src/activityLog/activityLogRoutes.js";
+import announcementRoutes from "./src/routes/announcementRoutes.js";
 import { ActivityLogService } from "./src/activityLog/activityLogService.js";
 import { prisma } from "./src/config/prisma.js";
 
@@ -154,8 +156,10 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/suggestions", suggestionRoutes);
 app.use("/api/friends", friendRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/admin", adminAnnouncementRoutes);
 app.use("/api/admin", activityLogRoutes);
 app.use("/api", sitemapRoutes);
+app.use("/api", announcementRoutes);
 
 app.use(errorHandler);
 

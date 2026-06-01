@@ -19,6 +19,7 @@ export function usePullToRefresh(onRefresh: () => void) {
 
             const target = e.target as HTMLElement;
             if (target.closest("[data-slot='select-content']")) return;
+            if (target.closest("[role='dialog']")) return;
 
             startY.current = e.touches[0].clientY;
             pulling.current = true;
@@ -29,6 +30,7 @@ export function usePullToRefresh(onRefresh: () => void) {
 
             const target = e.target as HTMLElement;
             if (target.closest("[data-slot='select-content']")) return;
+            if (target.closest("[role='dialog']")) return;
 
             const currentY = e.touches[0].clientY;
             const diff = currentY - startY.current;
