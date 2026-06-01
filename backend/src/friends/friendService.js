@@ -1,57 +1,8 @@
-import webpush from "web-push";
 import { prisma } from "../config/prisma.js";
-import { config } from "../config/env.js";
 import logger from "../config/logger.js";
 import { ConflictError, NotFoundError, ForbiddenError, ValidationError } from "../utils/errors.js";
-
-try {
-  webpush.setVapidDetails(
-    `mailto:${config.VAPID_EMAIL}`,
-    config.VAPID_PUBLIC_KEY,
-    config.VAPID_PRIVATE_KEY,
-  );
-} catch (error) {
-  logger.warn({ err: error }, "Error configurando VAPID en friendService");
-}
-
-async function sendFriendRequestPush(senderId, receiverId) {
-  if (!config.VAPID_PUBLIC_KEY || !config.VAPID_PRIVATE_KEY) return;
-
-  const [sender, subscriptions] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: senderId },
-      select: { name: true, lastname: true },
-    }),
-    prisma.pushSubscription.findMany({
-      where: { userId: receiverId },
-    }),
-  ]);
-
-  if (!sender || subscriptions.length === 0) return;
-
-  const payload = {
-    title: "Nueva solicitud de amistad",
-    body: `${sender.name} ${sender.lastname} te envió una solicitud de amistad`,
-    icon: "/icons/icon-192x192.png",
-    badge: "/icons/badge-72x72.png",
-    tag: "friend-request",
-    data: { url: "/amigos" },
-  };
-
-  for (const subscription of subscriptions) {
-    try {
-      await webpush.sendNotification(
-        { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
-        JSON.stringify(payload),
-      );
-    } catch (error) {
-      if (error.statusCode === 410 || error.statusCode === 404) {
-        await prisma.pushSubscription.delete({ where: { id: subscription.id } }).catch(() => {});
-      }
-      logger.warn({ subscriptionId: subscription.id }, "Error enviando push de solicitud de amistad");
-    }
-  }
-}
+import { sendFriendRequestPush } from "../notifications/pushService.js";
+import { createNotification } from "../notifications/notificationService.js";
 
 export class FriendService {
   static async searchUsers(query, currentUserId) {
@@ -156,6 +107,21 @@ export class FriendService {
       logger.warn({ err }, "Error en push de solicitud de amistad"),
     );
 
+    const sender = await prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { name: true, lastname: true },
+    });
+
+    if (sender) {
+      createNotification({
+        userId: receiverId,
+        type: "FRIEND_REQUEST",
+        title: "Nueva solicitud de amistad",
+        body: `${sender.name} ${sender.lastname} te envió una solicitud de amistad`,
+        data: { requestId: friend.id, senderId: currentUserId },
+      }).catch((err) => logger.warn({ err }, "Error creando notificación"));
+    }
+
     return friend;
   }
 
@@ -171,10 +137,32 @@ export class FriendService {
       throw new ConflictError("La solicitud ya fue procesada");
     }
 
-    return prisma.friend.update({
+    const updated = await prisma.friend.update({
       where: { id: requestId },
       data: { status: "ACCEPTED" },
+      select: {
+        id: true,
+        status: true,
+        sender: { select: { name: true, lastname: true } },
+      },
     });
+
+    const receiver = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, lastname: true },
+    });
+
+    if (receiver) {
+      createNotification({
+        userId: request.senderId,
+        type: "FRIEND_ACCEPTED",
+        title: "Solicitud de amistad aceptada",
+        body: `${receiver.name} ${receiver.lastname} aceptó tu solicitud de amistad`,
+        data: { friendId: userId },
+      }).catch((err) => logger.warn({ err }, "Error creando notificación"));
+    }
+
+    return updated;
   }
 
   static async rejectRequest(userId, requestId) {

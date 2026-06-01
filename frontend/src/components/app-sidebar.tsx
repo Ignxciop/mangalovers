@@ -43,11 +43,13 @@ import {
     Users,
     MessageCirclePlus,
     Shield,
+    Bell,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getReceivedRequestsCount } from "@/api/friends";
+import { getUnreadNotificationCount } from "@/api/notifications";
 import { SidebarMenuBadge } from "@/components/ui/sidebar";
 
 function NavItem({
@@ -378,6 +380,7 @@ export function AppSidebar() {
     const collapsed = !isMobile && state === "collapsed";
     const [showSuggestionForm, setShowSuggestionForm] = useState(false);
     const [pendingFriendCount, setPendingFriendCount] = useState(0);
+    const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -386,6 +389,23 @@ export function AppSidebar() {
             try {
                 const count = await getReceivedRequestsCount();
                 setPendingFriendCount(count);
+            } catch {
+                // Silenciar error
+            }
+        };
+
+        fetchCount();
+        const interval = setInterval(fetchCount, 30000);
+        return () => clearInterval(interval);
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const fetchCount = async () => {
+            try {
+                const count = await getUnreadNotificationCount();
+                setUnreadNotifCount(count);
             } catch {
                 // Silenciar error
             }
@@ -462,6 +482,13 @@ export function AppSidebar() {
                                     icon={BarChart3}
                                     label="Estadísticas"
                                     disabled={!isAuthenticated}
+                                />
+                                <NavItem
+                                    href="/notificaciones"
+                                    icon={Bell}
+                                    label="Notificaciones"
+                                    disabled={!isAuthenticated}
+                                    badge={unreadNotifCount}
                                 />
                             </SidebarMenuItem>
                         </SidebarMenu>

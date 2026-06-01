@@ -1,5 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
+import logger from "../config/logger.js";
+import { createNotification } from "../notifications/notificationService.js";
 
 export class SuggestionService {
   static async create(userId, { type, title, description, image }) {
@@ -119,7 +121,7 @@ export class SuggestionService {
     const suggestion = await prisma.suggestion.findUnique({ where: { id: suggestionId } });
     if (!suggestion) throw new NotFoundError("Sugerencia no encontrada");
 
-    return prisma.suggestion.update({
+    const updated = await prisma.suggestion.update({
       where: { id: suggestionId },
       data: { status, reviewedById: adminUserId },
       select: {
@@ -134,5 +136,18 @@ export class SuggestionService {
         },
       },
     });
+
+    if (status === "RESOLVED" || status === "REJECTED") {
+      const label = status === "RESOLVED" ? "resuelta" : "rechazada";
+      createNotification({
+        userId: suggestion.userId,
+        type: "SUGGESTION_RESOLVED",
+        title: `Sugerencia ${label}`,
+        body: `Tu sugerencia "${suggestion.title}" fue ${label}`,
+        data: { suggestionId, status, reviewedBy: adminUserId },
+      }).catch((err) => logger.warn({ err }, "Error creando notificación"));
+    }
+
+    return updated;
   }
 }

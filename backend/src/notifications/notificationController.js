@@ -1,5 +1,5 @@
 import { config } from "../config/env.js";
-import { subscribe, unsubscribe, isSubscribed } from "./notificationService.js";
+import { subscribe, unsubscribe, isSubscribed } from "./pushService.js";
 
 export async function getVapidPublicKey(req, res, next) {
   try {

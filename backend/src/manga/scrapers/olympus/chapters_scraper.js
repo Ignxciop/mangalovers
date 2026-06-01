@@ -2,7 +2,7 @@ import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
-import { notifyNewChapter } from "../../../notifications/notificationService.js";
+import { notifyNewChapter } from "../../../notifications/pushService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
 import { promoteStatusIfInactive } from "../resolveStatus.js";
 
