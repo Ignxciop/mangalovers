@@ -409,3 +409,97 @@ describe("GET /api/auth/sessions", () => {
         expect(res.body.success).toBe(false);
     });
 });
+
+describe("GET /api/auth/status", () => {
+    it("devuelve el estado del usuario autenticado", async () => {
+        const user = await createUser();
+        const token = generateAccessToken(user.id);
+
+        const res = await request(app)
+            .get("/api/auth/status")
+            .set("Authorization", `Bearer ${token}`)
+            .expect(200);
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.status).toBe("ACTIVE");
+    });
+
+    it("rechaza sin autenticación con 401", async () => {
+        const res = await request(app)
+            .get("/api/auth/status")
+            .expect(401);
+
+        expect(res.body.success).toBe(false);
+    });
+});
+
+describe("PATCH /api/auth/alias", () => {
+    it("actualiza alias exitosamente", async () => {
+        const user = await createUser();
+        const token = generateAccessToken(user.id);
+
+        const res = await request(app)
+            .patch("/api/auth/alias")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ alias: "mi_alias_unico" })
+            .expect(200);
+
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.user.alias).toBe("mi_alias_unico");
+        expect(res.body.data.user.aliasChanged).toBe(true);
+    });
+
+    it("rechaza alias duplicado con 409", async () => {
+        const user1 = await createUser({ alias: "alias_en_uso" });
+        const user2 = await createUser();
+        const token = generateAccessToken(user2.id);
+
+        const res = await request(app)
+            .patch("/api/auth/alias")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ alias: "alias_en_uso" })
+            .expect(409);
+
+        expect(res.body.success).toBe(false);
+    });
+
+    it("rechaza segundo cambio de alias", async () => {
+        const user = await createUser();
+        const token = generateAccessToken(user.id);
+
+        await request(app)
+            .patch("/api/auth/alias")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ alias: "primer_alias" });
+
+        const res = await request(app)
+            .patch("/api/auth/alias")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ alias: "segundo_alias" })
+            .expect(400);
+
+        expect(res.body.success).toBe(false);
+    });
+
+    it("rechaza alias vacío con 400", async () => {
+        const user = await createUser();
+        const token = generateAccessToken(user.id);
+
+        const res = await request(app)
+            .patch("/api/auth/alias")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ alias: "" })
+            .expect(400);
+
+        expect(res.body.success).toBe(false);
+    });
+
+    it("rechaza sin autenticación con 401", async () => {
+        const res = await request(app)
+            .patch("/api/auth/alias")
+            .send({ alias: "sin_auth" })
+            .expect(401);
+
+        expect(res.body.success).toBe(false);
+    });
+});
