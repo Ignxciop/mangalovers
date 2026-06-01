@@ -334,7 +334,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                         {user?.role === "ADMIN" && (
                                             <DropdownMenuItem
                                                 onSelect={() =>
-                                                    navigate("/admin/dashboard")
+                                                    setTimeout(() => navigate("/admin/dashboard"), 0)
                                                 }
                                                 className="rounded-lg cursor-pointer gap-2.5"
                                             >

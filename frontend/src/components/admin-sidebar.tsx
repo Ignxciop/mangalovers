@@ -35,6 +35,7 @@ import {
     Moon,
     Sun,
     LogOut,
+    Megaphone,
 } from "lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
@@ -261,7 +262,7 @@ function AdminUserCard({ collapsed }: { collapsed: boolean }) {
                         </span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        onSelect={() => navigate("/")}
+                        onSelect={() => setTimeout(() => navigate("/"), 0)}
                         className="rounded-lg cursor-pointer gap-2.5"
                     >
                         <UserRound className="h-4 w-4 text-muted-foreground" />
@@ -355,6 +356,13 @@ export function AdminSidebar() {
                                     href="/admin/metricas"
                                     icon={BarChart3}
                                     label="Métricas"
+                                />
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <NavItem
+                                    href="/admin/anuncios"
+                                    icon={Megaphone}
+                                    label="Anuncios"
                                 />
                             </SidebarMenuItem>
                         </SidebarMenu>

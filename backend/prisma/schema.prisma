@@ -66,6 +66,7 @@ model User {
   sentRequests      Friend[]      @relation("SentFriendRequests")
   receivedRequests  Friend[]      @relation("ReceivedFriendRequests")
   notifications     Notification[]
+  seenAnnouncements UserAnnouncement[]
 
   @@map("users")
 }
@@ -373,4 +374,32 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  body      String
+  active    Boolean  @default(true)
+  publishAt DateTime
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seenBy UserAnnouncement[]
+
+  @@index([active, publishAt, expiresAt])
+  @@map("announcements")
+}
+
+model UserAnnouncement {
+  userId         String
+  announcementId Int
+  seenAt         DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, announcementId])
+  @@map("user_announcements")
 }
