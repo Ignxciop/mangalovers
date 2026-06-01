@@ -80,19 +80,13 @@ export function AnnouncementModal() {
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleDismiss(); }}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex items-center justify-center size-10 rounded-xl bg-brand/15 text-brand shrink-0">
-              <Megaphone className="size-5" />
-            </div>
-            <div>
-              <DialogTitle className="text-lg">
-                {announcement?.title ?? "Anuncio"}
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                Anuncio importante de Mangalovers
-              </DialogDescription>
-            </div>
+          <div className="flex items-center justify-center size-12 rounded-xl bg-brand/15 text-brand mx-auto mb-2">
+            <Megaphone className="size-6" />
           </div>
+          <DialogTitle className="sr-only">Anuncio</DialogTitle>
+          <DialogDescription className="sr-only">
+            Anuncio importante de Mangalovers
+          </DialogDescription>
         </DialogHeader>
 
         {announcement && (
