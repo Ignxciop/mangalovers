@@ -821,14 +821,9 @@ export default function FriendsPage() {
                                 <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
                                     <HeartHandshake className="h-3.5 w-3.5 text-primary/80" />
                                 </div>
-                                <div className="flex flex-col leading-tight">
-                                    <span className="text-sm font-semibold tracking-tight">
-                                        Amigos
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground/60 hidden sm:block">
-                                        Conecta con otros lectores
-                                    </span>
-                                </div>
+                                <span className="text-sm font-semibold tracking-tight">
+                                    Amigos
+                                </span>
                             </div>
                         </div>
                     </div>

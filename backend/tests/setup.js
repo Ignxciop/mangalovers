@@ -10,7 +10,9 @@ import logger from "../src/config/logger.js";
 const TABLE_NAMES = [
     "suggestions",
     "user_chapter_reads",
+    "user_chapter_progress",
     "user_favorites",
+    "notifications",
     "push_subscriptions",
     "refresh_tokens",
     "ProviderChapter",

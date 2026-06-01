@@ -83,7 +83,7 @@ function rateLimitHandler(message) {
 
 const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 500,
+    max: 1500,
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler("Demasiadas solicitudes, intenta de nuevo más tarde"),
@@ -99,7 +99,7 @@ const authLimiter = rateLimit({
 
 const heavyLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 30,
+    max: 120,
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler("Demasiadas solicitudes, intenta de nuevo más tarde"),

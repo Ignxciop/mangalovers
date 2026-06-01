@@ -65,6 +65,7 @@ model User {
   activityLogs      UserActivity[]
   sentRequests      Friend[]      @relation("SentFriendRequests")
   receivedRequests  Friend[]      @relation("ReceivedFriendRequests")
+  notifications     Notification[]
 
   @@map("users")
 }
@@ -340,6 +341,23 @@ model ScraperRun {
   @@index([provider, startedAt])
   @@index([startedAt])
   @@map("scraper_runs")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  type      String   // FRIEND_REQUEST | FRIEND_ACCEPTED | SUGGESTION_RESOLVED | NEW_CHAPTER
+  title     String
+  body      String?
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 model PushSubscription {
