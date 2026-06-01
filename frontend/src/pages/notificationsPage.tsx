@@ -197,10 +197,7 @@ export default function NotificationsPage() {
                                 <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
                                     <BellRing className="h-3.5 w-3.5 text-primary/80" />
                                 </div>
-                                <div className="flex flex-col leading-tight">
-                                    <span className="text-sm font-semibold tracking-tight">Notificaciones</span>
-                                    <span className="text-[10px] text-muted-foreground/60 hidden sm:block">Mantente al día</span>
-                                </div>
+                                <span className="text-sm font-semibold tracking-tight">Notificaciones</span>
                             </div>
                         </div>
                         {notifications.length > 0 && unreadCount > 0 && (

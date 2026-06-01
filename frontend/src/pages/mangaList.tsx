@@ -248,14 +248,16 @@ export default function MangaList() {
                 ],
             }} />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
+                <header className="sticky top-0 z-40 w-full bg-gradient-to-r from-background via-background to-brand/[0.02] border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
                 <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
                     <SidebarTrigger />
                     <div className="flex justify-center min-w-0">
-                        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                            <div className="hidden sm:flex items-center gap-2 shrink-0">
-                                <BookOpen className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm font-semibold">Catálogo</span>
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center gap-2.5 shrink-0">
+                                <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                                    <BookOpen className="h-3.5 w-3.5 text-primary/80" />
+                                </div>
+                                <span className="text-sm font-semibold tracking-tight">Catálogo</span>
                             </div>
                             <div className="w-full max-w-md">
                                 <div className="relative">

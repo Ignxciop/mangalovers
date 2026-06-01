@@ -395,7 +395,7 @@ export function AppSidebar() {
         };
 
         fetchCount();
-        const interval = setInterval(fetchCount, 30000);
+        const interval = setInterval(fetchCount, 60000);
         return () => clearInterval(interval);
     }, [isAuthenticated]);
 
@@ -412,7 +412,7 @@ export function AppSidebar() {
         };
 
         fetchCount();
-        const interval = setInterval(fetchCount, 30000);
+        const interval = setInterval(fetchCount, 60000);
         return () => clearInterval(interval);
     }, [isAuthenticated]);
 
