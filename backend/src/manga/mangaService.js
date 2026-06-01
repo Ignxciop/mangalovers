@@ -230,6 +230,24 @@ export async function getChapterPages(slug, chapterId, _userId = null) {
   };
 }
 
+function getWeekSeed() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const diff = now.getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / (24 * 60 * 60 * 1000));
+  const week = Math.ceil((dayOfYear + start.getDay() + 1) / 7);
+  return `${now.getFullYear()}-${String(week).padStart(2, "0")}`;
+}
+
+function hashStr(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 export async function getRecommendedSeries(userId, limit = 12) {
   const reads = await prisma.userChapterRead.findMany({
     where: { userId },
@@ -281,14 +299,20 @@ export async function getRecommendedSeries(userId, limit = 12) {
     take: 50,
   });
 
+  const weekSeed = getWeekSeed();
+
   const scored = candidates
     .filter((s) => !favIds.includes(s.id))
     .map((s) => {
       const seriesGenres = s.genres.map((g) => g.genre.name);
       const score = topGenres.filter((g) => seriesGenres.includes(g)).length;
-      return { ...s, score, genres: seriesGenres };
+      const rotation = hashStr(weekSeed + String(s.id)) % 10000;
+      return { ...s, score, genres: seriesGenres, rotation };
     })
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.rotation - b.rotation;
+    })
     .slice(0, limit);
 
   return { series: scored, basedOn: topGenres };
