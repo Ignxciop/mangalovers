@@ -32,7 +32,7 @@ vi.mock("sonner", () => ({
     },
 }));
 
-import { getNotifications, getUnreadNotificationCount, markNotificationAsRead, markAllNotificationsAsRead } from "@/api/notifications";
+import { getNotifications, getUnreadNotificationCount, markAllNotificationsAsRead } from "@/api/notifications";
 
 const NOTIFICATIONS_MOCK = [
     { id: "1", userId: "u1", type: "FRIEND_REQUEST" as const, title: "Solicitud de amistad", body: "Juan te envió una solicitud", data: null, read: false, createdAt: "2026-05-28T10:00:00Z" },
