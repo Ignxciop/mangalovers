@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 RUN apk add --no-cache wget
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
 
 WORKDIR /app
 
