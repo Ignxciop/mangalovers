@@ -8,7 +8,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: config.ENVIRONMENT === "production",
   sameSite: "lax",
-  path: "/api/auth",
+  path: "/api",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
@@ -89,7 +89,7 @@ export async function googleLogin(req, res, next) {
 export async function logout(req, res, next) {
   try {
     await AuthService.logout(req.cookies?.refreshToken);
-    res.clearCookie("refreshToken", { path: "/api/auth" });
+    clearRefreshCookie(res);
     res.status(200).json({
       success: true,
       message: "Logout exitoso",
