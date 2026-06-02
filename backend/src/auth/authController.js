@@ -12,13 +12,20 @@ const COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
+const LEGACY_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: config.ENVIRONMENT === "production",
+  sameSite: "lax",
+  path: "/api/auth",
+};
+
 function setRefreshCookie(res, refreshToken) {
-  res.clearCookie("refreshToken", { path: "/api/auth" });
+  res.clearCookie("refreshToken", { ...LEGACY_COOKIE_OPTIONS, maxAge: 0 });
   res.cookie("refreshToken", refreshToken, COOKIE_OPTIONS);
 }
 
 function clearRefreshCookie(res) {
-  res.clearCookie("refreshToken", { path: "/api/auth", maxAge: 0 });
+  res.clearCookie("refreshToken", { ...LEGACY_COOKIE_OPTIONS, maxAge: 0 });
   res.clearCookie("refreshToken", { ...COOKIE_OPTIONS, maxAge: 0 });
 }
 
