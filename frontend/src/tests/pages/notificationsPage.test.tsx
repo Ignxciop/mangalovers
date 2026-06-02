@@ -16,7 +16,7 @@ vi.mock("@/api/notifications", () => ({
     getNotifications: vi.fn(),
     getUnreadNotificationCount: vi.fn(),
     markNotificationAsRead: vi.fn(),
-    markAllNotificationsAsRead: vi.fn(),
+    markAllNotificationsAsRead: vi.fn().mockResolvedValue(undefined),
 }));
 
 let authState: { user: { id: string } | null } = { user: { id: "u1" } };
@@ -32,7 +32,7 @@ vi.mock("sonner", () => ({
     },
 }));
 
-import { getNotifications, getUnreadNotificationCount, markNotificationAsRead, markAllNotificationsAsRead } from "@/api/notifications";
+import { getNotifications, getUnreadNotificationCount, markAllNotificationsAsRead } from "@/api/notifications";
 
 const NOTIFICATIONS_MOCK = [
     { id: "1", userId: "u1", type: "FRIEND_REQUEST" as const, title: "Solicitud de amistad", body: "Juan te envió una solicitud", data: null, read: false, createdAt: "2026-05-28T10:00:00Z" },
@@ -89,6 +89,7 @@ it("muestra lista de notificaciones", async () => {
 it("muestra botón 'Leer todo' cuando hay no leídas", async () => {
     vi.mocked(getNotifications).mockResolvedValue({ data: NOTIFICATIONS_MOCK, total: 3 });
     vi.mocked(getUnreadNotificationCount).mockResolvedValue(2);
+    vi.mocked(markAllNotificationsAsRead).mockRejectedValueOnce(new Error());
 
     renderPage();
 
@@ -111,7 +112,7 @@ it("marca todas como leídas al hacer click en 'Leer todo'", async () => {
     const user = userEvent.setup();
     vi.mocked(getNotifications).mockResolvedValue({ data: NOTIFICATIONS_MOCK, total: 3 });
     vi.mocked(getUnreadNotificationCount).mockResolvedValue(2);
-    vi.mocked(markAllNotificationsAsRead).mockResolvedValue(undefined);
+    vi.mocked(markAllNotificationsAsRead).mockRejectedValueOnce(new Error());
 
     renderPage();
 
@@ -122,14 +123,13 @@ it("marca todas como leídas al hacer click en 'Leer todo'", async () => {
     await user.click(screen.getByText("Leer todo"));
 
     await waitFor(() => {
-        expect(markAllNotificationsAsRead).toHaveBeenCalledOnce();
+        expect(markAllNotificationsAsRead).toHaveBeenCalledTimes(2);
     });
 });
 
-it("llama a markAsRead al hacer click en notificación no leída", async () => {
+it("navega al hacer click en notificación de amistad", async () => {
     const user = userEvent.setup();
     vi.mocked(getNotifications).mockResolvedValue({ data: [NOTIFICATIONS_MOCK[0]], total: 1 });
-    vi.mocked(markNotificationAsRead).mockResolvedValue(undefined);
 
     renderPage();
 
@@ -140,7 +140,7 @@ it("llama a markAsRead al hacer click en notificación no leída", async () => {
     await user.click(screen.getByText("Solicitud de amistad"));
 
     await waitFor(() => {
-        expect(markNotificationAsRead).toHaveBeenCalledWith("1");
+        expect(mockNavigate).toHaveBeenCalledWith("/amigos");
     });
 });
 

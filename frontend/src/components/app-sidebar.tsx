@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
+import { useNotificationStore } from "@/store/notificationStore";
+import { useFriendStore } from "@/store/friendStore";
 import { SuggestionForm } from "@/components/suggestion-form";
 import { memo, useState, useEffect } from "react";
 import {
@@ -387,8 +389,10 @@ export function AppSidebar() {
     const { state, isMobile } = useSidebar();
     const collapsed = !isMobile && state === "collapsed";
     const [showSuggestionForm, setShowSuggestionForm] = useState(false);
-    const [pendingFriendCount, setPendingFriendCount] = useState(0);
-    const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+    const unreadNotifCount = useNotificationStore((s) => s.unreadCount);
+    const setUnreadNotifCount = useNotificationStore((s) => s.setUnreadCount);
+    const pendingFriendCount = useFriendStore((s) => s.pendingCount);
+    const setPendingFriendCount = useFriendStore((s) => s.setPendingCount);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -405,7 +409,7 @@ export function AppSidebar() {
         fetchCount();
         const interval = setInterval(fetchCount, 60000);
         return () => clearInterval(interval);
-    }, [isAuthenticated]);
+    }, [isAuthenticated, setPendingFriendCount]);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -422,7 +426,7 @@ export function AppSidebar() {
         fetchCount();
         const interval = setInterval(fetchCount, 60000);
         return () => clearInterval(interval);
-    }, [isAuthenticated]);
+    }, [isAuthenticated, setUnreadNotifCount]);
 
     return (
         <>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
+import { useNotificationStore } from "@/store/notificationStore";
 import { timeAgo } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import {
@@ -148,10 +149,20 @@ export default function NotificationsPage() {
         }
     }, []);
 
+    const setStoreUnreadCount = useNotificationStore((s) => s.setUnreadCount);
+
     useEffect(() => {
         fetch(1, false);
         getUnreadNotificationCount().then(setUnreadCount).catch(() => {});
-    }, [fetch]);
+
+        markAllNotificationsAsRead()
+            .then(() => {
+                setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+                setUnreadCount(0);
+                setStoreUnreadCount(0);
+            })
+            .catch(() => {});
+    }, [fetch, setStoreUnreadCount]);
 
     const handleLoadMore = () => {
         setLoadingMore(true);
@@ -163,6 +174,7 @@ export default function NotificationsPage() {
             await markNotificationAsRead(id);
             setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
             setUnreadCount((prev) => Math.max(0, prev - 1));
+            setStoreUnreadCount(Math.max(0, useNotificationStore.getState().unreadCount - 1));
         } catch {
             // silenciar
         }
@@ -173,6 +185,7 @@ export default function NotificationsPage() {
             await markAllNotificationsAsRead();
             setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
             setUnreadCount(0);
+            setStoreUnreadCount(0);
             toast.success("Notificaciones marcadas como leídas");
         } catch {
             toast.error("Error al marcar notificaciones");

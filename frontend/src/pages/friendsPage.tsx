@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
+import { useFriendStore } from "@/store/friendStore";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
     Search,
@@ -31,6 +32,7 @@ import { timeAgo } from "@/lib/date";
 import {
     getFriends,
     getReceivedRequests,
+    getReceivedRequestsCount,
     getSentRequests,
     getBlockedUsers,
     searchUsers,
@@ -560,6 +562,16 @@ function FriendsList() {
 function ReceivedRequests() {
     const [requests, setRequests] = useState<FriendRequest[]>([]);
     const [loading, setLoading] = useState(true);
+    const setPendingCount = useFriendStore((s) => s.setPendingCount);
+
+    const refetchCount = async () => {
+        try {
+            const count = await getReceivedRequestsCount();
+            setPendingCount(count);
+        } catch {
+            // silenciar
+        }
+    };
 
     const fetch = async () => {
         try {
@@ -580,6 +592,7 @@ function ReceivedRequests() {
             await acceptRequest(id);
             toast.success("Solicitud aceptada");
             fetch();
+            refetchCount();
         } catch (e) {
             const err = e as AxiosError<{ message: string }>;
             toast.error(err.response?.data?.message ?? "Error");
@@ -591,6 +604,7 @@ function ReceivedRequests() {
             await rejectRequest(id);
             toast.success("Solicitud rechazada");
             fetch();
+            refetchCount();
         } catch (e) {
             const err = e as AxiosError<{ message: string }>;
             toast.error(err.response?.data?.message ?? "Error");
