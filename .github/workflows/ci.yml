@@ -10,21 +10,6 @@ jobs:
   backend:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: mangalovers-db-tests
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     defaults:
       run:
         working-directory: ./backend
@@ -41,6 +26,29 @@ jobs:
           node-version: 20
           cache: pnpm
           cache-dependency-path: ./backend/pnpm-lock.yaml
+
+      - name: Start PostgreSQL with retry
+        run: |
+          for i in 1 2 3; do
+            docker rm -f postgres 2>/dev/null || true
+            docker run -d --name postgres \
+              -e POSTGRES_USER=postgres \
+              -e POSTGRES_PASSWORD=postgres \
+              -e POSTGRES_DB=mangalovers-db-tests \
+              -p 5432:5432 \
+              postgres:16-alpine && break
+            echo "Docker pull/run attempt $i failed, retrying in $((i * 5))s..."
+            sleep $((i * 5))
+          done
+          docker ps | grep postgres
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            docker exec postgres pg_isready && break
+            echo "Waiting for PostgreSQL... ($i/30)"
+            sleep 2
+          done
 
       - run: pnpm install --frozen-lockfile
 
