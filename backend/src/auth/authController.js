@@ -13,10 +13,12 @@ const COOKIE_OPTIONS = {
 };
 
 function setRefreshCookie(res, refreshToken) {
+  res.clearCookie("refreshToken", { path: "/api/auth" });
   res.cookie("refreshToken", refreshToken, COOKIE_OPTIONS);
 }
 
 function clearRefreshCookie(res) {
+  res.clearCookie("refreshToken", { path: "/api/auth", maxAge: 0 });
   res.clearCookie("refreshToken", { ...COOKIE_OPTIONS, maxAge: 0 });
 }
 

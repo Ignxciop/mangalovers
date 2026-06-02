@@ -122,8 +122,8 @@ describe("POST /api/auth/refresh", () => {
             .post("/api/auth/login")
             .send({ email: user.email, password: "Password123!" });
         const cookies = loginRes.headers["set-cookie"];
-        const refreshCookie = cookies.find((c) =>
-            c.startsWith("refreshToken="),
+        const refreshCookie = cookies.findLast((c) =>
+            c.startsWith("refreshToken=") && !c.includes("Max-Age=0"),
         );
         const refreshToken = refreshCookie.split(";")[0].split("=")[1];
         return { user, refreshToken, accessToken: loginRes.body.data.accessToken };
@@ -141,7 +141,7 @@ describe("POST /api/auth/refresh", () => {
         expect(res.body.data.accessToken).toBeDefined();
 
         const newCookies = res.headers["set-cookie"];
-        expect(newCookies.some((c) => c.startsWith("refreshToken="))).toBe(true);
+        expect(newCookies.filter((c) => c.startsWith("refreshToken=") && !c.includes("Max-Age=0")).length).toBeGreaterThanOrEqual(1);
     });
 
     it("rechaza refresh sin cookie con 401", async () => {
@@ -173,8 +173,8 @@ describe("POST /api/auth/logout", () => {
             .post("/api/auth/login")
             .send({ email: user.email, password: "Password123!" });
         const cookies = loginRes.headers["set-cookie"];
-        const refreshCookie = cookies.find((c) =>
-            c.startsWith("refreshToken="),
+        const refreshCookie = cookies.findLast((c) =>
+            c.startsWith("refreshToken=") && !c.includes("Max-Age=0"),
         );
         const refreshToken = refreshCookie.split(";")[0].split("=")[1];
         const accessToken = loginRes.body.data.accessToken;
