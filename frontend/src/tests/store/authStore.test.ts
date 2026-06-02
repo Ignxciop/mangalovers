@@ -70,12 +70,12 @@ describe("useAuthStore", () => {
         expect(localStorage.getItem("mangalovers-auth")).toBeNull();
     });
 
-    it("partialize solo persiste user e isAuthenticated, no token", () => {
+    it("partialize persiste accessToken, user e isAuthenticated", () => {
         useAuthStore.getState().setAuth("secret-token", mockUser);
         const raw = localStorage.getItem("mangalovers-auth");
         expect(raw).not.toBeNull();
         const parsed = JSON.parse(raw!);
-        expect(parsed.state.accessToken).toBeUndefined();
+        expect(parsed.state.accessToken).toBe("secret-token");
         expect(parsed.state.user).toEqual(mockUser);
         expect(parsed.state.isAuthenticated).toBe(true);
     });

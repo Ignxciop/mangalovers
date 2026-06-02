@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore.ts";
 
 export const api = axios.create({
@@ -83,6 +84,9 @@ api.interceptors.response.use(
         } catch {
             processQueue(null, null);
             useAuthStore.getState().logout();
+            toast.error("Sesión expirada", {
+                description: "Tu sesión expiró. Inicia sesión de nuevo.",
+            });
             return Promise.reject(error);
         } finally {
             isRefreshing = false;
