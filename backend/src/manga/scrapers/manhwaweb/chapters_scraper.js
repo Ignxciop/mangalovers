@@ -69,8 +69,15 @@ async function processSeries(providerSeries, providerId) {
 
             consecutiveExisting = 0;
 
+            const chapterNumberFloat = parseFloat(chapterName);
             const existingChapterInSeries = await prisma.chapter.findFirst({
-                where: { seriesId, name: chapterName },
+                where: {
+                    seriesId,
+                    OR: [
+                        { name: chapterName },
+                        ...(!isNaN(chapterNumberFloat) ? [{ number: chapterNumberFloat }] : []),
+                    ],
+                },
             });
 
             if (existingChapterInSeries) {

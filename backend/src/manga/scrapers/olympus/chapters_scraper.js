@@ -71,8 +71,19 @@ async function processSeries(providerSeries, providerId) {
 
                 consecutiveExisting = 0;
 
+                const chapterNumber = (() => {
+                    const m = ch.name?.match(/(\d+(?:\.\d+)?)/);
+                    return m ? parseFloat(m[0]) : null;
+                })();
+
                 const existingChapter = await prisma.chapter.findFirst({
-                    where: { seriesId, name: ch.name },
+                    where: {
+                        seriesId,
+                        OR: [
+                            { name: ch.name },
+                            ...(chapterNumber !== null ? [{ number: chapterNumber }] : []),
+                        ],
+                    },
                 });
 
                 if (existingChapter) {
@@ -94,7 +105,7 @@ async function processSeries(providerSeries, providerId) {
                 const newChapter = await prisma.chapter.create({
                     data: {
                         name: ch.name,
-                        number: parseFloat(ch.name),
+                        number: chapterNumber,
                         publishedAt: new Date(ch.published_at),
                         seriesId,
                     },
