@@ -102,7 +102,7 @@ function SeriesCard({
       <a
         href={`/manga/${fav.series.slug}`}
         onClick={(e) => { e.preventDefault(); onNavigate(fav.series.slug); }}
-        className="block"
+        className="block relative"
       >
         {fav.series.cover ? (
           <img
@@ -117,7 +117,7 @@ function SeriesCard({
           </div>
         )}
 
-        <div className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent pt-12 ${showComparison ? "pb-5" : "pb-3"} px-3`}>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent pt-12 pb-3 px-3">
           <p className="text-xs font-semibold text-white truncate leading-snug drop-shadow-sm">
             {fav.series.name}
           </p>
