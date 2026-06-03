@@ -126,7 +126,7 @@ const friendLimiter = rateLimit({
 
 const commentLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 30,
+    max: 60,
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler("Demasiados comentarios, intenta de nuevo más tarde"),
