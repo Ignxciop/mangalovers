@@ -400,6 +400,54 @@ export default function UserProfilePage() {
               </div>
             </div>
           </header>
+          <main className="container mx-auto px-4 py-8 flex-1 space-y-8">
+            <div className="relative rounded-2xl border border-border bg-gradient-to-br from-brand/5 via-brand-cyan/[0.02] to-background p-6 md:p-8 overflow-hidden">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                <Skeleton className="size-24 rounded-full shrink-0" />
+                <div className="flex-1 space-y-3 w-full">
+                  <Skeleton className="h-7 w-48 mx-auto sm:mx-0" />
+                  <Skeleton className="h-4 w-28 mx-auto sm:mx-0" />
+                  <div className="flex flex-wrap gap-3 justify-center sm:justify-start pt-1">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="h-9 w-32 mt-2 mx-auto sm:mx-0" />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div className="lg:col-span-7 space-y-5">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="size-9 rounded-xl" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-3.5 w-20" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="rounded-xl overflow-hidden border border-border">
+                      <Skeleton className="aspect-[3/4] w-full rounded-none" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="lg:col-span-5 space-y-5">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="size-9 rounded-xl" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-5 w-28" />
+                    <Skeleton className="h-3.5 w-20" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-16 rounded-xl" />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
       </>
     );
