@@ -1,7 +1,6 @@
 import { prisma } from "../../config/prisma.js";
 import { runOlympus } from "./olympus/olympus.js";
 import { runManhwaweb } from "./manhwaweb/manhwaweb.js";
-import { deduplicateSeries } from "./duplicateSeries.js";
 import logger from "../../config/logger.js";
 
 let isRunning = false;
@@ -66,8 +65,6 @@ export async function runAllScrapers() {
 
     await trackRun("olympus", runOlympus);
     await trackRun("manhwaweb", runManhwaweb);
-
-    await deduplicateSeries();
 
     logger.info("Scraping global terminado");
   } catch (error) {
