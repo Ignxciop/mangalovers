@@ -52,12 +52,36 @@ export function CommentSection({ chapterId }: CommentSectionProps) {
         if (!loading && location.hash && !hashScrolled.current) {
             const id = location.hash.replace("#", "");
             const el = document.getElementById(id);
-            if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "center" });
-                el.classList.add("ring-2", "ring-orange-500/50", "rounded-lg", "transition-all", "duration-700");
-                setTimeout(() => el.classList.remove("ring-2", "ring-orange-500/50"), 3000);
-            }
+            if (!el) return;
+
             hashScrolled.current = true;
+            const target = el;
+
+            function scrollToEl() {
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+
+            scrollToEl();
+            target.classList.add("ring-2", "ring-orange-500/50", "rounded-lg", "transition-all", "duration-700");
+
+            let rafId: number;
+            const observer = new ResizeObserver(() => {
+                cancelAnimationFrame(rafId);
+                rafId = requestAnimationFrame(scrollToEl);
+            });
+            observer.observe(document.body);
+
+            const cleanup = setTimeout(() => {
+                observer.disconnect();
+                cancelAnimationFrame(rafId);
+                target.classList.remove("ring-2", "ring-orange-500/50");
+            }, 6000);
+
+            return () => {
+                observer.disconnect();
+                clearTimeout(cleanup);
+                cancelAnimationFrame(rafId);
+            };
         }
     }, [loading, location.hash]);
 
