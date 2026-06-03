@@ -79,7 +79,7 @@ export function CommentCard({
     if (deleting) return null;
 
     return (
-        <div className={depth === 1 ? "ml-8 pl-4 border-l border-white/10" : ""}>
+        <div id={`comment-${comment.id}`} className={depth === 1 ? "ml-8 pl-4 border-l border-white/10" : ""}>
             <div className="flex gap-3 py-3">
                 <Avatar className="h-8 w-8 shrink-0">
                     {comment.user?.avatarUrl && (

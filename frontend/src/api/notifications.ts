@@ -3,7 +3,7 @@ import { api } from "./axios";
 export interface AppNotification {
     id: string;
     userId: string;
-    type: "FRIEND_REQUEST" | "FRIEND_ACCEPTED" | "SUGGESTION_RESOLVED" | "NEW_CHAPTER";
+    type: "FRIEND_REQUEST" | "FRIEND_ACCEPTED" | "SUGGESTION_RESOLVED" | "NEW_CHAPTER" | "COMMENT_REPLY";
     title: string;
     body: string | null;
     data: Record<string, unknown> | null;

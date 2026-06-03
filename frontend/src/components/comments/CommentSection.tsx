@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import {
     getChapterComments,
     createComment,
@@ -43,6 +44,22 @@ export function CommentSection({ chapterId }: CommentSectionProps) {
             .catch(() => setError("Error al cargar comentarios"))
             .finally(() => setLoading(false));
     }, [fetchComments]);
+
+    const location = useLocation();
+    const hashScrolled = useRef(false);
+
+    useEffect(() => {
+        if (!loading && location.hash && !hashScrolled.current) {
+            const id = location.hash.replace("#", "");
+            const el = document.getElementById(id);
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                el.classList.add("ring-2", "ring-orange-500/50", "rounded-lg", "transition-all", "duration-700");
+                setTimeout(() => el.classList.remove("ring-2", "ring-orange-500/50"), 3000);
+            }
+            hashScrolled.current = true;
+        }
+    }, [loading, location.hash]);
 
     async function handleLoadMore() {
         const nextPage = page + 1;
