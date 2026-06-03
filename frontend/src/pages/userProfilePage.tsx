@@ -122,7 +122,7 @@ function SeriesCard({
             {fav.series.name}
           </p>
 
-          {!showComparison && theirChapter && (
+          {theirChapter && (
             <p className="text-[10px] text-white/70 mt-1 flex items-center gap-1">
               <BookOpen className="size-3 shrink-0" />
               Cap. {theirChapter}
@@ -150,29 +150,6 @@ function SeriesCard({
               {theirChapter ? `Cap. ${theirChapter}` : "—"}
             </span>
           </div>
-          {avail && (
-            <div className="pt-1">
-              <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-brand"
-                  style={{
-                    width: `${Math.min(100, ((+(myChapter ?? "0")) / (+avail)) * 100)}%`,
-                  }}
-                />
-                <div
-                  className="absolute inset-y-0 rounded-full bg-rose-500/60"
-                  style={{
-                    left: `${Math.min(100, ((+(myChapter ?? "0")) / (+avail)) * 100)}%`,
-                    width: `${Math.max(0, Math.min(100, ((+(theirChapter ?? "0")) - (+(myChapter ?? "0"))) / (+avail) * 100))}%`,
-                  }}
-                />
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground/60 mt-1">
-                <span>0</span>
-                <span>{avail}</span>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -483,10 +460,7 @@ export default function UserProfilePage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
-                      onClick={() => {
-                        setMutualOnly((v) => !v);
-                        if (compareChapters) setCompareChapters(false);
-                      }}
+                      onClick={() => setMutualOnly((v) => !v)}
                       className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
                         mutualOnly
                           ? "bg-brand/10 text-brand border-brand/30 shadow-sm"
@@ -498,10 +472,7 @@ export default function UserProfilePage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setCompareChapters((v) => !v);
-                        if (mutualOnly) setMutualOnly(false);
-                      }}
+                      onClick={() => setCompareChapters((v) => !v)}
                       className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
                         compareChapters
                           ? "bg-brand/10 text-brand border-brand/30 shadow-sm"
