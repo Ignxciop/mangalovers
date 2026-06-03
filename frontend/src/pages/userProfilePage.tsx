@@ -122,7 +122,7 @@ function SeriesCard({
             {fav.series.name}
           </p>
 
-          {theirChapter && (
+          {!showComparison && theirChapter && (
             <p className="text-[10px] text-white/70 mt-1 flex items-center gap-1">
               <BookOpen className="size-3 shrink-0" />
               Cap. {theirChapter}
