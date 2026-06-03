@@ -333,11 +333,11 @@ export default function UserProfilePage() {
     } catch { /* ignore */ }
   }
 
-  async function fetchFavPage(page: number) {
+  async function fetchFavPage(page: number, limit = 15) {
     if (!alias) return;
     setFavLoading(true);
     try {
-      const res = await getProfileFavorites(alias, page, 15);
+      const res = await getProfileFavorites(alias, page, limit);
       setFavorites(res.data);
       setFavTotal(res.total);
       setFavPage(page);
@@ -345,11 +345,11 @@ export default function UserProfilePage() {
     setFavLoading(false);
   }
 
-  async function fetchActPage(page: number) {
+  async function fetchActPage(page: number, limit = 10) {
     if (!alias) return;
     setActLoading(true);
     try {
-      const res = await getProfileActivity(alias, page, 10);
+      const res = await getProfileActivity(alias, page, limit);
       setActivities(res.data);
       setActTotal(res.total);
       setActPage(page);
@@ -359,12 +359,12 @@ export default function UserProfilePage() {
 
   async function handleViewFavorites() {
     setViewMode('favorites');
-    if (favPage !== 1) await fetchFavPage(1);
+    await fetchFavPage(1, 18);
   }
 
   async function handleViewActivity() {
     setViewMode('activity');
-    if (actPage !== 1) await fetchActPage(1);
+    await fetchActPage(1, 24);
   }
 
   async function handleBackToBoth() {
@@ -375,8 +375,12 @@ export default function UserProfilePage() {
     ]);
   }
 
-  const favTotalPages = Math.max(1, Math.ceil(favTotal / 15));
-  const actTotalPages = Math.max(1, Math.ceil(actTotal / 10));
+  const favTotalPages = viewMode === 'favorites'
+    ? Math.max(1, Math.ceil(favTotal / 18))
+    : Math.max(1, Math.ceil(favTotal / 15));
+  const actTotalPages = viewMode === 'activity'
+    ? Math.max(1, Math.ceil(actTotal / 24))
+    : Math.max(1, Math.ceil(actTotal / 10));
 
   if (loading) {
     return (
@@ -717,7 +721,7 @@ export default function UserProfilePage() {
                       variant="outline"
                       size="sm"
                       disabled={favPage <= 1 || favLoading}
-                      onClick={() => fetchFavPage(favPage - 1)}
+                      onClick={() => fetchFavPage(favPage - 1, 18)}
                       className="gap-1.5"
                     >
                       <ArrowLeft className="size-3.5" />
@@ -730,7 +734,7 @@ export default function UserProfilePage() {
                       variant="outline"
                       size="sm"
                       disabled={favPage >= favTotalPages || favLoading}
-                      onClick={() => fetchFavPage(favPage + 1)}
+                      onClick={() => fetchFavPage(favPage + 1, 18)}
                       className="gap-1.5"
                     >
                       Siguiente
@@ -811,7 +815,7 @@ export default function UserProfilePage() {
                       variant="outline"
                       size="sm"
                       disabled={actPage <= 1 || actLoading}
-                      onClick={() => fetchActPage(actPage - 1)}
+                      onClick={() => fetchActPage(actPage - 1, 24)}
                       className="gap-1.5"
                     >
                       <ArrowLeft className="size-3.5" />
@@ -824,7 +828,7 @@ export default function UserProfilePage() {
                       variant="outline"
                       size="sm"
                       disabled={actPage >= actTotalPages || actLoading}
-                      onClick={() => fetchActPage(actPage + 1)}
+                      onClick={() => fetchActPage(actPage + 1, 24)}
                       className="gap-1.5"
                     >
                       Siguiente
