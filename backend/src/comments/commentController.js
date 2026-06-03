@@ -24,8 +24,8 @@ export async function handleGetChapterComments(req, res, next) {
 export async function handleCreateComment(req, res, next) {
   try {
     const chapterId = Number(req.params.chapterId);
-    const { content } = req.body;
-    const comment = await createComment(req.user.userId, chapterId, content);
+    const { content, isSpoiler } = req.body;
+    const comment = await createComment(req.user.userId, chapterId, content, isSpoiler);
     res.status(201).json({ success: true, data: comment });
   } catch (error) {
     next(error);
@@ -35,8 +35,8 @@ export async function handleCreateComment(req, res, next) {
 export async function handleReplyToComment(req, res, next) {
   try {
     const commentId = Number(req.params.id);
-    const { content } = req.body;
-    const reply = await replyToComment(req.user.userId, commentId, content);
+    const { content, isSpoiler } = req.body;
+    const reply = await replyToComment(req.user.userId, commentId, content, isSpoiler);
     res.status(201).json({ success: true, data: reply });
   } catch (error) {
     next(error);
@@ -46,8 +46,8 @@ export async function handleReplyToComment(req, res, next) {
 export async function handleUpdateComment(req, res, next) {
   try {
     const commentId = Number(req.params.id);
-    const { content } = req.body;
-    const comment = await updateComment(req.user.userId, commentId, content, req.user.role);
+    const { content, isSpoiler } = req.body;
+    const comment = await updateComment(req.user.userId, commentId, content, isSpoiler, req.user.role);
     res.json({ success: true, data: comment });
   } catch (error) {
     next(error);

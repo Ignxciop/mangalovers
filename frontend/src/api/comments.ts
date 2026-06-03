@@ -9,6 +9,7 @@ export interface CommentUser {
 export interface Comment {
     id: number;
     content: string;
+    isSpoiler: boolean;
     parentId: number | null;
     createdAt: string;
     updatedAt: string;
@@ -41,10 +42,11 @@ export async function getChapterComments(
 export async function createComment(
     chapterId: number,
     content: string,
+    isSpoiler = false,
 ): Promise<Comment> {
     const { data } = await api.post<{ success: boolean; data: Comment }>(
         `/comments/chapter/${chapterId}`,
-        { content },
+        { content, isSpoiler },
     );
     return data.data;
 }
@@ -52,10 +54,11 @@ export async function createComment(
 export async function replyToComment(
     commentId: number,
     content: string,
+    isSpoiler = false,
 ): Promise<Comment> {
     const { data } = await api.post<{ success: boolean; data: Comment }>(
         `/comments/${commentId}/reply`,
-        { content },
+        { content, isSpoiler },
     );
     return data.data;
 }
@@ -63,10 +66,13 @@ export async function replyToComment(
 export async function updateComment(
     commentId: number,
     content: string,
+    isSpoiler?: boolean,
 ): Promise<Comment> {
+    const body: Record<string, unknown> = { content };
+    if (isSpoiler !== undefined) body.isSpoiler = isSpoiler;
     const { data } = await api.patch<{ success: boolean; data: Comment }>(
         `/comments/${commentId}`,
-        { content },
+        body,
     );
     return data.data;
 }

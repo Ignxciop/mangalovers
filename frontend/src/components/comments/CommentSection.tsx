@@ -59,14 +59,14 @@ export function CommentSection({ chapterId }: CommentSectionProps) {
         }
     }
 
-    async function handleCreateComment(content: string) {
-        const newComment = await createComment(chapterId, content);
+    async function handleCreateComment(content: string, isSpoiler: boolean) {
+        const newComment = await createComment(chapterId, content, isSpoiler);
         setComments((prev) => [newComment, ...prev]);
         setTotal((t) => t + 1);
     }
 
-    async function handleReply(parentId: number, content: string) {
-        const reply = await replyToComment(parentId, content);
+    async function handleReply(parentId: number, content: string, isSpoiler?: boolean) {
+        const reply = await replyToComment(parentId, content, isSpoiler);
         setComments((prev) => addReplyToTree(prev, parentId, reply));
     }
 

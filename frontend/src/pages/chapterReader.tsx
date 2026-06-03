@@ -849,14 +849,6 @@ export default function ChapterReader() {
                     onNext={markUntil}
                 />
 
-                <Separator className="max-w-2xl mx-auto my-4" />
-
-                <div className="max-w-2xl mx-auto px-4">
-                    <CommentSection chapterId={chapter.chapterId} />
-                </div>
-
-                <Separator className="max-w-2xl mx-auto my-4" />
-
                 <div className="text-center py-6 text-muted-foreground text-sm">
                     Fin del capítulo —{" "}
                     <button
@@ -867,6 +859,12 @@ export default function ChapterReader() {
                     >
                         volver a la serie
                     </button>
+                </div>
+
+                <Separator className="max-w-2xl mx-auto my-4" />
+
+                <div className="max-w-2xl mx-auto px-4">
+                    <CommentSection chapterId={chapter.chapterId} />
                 </div>
             </div>
         </>

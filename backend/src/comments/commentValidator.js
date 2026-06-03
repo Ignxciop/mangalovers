@@ -19,6 +19,10 @@ export const createCommentValidator = [
     .withMessage("El contenido no puede estar vacío")
     .isLength({ min: 1, max: 1000 })
     .withMessage("El comentario debe tener entre 1 y 1000 caracteres"),
+  body("isSpoiler")
+    .optional()
+    .isBoolean()
+    .withMessage("isSpoiler debe ser un booleano"),
 ];
 
 export const replyCommentValidator = [
@@ -28,6 +32,10 @@ export const replyCommentValidator = [
     .withMessage("El contenido no puede estar vacío")
     .isLength({ min: 1, max: 1000 })
     .withMessage("La respuesta debe tener entre 1 y 1000 caracteres"),
+  body("isSpoiler")
+    .optional()
+    .isBoolean()
+    .withMessage("isSpoiler debe ser un booleano"),
 ];
 
 export const updateCommentValidator = [
@@ -37,4 +45,8 @@ export const updateCommentValidator = [
     .withMessage("El contenido no puede estar vacío")
     .isLength({ min: 1, max: 1000 })
     .withMessage("El comentario debe tener entre 1 y 1000 caracteres"),
+  body("isSpoiler")
+    .optional()
+    .isBoolean()
+    .withMessage("isSpoiler debe ser un booleano"),
 ];

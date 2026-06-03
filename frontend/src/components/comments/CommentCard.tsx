@@ -4,7 +4,7 @@ import type { Comment } from "@/api/comments";
 import { CommentForm } from "./CommentForm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { timeAgo } from "@/lib/date";
-import { Heart, MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 interface CommentCardProps {
@@ -12,7 +12,7 @@ interface CommentCardProps {
     onLikeToggle: (commentId: number, liked: boolean) => void;
     onUpdate: (commentId: number, content: string) => void;
     onDelete: (commentId: number) => void;
-    onReply: (parentId: number, content: string) => Promise<void>;
+    onReply: (parentId: number, content: string, isSpoiler?: boolean) => Promise<void>;
     depth: number;
 }
 
@@ -34,6 +34,7 @@ export function CommentCard({
     const [deleting, setDeleting] = useState(false);
     const [isLiked, setIsLiked] = useState(comment.isLikedByMe);
     const [likeCount, setLikeCount] = useState(comment.likeCount);
+    const [revealSpoiler, setRevealSpoiler] = useState(false);
 
     async function handleLike() {
         const previousLiked = isLiked;
@@ -50,8 +51,8 @@ export function CommentCard({
         }
     }
 
-    async function handleUpdate(content: string) {
-        const updated = await updateComment(comment.id, content);
+    async function handleUpdate(content: string, isSpoiler?: boolean) {
+        const updated = await updateComment(comment.id, content, isSpoiler);
         onUpdate(comment.id, updated.content);
         setEditing(false);
     }
@@ -67,8 +68,8 @@ export function CommentCard({
         }
     }
 
-    async function handleReply(content: string) {
-        await onReply(comment.id, content);
+    async function handleReply(content: string, isSpoiler?: boolean) {
+        await onReply(comment.id, content, isSpoiler);
         setReplying(false);
     }
 
@@ -78,10 +79,14 @@ export function CommentCard({
     if (deleting) return null;
 
     return (
-        <div className={depth > 0 ? "ml-8 pl-4 border-l border-white/10" : ""}>
+        <div className={depth === 1 ? "ml-8 pl-4 border-l border-white/10" : ""}>
             <div className="flex gap-3 py-3">
                 <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarImage src={comment.user?.avatarUrl ?? undefined} />
+                    {comment.user?.avatarUrl && (
+                        <AvatarImage
+                            src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ?? ""}/uploads/avatars/${comment.user.avatarUrl}`}
+                        />
+                    )}
                     <AvatarFallback className="text-xs bg-white/10">
                         {initials}
                     </AvatarFallback>
@@ -91,6 +96,12 @@ export function CommentCard({
                         <span className="text-sm font-medium">
                             {displayName}
                         </span>
+                        {comment.isSpoiler && (
+                            <span className="flex items-center gap-1 text-[10px] font-semibold text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded">
+                                <AlertTriangle className="h-3 w-3" />
+                                Spoiler
+                            </span>
+                        )}
                         <span className="text-xs text-muted-foreground">
                             {timeAgo(comment.createdAt)}
                         </span>
@@ -101,14 +112,34 @@ export function CommentCard({
                             <CommentForm
                                 onSubmit={handleUpdate}
                                 initialValue={comment.content}
+                                initialSpoiler={comment.isSpoiler}
                                 onCancel={() => setEditing(false)}
                                 submitLabel="Guardar"
+                                showSpoiler={true}
                             />
                         </div>
                     ) : (
-                        <p className="text-sm text-foreground/90 mt-1 whitespace-pre-wrap break-words">
-                            {comment.content}
-                        </p>
+                        <div className="mt-1 relative">
+                            {comment.isSpoiler && !revealSpoiler ? (
+                                <div
+                                    onClick={() => setRevealSpoiler(true)}
+                                    className="cursor-pointer select-none"
+                                >
+                                    <p className="text-sm text-foreground/40 mt-1 whitespace-pre-wrap break-words blur-sm select-none">
+                                        {comment.content}
+                                    </p>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs text-orange-400 bg-background/80 px-3 py-1 rounded-full border border-orange-400/30">
+                                            Click para revelar spoiler
+                                        </span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-foreground/90 mt-1 whitespace-pre-wrap break-words">
+                                    {comment.content}
+                                </p>
+                            )}
+                        </div>
                     )}
 
                     {!editing && (

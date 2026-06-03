@@ -11,30 +11,35 @@ const COMMENT_USER_SELECT = {
   avatarUrl: true,
 };
 
+function formatComment(c, currentUserId) {
+  return {
+    id: c.id,
+    content: c.content,
+    isSpoiler: c.isSpoiler,
+    parentId: c.parentId,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+    user: c.user
+      ? {
+          id: c.user.id,
+          alias: c.user.alias,
+          avatarUrl: c.user.avatarUrl,
+        }
+      : null,
+    likeCount: c._count?.likes ?? 0,
+    isLikedByMe: currentUserId
+      ? c.likes?.some((l) => l.userId === currentUserId) ?? false
+      : false,
+    replies: [],
+  };
+}
+
 function buildCommentTree(comments, currentUserId) {
   const map = new Map();
   const roots = [];
 
   for (const c of comments) {
-    map.set(c.id, {
-      id: c.id,
-      content: c.content,
-      parentId: c.parentId,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-      user: c.user
-        ? {
-            id: c.user.id,
-            alias: c.user.alias,
-            avatarUrl: c.user.avatarUrl,
-          }
-        : null,
-      likeCount: c._count?.likes ?? 0,
-      isLikedByMe: currentUserId
-        ? c.likes?.some((l) => l.userId === currentUserId) ?? false
-        : false,
-      replies: [],
-    });
+    map.set(c.id, formatComment(c, currentUserId));
   }
 
   for (const c of comments) {
@@ -110,22 +115,26 @@ export async function getChapterComments(chapterId, currentUserId, page = 1, lim
   };
 }
 
-export async function createComment(userId, chapterId, content) {
+export async function createComment(userId, chapterId, content, isSpoiler = false) {
   const chapter = await prisma.chapter.findUnique({
     where: { id: chapterId },
     select: { id: true },
   });
   if (!chapter) throw new NotFoundError("Capítulo no encontrado");
 
-  return prisma.comment.create({
-    data: { userId, chapterId, content },
+  const comment = await prisma.comment.create({
+    data: { userId, chapterId, content, isSpoiler },
     include: {
       user: { select: COMMENT_USER_SELECT },
+      _count: { select: { likes: true } },
+      likes: { where: { userId }, select: { userId: true } },
     },
   });
+
+  return formatComment(comment, userId);
 }
 
-export async function replyToComment(userId, commentId, content) {
+export async function replyToComment(userId, commentId, content, isSpoiler = false) {
   const parent = await prisma.comment.findUnique({
     where: { id: commentId },
     select: {
@@ -144,9 +153,12 @@ export async function replyToComment(userId, commentId, content) {
       chapterId: parent.chapterId,
       parentId: commentId,
       content,
+      isSpoiler,
     },
     include: {
       user: { select: COMMENT_USER_SELECT },
+      _count: { select: { likes: true } },
+      likes: { where: { userId }, select: { userId: true } },
     },
   });
 
@@ -168,10 +180,10 @@ export async function replyToComment(userId, commentId, content) {
     }).catch((err) => logger.warn({ err }, "Error creando notificación de reply"));
   }
 
-  return reply;
+  return formatComment(reply, userId);
 }
 
-export async function updateComment(userId, commentId, content, userRole) {
+export async function updateComment(userId, commentId, content, isSpoiler, userRole) {
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
     select: { userId: true },
@@ -181,13 +193,20 @@ export async function updateComment(userId, commentId, content, userRole) {
     throw new ForbiddenError("No puedes editar este comentario");
   }
 
-  return prisma.comment.update({
+  const data = { content };
+  if (isSpoiler !== undefined) data.isSpoiler = isSpoiler;
+
+  const updated = await prisma.comment.update({
     where: { id: commentId },
-    data: { content },
+    data,
     include: {
       user: { select: COMMENT_USER_SELECT },
+      _count: { select: { likes: true } },
+      likes: { where: { userId }, select: { userId: true } },
     },
   });
+
+  return formatComment(updated, userId);
 }
 
 export async function deleteComment(userId, commentId, userRole) {
