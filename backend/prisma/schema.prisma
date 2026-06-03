@@ -18,6 +18,12 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum ProfileVisibility {
+  PUBLIC
+  FRIENDS
+  PRIVATE
+}
+
 enum FriendStatus {
   PENDING
   ACCEPTED
@@ -52,6 +58,7 @@ model User {
   avatarUrl         String?
   alias             String?   @unique
   aliasChanged      Boolean   @default(false)
+  profileVisibility ProfileVisibility @default(PUBLIC)
   lastLoginAt       DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt

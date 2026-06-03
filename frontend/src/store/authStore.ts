@@ -13,6 +13,7 @@ interface User {
     avatarUrl?: string | null;
     status?: "ACTIVE" | "SUSPENDED" | "BANNED";
     suspendedUntil?: string | null;
+    profileVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
 }
 
 interface AuthState {

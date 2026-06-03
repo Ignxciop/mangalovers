@@ -40,6 +40,9 @@ import {
     Loader2,
     ChevronRight,
     ShieldAlert,
+    Eye,
+    Users,
+    EyeOff,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
@@ -775,6 +778,86 @@ function ActivitySection() {
     );
 }
 
+function PrivacySection() {
+    const { user } = useAuth();
+    const setAuth = useAuthStore((s) => s.setAuth);
+    const accessToken = useAuthStore((s) => s.accessToken);
+    const [visibility, setVisibility] = useState<"PUBLIC" | "FRIENDS" | "PRIVATE">(
+        user?.profileVisibility ?? "PUBLIC",
+    );
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState("");
+    const [error, setError] = useState("");
+
+    async function handleChange(value: "PUBLIC" | "FRIENDS" | "PRIVATE") {
+        setVisibility(value);
+        setLoading(true);
+        setSuccess("");
+        setError("");
+
+        try {
+            const { data } = await api.patch("/auth/profile", { profileVisibility: value });
+            setAuth(accessToken!, data.data.user);
+            setSuccess("Visibilidad actualizada");
+        } catch (err) {
+            setVisibility(user?.profileVisibility ?? "PUBLIC");
+            setError(
+                (err as { response?: { data?: { message?: string } } })?.response
+                    ?.data?.message ?? "Error al actualizar visibilidad",
+            );
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const options: { value: "PUBLIC" | "FRIENDS" | "PRIVATE"; label: string; desc: string; icon: React.ComponentType<{ className?: string }> }[] = [
+        { value: "PUBLIC", label: "Público", desc: "Todos pueden ver tu perfil y actividad", icon: Eye },
+        { value: "FRIENDS", label: "Solo amigos", desc: "Solo tus amigos pueden ver tu perfil", icon: Users },
+        { value: "PRIVATE", label: "Privado", desc: "Nadie puede ver tu perfil", icon: EyeOff },
+    ];
+
+    return (
+        <SectionCard accent="purple" icon={Eye} title="Visibilidad del perfil" description="Controla quién puede ver tu perfil y actividad">
+            <div className="space-y-2">
+                {options.map((opt) => {
+                    const Icon = opt.icon;
+                    const selected = visibility === opt.value;
+                    return (
+                        <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => handleChange(opt.value)}
+                            disabled={loading || selected}
+                            className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                                selected
+                                    ? "border-brand-purple/50 bg-brand-purple/10 ring-1 ring-brand-purple/30"
+                                    : "border-border bg-muted/20 hover:bg-muted/40 hover:border-border/80"
+                            }`}
+                        >
+                            <div className={`size-8 rounded-lg flex items-center justify-center ${
+                                selected ? "bg-brand-purple/20 text-brand-purple" : "bg-muted-foreground/10 text-muted-foreground"
+                            }`}>
+                                <Icon className="size-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium ${selected ? "text-brand-purple" : "text-foreground"}`}>
+                                    {opt.label}
+                                </p>
+                                <p className="text-xs text-muted-foreground/70 mt-0.5">{opt.desc}</p>
+                            </div>
+                            {selected && (
+                                <CheckCircle2 className="size-4 text-brand-purple shrink-0" />
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+            {success && <div className="mt-3"><SuccessAlert message={success} /></div>}
+            {error && <div className="mt-3"><ErrorAlert message={error} /></div>}
+        </SectionCard>
+    );
+}
+
 export default function ProfilePage() {
     return (
         <>
@@ -800,6 +883,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="lg:col-span-5 space-y-6">
                             <AliasSection />
+                            <PrivacySection />
                             <ActivitySection />
                             <NotificationSection />
                             <DeleteAccountSection />

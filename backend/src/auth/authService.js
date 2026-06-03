@@ -214,7 +214,7 @@ export class AuthService {
   static async getMe(userId) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true, createdAt: true, updatedAt: true },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true, profileVisibility: true, createdAt: true, updatedAt: true },
     });
 
     if (!user) throw new NotFoundError("Usuario no encontrado");
@@ -238,7 +238,7 @@ export class AuthService {
   }
 
   static async updateProfile(userId, data) {
-    const ALLOWED_FIELDS = ["name", "lastname", "email"];
+    const ALLOWED_FIELDS = ["name", "lastname", "email", "profileVisibility"];
     const updateData = {};
 
     for (const field of ALLOWED_FIELDS) {
@@ -257,7 +257,7 @@ export class AuthService {
     const user = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true, profileVisibility: true },
     });
 
     logger.info({ event: "UPDATE_PROFILE", userId, changes: Object.keys(updateData) }, "Perfil actualizado");
