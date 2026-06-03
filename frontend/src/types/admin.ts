@@ -16,6 +16,7 @@ export interface AdminUser {
         suggestions: number;
         favorites: number;
         chapterReads: number;
+        comments: number;
     };
 }
 

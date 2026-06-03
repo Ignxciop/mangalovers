@@ -46,6 +46,7 @@ export class AdminUserService {
               suggestions: true,
               favorites: true,
               chapterReads: true,
+              comments: true,
             },
           },
         },

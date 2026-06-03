@@ -1,6 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { createNotification } from "../notifications/notificationService.js";
+import { ActivityLogService } from "../activityLog/activityLogService.js";
 import logger from "../config/logger.js";
 
 const COMMENT_USER_SELECT = {
@@ -118,7 +119,7 @@ export async function getChapterComments(chapterId, currentUserId, page = 1, lim
 export async function createComment(userId, chapterId, content, isSpoiler = false) {
   const chapter = await prisma.chapter.findUnique({
     where: { id: chapterId },
-    select: { id: true },
+    select: { id: true, name: true, series: { select: { slug: true, name: true } } },
   });
   if (!chapter) throw new NotFoundError("Capítulo no encontrado");
 
@@ -131,6 +132,15 @@ export async function createComment(userId, chapterId, content, isSpoiler = fals
     },
   });
 
+  ActivityLogService.logEvent(userId, "CREATE_COMMENT", {
+    chapterId,
+    commentId: comment.id,
+    content: comment.content.slice(0, 100),
+    seriesName: chapter.series?.name ?? null,
+    seriesSlug: chapter.series?.slug ?? null,
+    chapterName: chapter.name,
+  }).catch((err) => logger.warn({ err }, "Error logging create comment activity"));
+
   return formatComment(comment, userId);
 }
 
@@ -141,7 +151,7 @@ export async function replyToComment(userId, commentId, content, isSpoiler = fal
       id: true,
       userId: true,
       chapterId: true,
-      chapter: { select: { name: true, series: { select: { slug: true } } } },
+      chapter: { select: { name: true, series: { select: { slug: true, name: true } } } },
       user: { select: { alias: true, name: true, lastname: true } },
     },
   });
@@ -180,6 +190,16 @@ export async function replyToComment(userId, commentId, content, isSpoiler = fal
     }).catch((err) => logger.warn({ err }, "Error creando notificación de reply"));
   }
 
+  ActivityLogService.logEvent(userId, "CREATE_COMMENT", {
+    chapterId: parent.chapterId,
+    commentId: reply.id,
+    parentId: commentId,
+    content: reply.content.slice(0, 100),
+    seriesName: parent.chapter?.series?.name ?? null,
+    seriesSlug: parent.chapter?.series?.slug ?? null,
+    chapterName: parent.chapter?.name ?? null,
+  }).catch((err) => logger.warn({ err }, "Error logging reply activity"));
+
   return formatComment(reply, userId);
 }
 
@@ -212,7 +232,12 @@ export async function updateComment(userId, commentId, content, isSpoiler, userR
 export async function deleteComment(userId, commentId, userRole) {
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
-    select: { userId: true },
+    select: {
+      userId: true,
+      chapterId: true,
+      content: true,
+      chapter: { select: { name: true, series: { select: { slug: true, name: true } } } },
+    },
   });
   if (!comment) throw new NotFoundError("Comentario no encontrado");
   if (comment.userId !== userId && userRole !== "ADMIN") {
@@ -220,6 +245,15 @@ export async function deleteComment(userId, commentId, userRole) {
   }
 
   await prisma.comment.delete({ where: { id: commentId } });
+
+  ActivityLogService.logEvent(userId, "DELETE_COMMENT", {
+    chapterId: comment.chapterId,
+    commentId,
+    content: comment.content.slice(0, 100),
+    seriesName: comment.chapter?.series?.name ?? null,
+    seriesSlug: comment.chapter?.series?.slug ?? null,
+    chapterName: comment.chapter?.name ?? null,
+  }).catch((err) => logger.warn({ err }, "Error logging delete comment activity"));
 }
 
 export async function toggleLike(userId, commentId) {

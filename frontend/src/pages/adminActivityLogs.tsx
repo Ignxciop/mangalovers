@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { getActivityLogs } from "@/api/admin";
 import type { ActivityLogEntry } from "@/types/admin";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,8 @@ const EVENT_LABELS: Record<string, string> = {
     REJECT_FRIEND: "Rechazar solicitud",
     BLOCK_USER: "Bloquear usuario",
     UNBLOCK_USER: "Desbloquear usuario",
+    CREATE_COMMENT: "Crear comentario",
+    DELETE_COMMENT: "Eliminar comentario",
 };
 
 const EVENT_COLORS: Record<string, string> = {
@@ -55,6 +57,8 @@ const EVENT_COLORS: Record<string, string> = {
     REJECT_FRIEND: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
     BLOCK_USER: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
     UNBLOCK_USER: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    CREATE_COMMENT: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+    DELETE_COMMENT: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
 };
 
 function formatDateTime(iso: string) {
@@ -129,6 +133,10 @@ function formatMetadata(event: string, metadata: Record<string, unknown> | null)
             return "Bloqueó a un usuario";
         case "UNBLOCK_USER":
             return "Desbloqueó a un usuario";
+        case "CREATE_COMMENT":
+            return `Comentó "${String(metadata.content).slice(0, 60)}" en el capítulo ${metadata.chapterName} de "${metadata.seriesName}"`;
+        case "DELETE_COMMENT":
+            return `Eliminó un comentario en el capítulo ${metadata.chapterName} de "${metadata.seriesName}"`;
         case "UPDATE_PROFILE":
             return `Actualizó su perfil: ${metadata.field}`;
         default:
@@ -139,6 +147,7 @@ function formatMetadata(event: string, metadata: Record<string, unknown> | null)
 const VALID_EVENTS = Object.keys(EVENT_LABELS);
 
 export default function AdminActivityLogs() {
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
     const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
@@ -146,6 +155,14 @@ export default function AdminActivityLogs() {
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleLogClick = (log: ActivityLogEntry) => {
+        if (log.event !== "CREATE_COMMENT" && log.event !== "DELETE_COMMENT") return;
+        const m = log.metadata as Record<string, unknown> | null;
+        if (m?.seriesSlug && m?.chapterId && m?.commentId) {
+            navigate(`/manga/${m.seriesSlug}/capitulo/${m.chapterId}#comment-${m.commentId}`);
+        }
+    };
 
     const rawEvent = searchParams.get("event");
     const eventFilter = rawEvent && VALID_EVENTS.includes(rawEvent) ? rawEvent : "";
@@ -273,8 +290,19 @@ export default function AdminActivityLogs() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
-                                        {logs.map((log) => (
-                                            <tr key={log.id} className="hover:bg-muted/30 transition-colors">
+                                        {logs.map((log) => {
+                                            const isClickable = log.event === "CREATE_COMMENT" || log.event === "DELETE_COMMENT";
+                                            const m = log.metadata as Record<string, unknown> | null;
+                                            const hasNav = isClickable && m?.seriesSlug && m?.chapterId && m?.commentId;
+                                            return (
+                                            <tr
+                                                key={log.id}
+                                                onClick={hasNav ? () => handleLogClick(log) : undefined}
+                                                className={cn(
+                                                    "transition-colors",
+                                                    hasNav ? "cursor-pointer hover:bg-muted/40" : "hover:bg-muted/30",
+                                                )}
+                                            >
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-3">
                                                         {log.user.avatarUrl ? (
@@ -310,7 +338,8 @@ export default function AdminActivityLogs() {
                                                     <span className="text-sm text-muted-foreground/70 whitespace-nowrap">{formatDateTime(log.createdAt)}</span>
                                                 </td>
                                             </tr>
-                                        ))}
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

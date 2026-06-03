@@ -27,7 +27,6 @@ export function CommentCard({
     const currentUser = useAuthStore((s) => s.user);
     const isOwner = currentUser?.id === comment.user?.id;
     const isAdmin = currentUser?.role === "ADMIN";
-    const canModify = isOwner || isAdmin;
 
     const [editing, setEditing] = useState(false);
     const [replying, setReplying] = useState(false);
@@ -168,7 +167,7 @@ export function CommentCard({
                                 Responder
                             </button>
 
-                            {canModify && (
+                            {isOwner && (
                                 <>
                                     <button
                                         onClick={() => setEditing(true)}
@@ -183,6 +182,15 @@ export function CommentCard({
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </button>
                                 </>
+                            )}
+                            {isAdmin && !isOwner && (
+                                <button
+                                    onClick={handleDelete}
+                                    className="ml-auto flex items-center gap-1.5 text-xs font-medium text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30 rounded-md px-2.5 py-1 transition-colors"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Eliminar
+                                </button>
                             )}
                         </div>
                     )}
