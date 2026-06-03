@@ -13,10 +13,10 @@ import { fetchFavorites } from "@/api/manga";
 import type { PublicUserProfile, ProfileFavorite, ProfileActivity as ProfileActivityType } from "@/api/users";
 import { timeAgo } from "@/lib/date";
 import {
-  Heart, BookOpen, BookMinus, Loader2,
+  Heart, BookOpen, BookMinus,
   UserPlus, UserCheck, Clock, Ban,
   Calendar, Users, ShieldAlert, UserRound,
-  CheckCheck, ArrowRight,
+  CheckCheck, ArrowRight, ArrowLeft,
 } from "lucide-react";
 import { AxiosError } from "axios";
 
@@ -209,13 +209,16 @@ export default function UserProfilePage() {
 
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [favorites, setFavorites] = useState<ProfileFavorite[]>([]);
+  const [favTotal, setFavTotal] = useState(0);
+  const [favPage, setFavPage] = useState(1);
   const [activities, setActivities] = useState<ProfileActivityType[]>([]);
-  const [totalActivity, setTotalActivity] = useState(0);
-  const [activityPage, setActivityPage] = useState(1);
+  const [actTotal, setActTotal] = useState(0);
+  const [actPage, setActPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [loadingFavs, setLoadingFavs] = useState(true);
-  const [loadingActivity, setLoadingActivity] = useState(true);
+  const [favLoading, setFavLoading] = useState(true);
+  const [actLoading, setActLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'both' | 'favorites' | 'activity'>('both');
 
   const [myFavorites, setMyFavorites] = useState<ProfileFavorite[]>([]);
   const [loadingMine, setLoadingMine] = useState(true);
@@ -259,22 +262,24 @@ export default function UserProfilePage() {
         if (cancelled) return;
         setProfile(p);
 
-        setLoadingFavs(true);
-        setLoadingActivity(true);
+        setFavLoading(true);
+        setActLoading(true);
         try {
-          const [favs, act] = await Promise.all([
-            getProfileFavorites(alias),
+          const [favs, acts] = await Promise.all([
+            getProfileFavorites(alias, 1, 15),
             getProfileActivity(alias, 1, 10),
           ]);
           if (cancelled) return;
-          setFavorites(favs);
-          setActivities(act.data);
-          setTotalActivity(act.total);
-          setActivityPage(1);
+          setFavorites(favs.data);
+          setFavTotal(favs.total);
+          setFavPage(1);
+          setActivities(acts.data);
+          setActTotal(acts.total);
+          setActPage(1);
         } catch {
           if (!cancelled) { setFavorites([]); setActivities([]); }
         } finally {
-          if (!cancelled) { setLoadingFavs(false); setLoadingActivity(false); }
+          if (!cancelled) { setFavLoading(false); setActLoading(false); }
         }
       } catch (e) {
         if (cancelled) return;
@@ -313,8 +318,50 @@ export default function UserProfilePage() {
     } catch { /* ignore */ }
   }
 
-  const loadingMatch = loading || loadingFavs;
-  const loadingAct = loadingActivity;
+  async function fetchFavPage(page: number) {
+    if (!alias) return;
+    setFavLoading(true);
+    try {
+      const res = await getProfileFavorites(alias, page, 15);
+      setFavorites(res.data);
+      setFavTotal(res.total);
+      setFavPage(page);
+    } catch { /* ignore */ }
+    setFavLoading(false);
+  }
+
+  async function fetchActPage(page: number) {
+    if (!alias) return;
+    setActLoading(true);
+    try {
+      const res = await getProfileActivity(alias, page, 10);
+      setActivities(res.data);
+      setActTotal(res.total);
+      setActPage(page);
+    } catch { /* ignore */ }
+    setActLoading(false);
+  }
+
+  async function handleViewFavorites() {
+    setViewMode('favorites');
+    if (favPage !== 1) await fetchFavPage(1);
+  }
+
+  async function handleViewActivity() {
+    setViewMode('activity');
+    if (actPage !== 1) await fetchActPage(1);
+  }
+
+  async function handleBackToBoth() {
+    setViewMode('both');
+    await Promise.all([
+      fetchFavPage(1),
+      fetchActPage(1),
+    ]);
+  }
+
+  const favTotalPages = Math.max(1, Math.ceil(favTotal / 15));
+  const actTotalPages = Math.max(1, Math.ceil(actTotal / 10));
 
   if (loading) {
     return (
@@ -454,132 +501,322 @@ export default function UserProfilePage() {
                 envía una solicitud de amistad.
               </p>
             </div>
-          ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <section className="lg:col-span-7">
-              <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center size-9 rounded-xl bg-rose-500/10 text-rose-500">
-                    <Heart className="size-4" />
+          ) : viewMode === 'both' ? (
+            <div key="both" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start transition-all duration-300">
+              <section className="lg:col-span-7">
+                <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-9 rounded-xl bg-rose-500/10 text-rose-500">
+                      <Heart className="size-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold">Favoritos</h2>
+                      <p className="text-xs text-muted-foreground/70">
+                        {favLoading ? "Cargando..." : `${displayFavorites.length} series`}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-base font-semibold">Favoritos</h2>
-                    <p className="text-xs text-muted-foreground/70">
-                      {loadingMatch ? "Cargando..." : `${displayFavorites.length} series`}
-                    </p>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {showToggles && !loadingMine && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setMutualOnly((v) => !v)}
+                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
+                            mutualOnly
+                              ? "bg-brand/10 text-brand border-brand/30 shadow-sm"
+                              : "bg-muted/30 text-muted-foreground border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <CheckCheck className="size-3.5" />
+                          Mutuos
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCompareChapters((v) => !v)}
+                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
+                            compareChapters
+                              ? "bg-brand/10 text-brand border-brand/30 shadow-sm"
+                              : "bg-muted/30 text-muted-foreground border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <ArrowRight className="size-3.5" />
+                          Comparar
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleViewFavorites}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30 transition-all"
+                    >
+                      Ver favoritos
+                      <ArrowRight className="size-3.5" />
+                    </button>
                   </div>
                 </div>
 
-                {showToggles && !loadingMine && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setMutualOnly((v) => !v)}
-                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
-                        mutualOnly
-                          ? "bg-brand/10 text-brand border-brand/30 shadow-sm"
-                          : "bg-muted/30 text-muted-foreground border-border hover:border-muted-foreground/30"
-                      }`}
-                    >
-                      <CheckCheck className="size-3.5" />
-                      Mutuos
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCompareChapters((v) => !v)}
-                      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
-                        compareChapters
-                          ? "bg-brand/10 text-brand border-brand/30 shadow-sm"
-                          : "bg-muted/30 text-muted-foreground border-border hover:border-muted-foreground/30"
-                      }`}
-                    >
-                      <ArrowRight className="size-3.5" />
-                      Comparar
-                    </button>
+                <FavoritesGrid
+                  favorites={displayFavorites}
+                  loading={favLoading}
+                  myReadMap={myReadMap}
+                  showComparison={compareChapters}
+                  profile={profile}
+                />
+              </section>
+
+              <section className="lg:col-span-5">
+                <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-9 rounded-xl bg-brand-green/10 text-brand-green">
+                      <BookOpen className="size-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold">Actividad reciente</h2>
+                      <p className="text-xs text-muted-foreground/70">
+                        {actLoading ? "Cargando..." : `Últimas ${activities.length} acciones`}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleViewActivity}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30 transition-all"
+                  >
+                    Ver actividad
+                    <ArrowRight className="size-3.5" />
+                  </button>
+                </div>
+
+                {actLoading && activities.length === 0 ? (
+                  <div className="space-y-2">
+                    {[1,2,3].map((i) => (
+                      <Skeleton key={i} className="h-16 rounded-xl" />
+                    ))}
+                  </div>
+                ) : activities.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-dashed border-border">
+                    <BookOpen className="size-8 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">Sin actividad reciente</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {activities.map((a) => {
+                      const isRead = a.event === "MARK_READ";
+                      const isAdd = a.event === "ADD_FAVORITE";
+                      return (
+                        <div
+                          key={a.id}
+                          className="flex items-start gap-3 p-3.5 rounded-xl border border-border/80 bg-card hover:bg-muted/30 transition-all duration-200"
+                        >
+                          <div className={`flex items-center justify-center size-8 rounded-lg shrink-0 mt-0.5 ${isRead ? "bg-brand-green/10 text-brand-green" : isAdd ? "bg-rose-500/10 text-rose-500" : "bg-orange-500/10 text-orange-500"}`}>
+                            {isRead ? <BookOpen className="size-3.5" /> : isAdd ? <Heart className="size-3.5" /> : <BookMinus className="size-3.5" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground/90">
+                              {isRead
+                                ? `Leyó ${a.metadata.chapterName ? `capítulo ${a.metadata.chapterName}` : "un capítulo"}${a.metadata.seriesName ? ` de ${a.metadata.seriesName}` : ""}`
+                                : isAdd
+                                  ? `Añadió ${a.metadata.seriesName ?? "una serie"} a favoritos`
+                                  : `Quitó ${a.metadata.seriesName ?? "una serie"} de favoritos`}
+                            </p>
+                            <p className="text-xs text-muted-foreground/60 mt-0.5">{timeAgo(a.createdAt)}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-              </div>
-
-              <FavoritesGrid
-                favorites={displayFavorites}
-                loading={loadingMatch}
-                myReadMap={myReadMap}
-                showComparison={compareChapters}
-                profile={profile}
-              />
-            </section>
-
-            <section className="lg:col-span-5">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex items-center justify-center size-9 rounded-xl bg-brand-green/10 text-brand-green">
-                  <BookOpen className="size-4" />
-                </div>
-                <div>
-                  <h2 className="text-base font-semibold">Actividad reciente</h2>
-                  <p className="text-xs text-muted-foreground/70">
-                    {loadingAct ? "Cargando..." : `Últimas ${activities.length} acciones`}
-                  </p>
-                </div>
-              </div>
-
-              {loadingAct && activities.length === 0 ? (
-                <div className="space-y-2">
-                  {[1,2,3].map((i) => (
-                    <Skeleton key={i} className="h-16 rounded-xl" />
-                  ))}
-                </div>
-              ) : activities.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-dashed border-border">
-                  <BookOpen className="size-8 text-muted-foreground/30 mb-2" />
-                  <p className="text-sm text-muted-foreground">Sin actividad reciente</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {activities.map((a) => {
-                    const isRead = a.event === "MARK_READ";
-                    const isAdd = a.event === "ADD_FAVORITE";
-                    return (
-                      <div
-                        key={a.id}
-                        className="flex items-start gap-3 p-3.5 rounded-xl border border-border/80 bg-card hover:bg-muted/30 transition-all duration-200"
-                      >
-                        <div className={`flex items-center justify-center size-8 rounded-lg shrink-0 mt-0.5 ${isRead ? "bg-brand-green/10 text-brand-green" : isAdd ? "bg-rose-500/10 text-rose-500" : "bg-orange-500/10 text-orange-500"}`}>
-                          {isRead ? <BookOpen className="size-3.5" /> : isAdd ? <Heart className="size-3.5" /> : <BookMinus className="size-3.5" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-foreground/90">
-                            {isRead
-                              ? `Leyó ${a.metadata.chapterName ? `capítulo ${a.metadata.chapterName}` : "un capítulo"}${a.metadata.seriesName ? ` de ${a.metadata.seriesName}` : ""}`
-                              : isAdd
-                                ? `Añadió ${a.metadata.seriesName ?? "una serie"} a favoritos`
-                                : `Quitó ${a.metadata.seriesName ?? "una serie"} de favoritos`}
-                          </p>
-                          <p className="text-xs text-muted-foreground/60 mt-0.5">{timeAgo(a.createdAt)}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {activities.length < totalActivity && (
-                    <div className="flex justify-center pt-2">
-                      <Button variant="outline" size="sm" onClick={async () => {
-                        if (!alias) return;
-                        setLoadingActivity(true);
-                        try {
-                          const res = await getProfileActivity(alias, activityPage + 1, 10);
-                          setActivities((prev) => [...prev, ...res.data]);
-                          setTotalActivity(res.total);
-                          setActivityPage((p) => p + 1);
-                        } catch { /* ignore */ }
-                        setLoadingActivity(false);
-                      }} disabled={loadingAct} className="gap-1.5">
-                        {loadingAct ? <><Loader2 className="size-3.5 animate-spin" /> Cargando...</> : "Cargar más"}
-                      </Button>
+              </section>
+            </div>
+          ) : viewMode === 'favorites' ? (
+            <div key="favorites" className="transition-all duration-300">
+              <section>
+                <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-9 rounded-xl bg-rose-500/10 text-rose-500">
+                      <Heart className="size-4" />
                     </div>
-                  )}
+                    <div>
+                      <h2 className="text-base font-semibold">Favoritos</h2>
+                      <p className="text-xs text-muted-foreground/70">
+                        {favLoading ? "Cargando..." : `Página ${favPage} de ${favTotalPages} (${favTotal} series)`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {showToggles && !loadingMine && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setMutualOnly((v) => !v)}
+                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
+                            mutualOnly
+                              ? "bg-brand/10 text-brand border-brand/30 shadow-sm"
+                              : "bg-muted/30 text-muted-foreground border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <CheckCheck className="size-3.5" />
+                          Mutuos
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCompareChapters((v) => !v)}
+                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
+                            compareChapters
+                              ? "bg-brand/10 text-brand border-brand/30 shadow-sm"
+                              : "bg-muted/30 text-muted-foreground border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <ArrowRight className="size-3.5" />
+                          Comparar
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleBackToBoth}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30 transition-all"
+                    >
+                      <ArrowLeft className="size-3.5" />
+                      Volver
+                    </button>
+                  </div>
                 </div>
-              )}
-            </section>
-          </div>
+
+                <FavoritesGrid
+                  favorites={displayFavorites}
+                  loading={favLoading}
+                  myReadMap={myReadMap}
+                  showComparison={compareChapters}
+                  profile={profile}
+                />
+
+                {favTotalPages > 1 && (
+                  <div className="flex items-center justify-center gap-3 pt-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={favPage <= 1 || favLoading}
+                      onClick={() => fetchFavPage(favPage - 1)}
+                      className="gap-1.5"
+                    >
+                      <ArrowLeft className="size-3.5" />
+                      Anterior
+                    </Button>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      Página {favPage} de {favTotalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={favPage >= favTotalPages || favLoading}
+                      onClick={() => fetchFavPage(favPage + 1)}
+                      className="gap-1.5"
+                    >
+                      Siguiente
+                      <ArrowRight className="size-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </section>
+            </div>
+          ) : (
+            <div key="activity" className="transition-all duration-300">
+              <section>
+                <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-9 rounded-xl bg-brand-green/10 text-brand-green">
+                      <BookOpen className="size-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold">Actividad</h2>
+                      <p className="text-xs text-muted-foreground/70">
+                        {actLoading ? "Cargando..." : `Página ${actPage} de ${actTotalPages} (${actTotal} acciones)`}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleBackToBoth}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30 transition-all"
+                  >
+                    <ArrowLeft className="size-3.5" />
+                    Volver
+                  </button>
+                </div>
+
+                {actLoading && activities.length === 0 ? (
+                  <div className="space-y-2">
+                    {[1,2,3].map((i) => (
+                      <Skeleton key={i} className="h-16 rounded-xl" />
+                    ))}
+                  </div>
+                ) : activities.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-dashed border-border">
+                    <BookOpen className="size-8 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">Sin actividad reciente</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {activities.map((a) => {
+                      const isRead = a.event === "MARK_READ";
+                      const isAdd = a.event === "ADD_FAVORITE";
+                      return (
+                        <div
+                          key={a.id}
+                          className="flex items-start gap-3 p-3.5 rounded-xl border border-border/80 bg-card hover:bg-muted/30 transition-all duration-200"
+                        >
+                          <div className={`flex items-center justify-center size-8 rounded-lg shrink-0 mt-0.5 ${isRead ? "bg-brand-green/10 text-brand-green" : isAdd ? "bg-rose-500/10 text-rose-500" : "bg-orange-500/10 text-orange-500"}`}>
+                            {isRead ? <BookOpen className="size-3.5" /> : isAdd ? <Heart className="size-3.5" /> : <BookMinus className="size-3.5" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground/90">
+                              {isRead
+                                ? `Leyó ${a.metadata.chapterName ? `capítulo ${a.metadata.chapterName}` : "un capítulo"}${a.metadata.seriesName ? ` de ${a.metadata.seriesName}` : ""}`
+                                : isAdd
+                                  ? `Añadió ${a.metadata.seriesName ?? "una serie"} a favoritos`
+                                  : `Quitó ${a.metadata.seriesName ?? "una serie"} de favoritos`}
+                            </p>
+                            <p className="text-xs text-muted-foreground/60 mt-0.5">{timeAgo(a.createdAt)}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {actTotalPages > 1 && (
+                  <div className="flex items-center justify-center gap-3 pt-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={actPage <= 1 || actLoading}
+                      onClick={() => fetchActPage(actPage - 1)}
+                      className="gap-1.5"
+                    >
+                      <ArrowLeft className="size-3.5" />
+                      Anterior
+                    </Button>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      Página {actPage} de {actTotalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={actPage >= actTotalPages || actLoading}
+                      onClick={() => fetchActPage(actPage + 1)}
+                      className="gap-1.5"
+                    >
+                      Siguiente
+                      <ArrowRight className="size-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </section>
+            </div>
           )}
         </main>
       </div>

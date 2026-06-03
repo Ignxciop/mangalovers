@@ -1,7 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { canViewProfile, canViewContent, getFriendStatusBetween } from "../utils/profileVisibility.js";
-import { getUserFavorites } from "../favorite/favoriteService.js";
+import { getUserFavoritesPaginated } from "../favorite/favoriteService.js";
 
 export class UserService {
   static async getProfileByAlias(alias, viewerId) {
@@ -37,7 +37,7 @@ export class UserService {
     };
   }
 
-  static async getProfileFavorites(alias, viewerId) {
+  static async getProfileFavorites(alias, viewerId, page = 1, limit = 15) {
     const user = await prisma.user.findUnique({
       where: { alias },
       select: {
@@ -49,9 +49,9 @@ export class UserService {
     if (!canViewProfile(viewerId, user)) throw new ForbiddenError("Este perfil es privado");
 
     const canView = await canViewContent(viewerId, user);
-    if (!canView) return [];
+    if (!canView) return { data: [], total: 0 };
 
-    return getUserFavorites(user.id);
+    return getUserFavoritesPaginated(user.id, page, limit);
   }
 
   static async getProfileActivity(alias, viewerId, page = 1, limit = 20) {

@@ -1,20 +1,16 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ValidationError } from "../utils/errors.js";
 
-export async function getUserFavorites(userId) {
-  const favorites = await prisma.userFavorite.findMany({
-    where: { userId },
-    include: {
-      series: {
-        select: {
-          id: true, name: true, slug: true, cover: true,
-          status: true, type: true, chapterCount: true, lastChapterPublishedAt: true,
-        },
-      },
+const FAVORITE_INCLUDE = {
+  series: {
+    select: {
+      id: true, name: true, slug: true, cover: true,
+      status: true, type: true, chapterCount: true, lastChapterPublishedAt: true,
     },
-    orderBy: { updatedAt: "desc" },
-  });
+  },
+};
 
+async function enrichFavorites(favorites, userId) {
   if (favorites.length === 0) return [];
 
   const seriesIds = favorites.map((f) => f.seriesId);
@@ -53,6 +49,33 @@ export async function getUserFavorites(userId) {
     lastReadChapterName: seriesReadMap.get(f.seriesId)?.lastReadChapterName ?? null,
     lastAvailableChapterName: lastChapterMap.get(f.seriesId) ?? null,
   }));
+}
+
+export async function getUserFavorites(userId) {
+  const favorites = await prisma.userFavorite.findMany({
+    where: { userId },
+    include: FAVORITE_INCLUDE,
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return enrichFavorites(favorites, userId);
+}
+
+export async function getUserFavoritesPaginated(userId, page, limit) {
+  const where = { userId };
+
+  const [favorites, total] = await Promise.all([
+    prisma.userFavorite.findMany({
+      where,
+      include: FAVORITE_INCLUDE,
+      orderBy: { updatedAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.userFavorite.count({ where }),
+  ]);
+
+  return { data: await enrichFavorites(favorites, userId), total };
 }
 
 export async function getFavorite(userId, seriesId) {

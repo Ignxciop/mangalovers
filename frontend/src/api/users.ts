@@ -58,12 +58,15 @@ export async function getProfile(alias: string): Promise<PublicUserProfile> {
   return data.data;
 }
 
-export async function getProfileFavorites(alias: string): Promise<ProfileFavorite[]> {
-  const { data } = await api.get<{ success: boolean; data: ProfileFavorite[] }>(`/users/${alias}/favorites`);
-  return data.data;
+export async function getProfileFavorites(alias: string, page = 1, limit = 15): Promise<{ data: ProfileFavorite[]; total: number }> {
+  const { data } = await api.get<{ success: boolean; data: ProfileFavorite[]; total: number }>(
+    `/users/${alias}/favorites`,
+    { params: { page, limit } },
+  );
+  return { data: data.data, total: data.total };
 }
 
-export async function getProfileActivity(alias: string, page = 1, limit = 20): Promise<{ data: ProfileActivity[]; total: number }> {
+export async function getProfileActivity(alias: string, page = 1, limit = 10): Promise<{ data: ProfileActivity[]; total: number }> {
   const { data } = await api.get<{ success: boolean; data: ProfileActivity[]; total: number }>(
     `/users/${alias}/activity`,
     { params: { page, limit } },
