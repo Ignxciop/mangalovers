@@ -322,10 +322,16 @@ export class FriendService {
         },
       },
       orderBy: { createdAt: "desc" },
-      distinct: ["userId"],
     });
 
-    return reads.map((read) => ({
+    const latestPerUser = new Map();
+    for (const read of reads) {
+      if (!latestPerUser.has(read.userId)) {
+        latestPerUser.set(read.userId, read);
+      }
+    }
+
+    return [...latestPerUser.values()].map((read) => ({
       userId: read.user.id,
       name: read.user.name,
       lastname: read.user.lastname,
