@@ -174,19 +174,24 @@ function FavoritesGrid({
   myReadMap,
   showComparison,
   profile,
+  columns = 5,
 }: {
   favorites: ProfileFavorite[];
   loading: boolean;
   myReadMap: Map<number, string>;
   showComparison: boolean;
   profile: PublicUserProfile;
+  columns?: number;
 }) {
   const navigate = useNavigate();
+  const gridClass = columns === 6
+    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"
+    : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3";
 
   if (loading) {
-    const skeletonItems = Array.from({ length: 10 });
+    const skeletonItems = Array.from({ length: columns * 2 });
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className={gridClass}>
         {skeletonItems.map((_, i) => (
           <div key={i} className="rounded-xl overflow-hidden border border-border">
             <Skeleton className="aspect-[3/4] w-full rounded-none" />
@@ -197,7 +202,7 @@ function FavoritesGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+    <div className={gridClass}>
       {favorites.map((fav) => (
         <SeriesCard
           key={fav.id}
@@ -703,6 +708,7 @@ export default function UserProfilePage() {
                   myReadMap={myReadMap}
                   showComparison={compareChapters}
                   profile={profile}
+                  columns={6}
                 />
 
                 {favTotalPages > 1 && (
@@ -760,9 +766,9 @@ export default function UserProfilePage() {
                 </div>
 
                 {actLoading && activities.length === 0 ? (
-                  <div className="space-y-2">
-                    {[1,2,3].map((i) => (
-                      <Skeleton key={i} className="h-16 rounded-xl" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[1,2,3,4,5,6].map((i) => (
+                      <Skeleton key={i} className="h-24 rounded-xl" />
                     ))}
                   </div>
                 ) : activities.length === 0 ? (
@@ -771,7 +777,7 @@ export default function UserProfilePage() {
                     <p className="text-sm text-muted-foreground">Sin actividad reciente</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {activities.map((a) => {
                       const isRead = a.event === "MARK_READ";
                       const isAdd = a.event === "ADD_FAVORITE";
