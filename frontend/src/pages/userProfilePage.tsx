@@ -99,6 +99,7 @@ function SeriesCard({
 
   return (
     <div className="group relative rounded-xl overflow-hidden border border-border bg-card hover:border-brand/30 transition-all duration-200 hover:shadow-lg hover:shadow-brand/5">
+      <div className="overflow-hidden">
       <a
         href={`/manga/${fav.series.slug}`}
         onClick={(e) => { e.preventDefault(); onNavigate(fav.series.slug); }}
@@ -108,7 +109,7 @@ function SeriesCard({
           <img
             src={fav.series.cover}
             alt={fav.series.name}
-            className={`w-full aspect-[3/4] object-cover transition-transform duration-300 ${!showComparison ? "group-hover:scale-105" : ""}`}
+            className="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
         ) : (
@@ -133,6 +134,7 @@ function SeriesCard({
           )}
         </div>
       </a>
+      </div>
 
       {showComparison && (
         <div className="px-3 py-2.5 space-y-2 border-t border-border/50 bg-card">
