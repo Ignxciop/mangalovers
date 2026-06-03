@@ -443,6 +443,18 @@ export default function UserProfilePage() {
             </div>
           </div>
 
+          {!profile.isOwner && profile.profileVisibility === "FRIENDS" && (!profile.friendStatus || profile.friendStatus !== "ACCEPTED") ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
+              <div className="flex items-center justify-center size-16 rounded-full bg-amber-500/10">
+                <ShieldAlert className="size-7 text-amber-500" />
+              </div>
+              <h2 className="text-lg font-semibold">Perfil privado</h2>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Este perfil tiene visibilidad de solo amigos. Si quieres ver sus favoritos y actividad,
+                envía una solicitud de amistad.
+              </p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             <section className="lg:col-span-7">
               <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -568,6 +580,7 @@ export default function UserProfilePage() {
               )}
             </section>
           </div>
+          )}
         </main>
       </div>
     </>
