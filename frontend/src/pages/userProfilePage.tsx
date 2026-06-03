@@ -108,7 +108,7 @@ function SeriesCard({
           <img
             src={fav.series.cover}
             alt={fav.series.name}
-            className="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-300"
+            className={`w-full aspect-[3/4] object-cover transition-transform duration-300 ${!showComparison ? "group-hover:scale-105" : ""}`}
             loading="lazy"
           />
         ) : (
