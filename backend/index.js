@@ -24,6 +24,7 @@ import adminAnnouncementRoutes from "./src/admin/adminAnnouncementRoutes.js";
 import activityLogRoutes from "./src/activityLog/activityLogRoutes.js";
 import announcementRoutes from "./src/routes/announcementRoutes.js";
 import commentRoutes from "./src/comments/commentRoutes.js";
+import userRoutes from "./src/users/userRoutes.js";
 import { ActivityLogService } from "./src/activityLog/activityLogService.js";
 import { prisma } from "./src/config/prisma.js";
 
@@ -180,6 +181,7 @@ app.use("/api/admin", activityLogRoutes);
 app.use("/api", sitemapRoutes);
 app.use("/api", announcementRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/users", userRoutes);
 
 app.use(errorHandler);
 

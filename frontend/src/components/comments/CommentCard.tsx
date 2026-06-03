@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { toggleCommentLike, updateComment, deleteComment } from "@/api/comments";
 import type { Comment } from "@/api/comments";
 import { CommentForm } from "./CommentForm";
@@ -80,21 +81,42 @@ export function CommentCard({
     return (
         <div id={`comment-${comment.id}`} className={depth === 1 ? "ml-8 pl-4 border-l border-white/10" : ""}>
             <div className="flex gap-3 py-3">
-                <Avatar className="h-8 w-8 shrink-0">
-                    {comment.user?.avatarUrl && (
-                        <AvatarImage
-                            src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ?? ""}/uploads/avatars/${comment.user.avatarUrl}`}
-                        />
-                    )}
-                    <AvatarFallback className="text-xs bg-white/10">
-                        {initials}
-                    </AvatarFallback>
-                </Avatar>
+                {comment.user?.alias ? (
+                    <Link to={`/usuario/${comment.user.alias}`} className="shrink-0">
+                        <Avatar className="h-8 w-8 shrink-0">
+                            {comment.user?.avatarUrl && (
+                                <AvatarImage
+                                    src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ?? ""}/uploads/avatars/${comment.user.avatarUrl}`}
+                                />
+                            )}
+                            <AvatarFallback className="text-xs bg-white/10">
+                                {initials}
+                            </AvatarFallback>
+                        </Avatar>
+                    </Link>
+                ) : (
+                    <Avatar className="h-8 w-8 shrink-0">
+                        {comment.user?.avatarUrl && (
+                            <AvatarImage
+                                src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ?? ""}/uploads/avatars/${comment.user.avatarUrl}`}
+                            />
+                        )}
+                        <AvatarFallback className="text-xs bg-white/10">
+                            {initials}
+                        </AvatarFallback>
+                    </Avatar>
+                )}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium">
-                            {displayName}
-                        </span>
+                        {comment.user?.alias ? (
+                            <Link to={`/usuario/${comment.user.alias}`} className="text-sm font-medium hover:text-brand transition-colors">
+                                {displayName}
+                            </Link>
+                        ) : (
+                            <span className="text-sm font-medium">
+                                {displayName}
+                            </span>
+                        )}
                         {comment.isSpoiler && (
                             <span className="flex items-center gap-1 text-[10px] font-semibold text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded">
                                 <AlertTriangle className="h-3 w-3" />

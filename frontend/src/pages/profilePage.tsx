@@ -879,11 +879,11 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                         <div className="lg:col-span-7 space-y-6">
                             <ProfileSection />
+                            <AliasSection />
+                            <PrivacySection />
                             <PasswordSection />
                         </div>
                         <div className="lg:col-span-5 space-y-6">
-                            <AliasSection />
-                            <PrivacySection />
                             <ActivitySection />
                             <NotificationSection />
                             <DeleteAccountSection />
