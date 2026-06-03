@@ -130,11 +130,13 @@ model Series {
   lastChapterPublishedAt DateTime?
   metadataFetchedAt DateTime?
 
-  chapters       Chapter[]
-  providerSeries ProviderSeries[]
-  genres         SeriesGenre[]
-  favorites      UserFavorite[]
-  aliases        SeriesAlias[]
+  chapters         Chapter[]
+  providerSeries   ProviderSeries[]
+  genres           SeriesGenre[]
+  favorites        UserFavorite[]
+  aliases          SeriesAlias[]
+  primaryRelations SeriesRelation[] @relation("PrimarySeries")
+  fallbackRelations SeriesRelation[] @relation("FallbackSeries")
 
   lastChaptersCheck DateTime?
   createdAt         DateTime  @default(now())
@@ -152,6 +154,19 @@ model SeriesAlias {
   series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@map("series_aliases")
+}
+
+model SeriesRelation {
+  id               Int      @id @default(autoincrement())
+  primarySeriesId  Int
+  fallbackSeriesId Int
+  createdAt        DateTime @default(now())
+
+  primarySeries  Series @relation("PrimarySeries", fields: [primarySeriesId], references: [id], onDelete: Cascade)
+  fallbackSeries Series @relation("FallbackSeries", fields: [fallbackSeriesId], references: [id], onDelete: Cascade)
+
+  @@unique([primarySeriesId, fallbackSeriesId])
+  @@map("series_relations")
 }
 
 model Chapter {
