@@ -50,7 +50,7 @@ function FriendActionButton({
 
   if (profile.friendStatus === "ACCEPTED") {
     return (
-      <span className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+      <span className="text-xs inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 w-fit">
         <UserCheck className="size-3.5" /> Amigos
       </span>
     );
@@ -58,7 +58,7 @@ function FriendActionButton({
 
   if (profile.friendStatus === "PENDING") {
     return (
-      <span className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+      <span className="text-xs inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 w-fit">
         <Clock className="size-3.5" /> Pendiente
       </span>
     );
@@ -66,7 +66,7 @@ function FriendActionButton({
 
   if (profile.friendStatus === "BLOCKED") {
     return (
-      <span className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+      <span className="text-xs inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20 w-fit">
         <Ban className="size-3.5" /> Bloqueado
       </span>
     );
