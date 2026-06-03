@@ -33,6 +33,7 @@ function NotificationIcon({ type }: { type: AppNotification["type"] }) {
         FRIEND_ACCEPTED: { icon: UserCheck, className: "text-emerald-400" },
         SUGGESTION_RESOLVED: { icon: MessageSquare, className: "text-amber-400" },
         NEW_CHAPTER: { icon: BookOpen, className: "text-brand-cyan" },
+        COMMENT_REPLY: { icon: MessageSquare, className: "text-purple-400" },
     };
     const { icon: Icon, className } = map[type] ?? { icon: Bell, className: "text-muted-foreground" };
     return (
@@ -57,6 +58,8 @@ function NotificationItem({ notification, index, onRead }: { notification: AppNo
             navigate(`/manga/${notification.data.slug}`);
         } else if (notification.type === "FRIEND_REQUEST" || notification.type === "FRIEND_ACCEPTED") {
             navigate("/amigos");
+        } else if (notification.type === "COMMENT_REPLY" && notification.data?.seriesSlug && notification.data?.chapterId && notification.data?.replyId) {
+            navigate(`/manga/${notification.data.seriesSlug}/capitulo/${notification.data.chapterId}#comment-${notification.data.replyId}`);
         }
     };
 

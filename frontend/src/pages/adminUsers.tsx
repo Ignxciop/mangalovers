@@ -79,6 +79,8 @@ const EVENT_LABELS: Record<string, string> = {
     REJECT_FRIEND: "Rechazar solicitud",
     BLOCK_USER: "Bloquear usuario",
     UNBLOCK_USER: "Desbloquear usuario",
+    CREATE_COMMENT: "Crear comentario",
+    DELETE_COMMENT: "Eliminar comentario",
 };
 
 const EVENT_COLORS: Record<string, string> = {
@@ -100,6 +102,8 @@ const EVENT_COLORS: Record<string, string> = {
     REJECT_FRIEND: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
     BLOCK_USER: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
     UNBLOCK_USER: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    CREATE_COMMENT: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+    DELETE_COMMENT: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
 };
 
 const STATUS_LABELS: Record<UserStatus, string> = {
@@ -199,6 +203,10 @@ function formatLogMetadata(event: string, metadata: Record<string, unknown> | nu
             return "Bloqueó a un usuario";
         case "UNBLOCK_USER":
             return "Desbloqueó a un usuario";
+        case "CREATE_COMMENT":
+            return `Comentó "${String(metadata.content).slice(0, 60)}" en el capítulo ${metadata.chapterName} de "${metadata.seriesName}"`;
+        case "DELETE_COMMENT":
+            return `Eliminó un comentario en el capítulo ${metadata.chapterName} de "${metadata.seriesName}"`;
         case "UPDATE_PROFILE":
             return `Actualizó su perfil: ${metadata.field}`;
         default:
@@ -242,6 +250,10 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
                 </div>
             </div>
             <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground/50">
+                <span className="flex items-center gap-1">
+                    <MessageSquare className="size-3" />
+                    {user._count.comments}
+                </span>
                 <span className="flex items-center gap-1">
                     <MessageSquare className="size-3" />
                     {user._count.suggestions}
@@ -368,7 +380,11 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
 
             <div className="border-t border-border pt-4">
                 <p className="text-xs font-medium text-muted-foreground mb-3">Actividad</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-muted/20 rounded-lg border border-border p-3 text-center">
+                        <p className="text-lg font-semibold">{user._count.comments}</p>
+                        <p className="text-xs text-muted-foreground">Comentarios</p>
+                    </div>
                     <div className="bg-muted/20 rounded-lg border border-border p-3 text-center">
                         <p className="text-lg font-semibold">{user._count.suggestions}</p>
                         <p className="text-xs text-muted-foreground">Sugerencias</p>

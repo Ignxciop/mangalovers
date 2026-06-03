@@ -67,6 +67,8 @@ model User {
   receivedRequests  Friend[]      @relation("ReceivedFriendRequests")
   notifications     Notification[]
   seenAnnouncements UserAnnouncement[]
+  comments          Comment[]
+  commentLikes      CommentLike[]
 
   @@map("users")
 }
@@ -158,6 +160,7 @@ model Chapter {
   providerChapters ProviderChapter[]
   reads         UserChapterRead[]
   progress      UserChapterProgress[]
+  comments      Comment[]
 
   pagesScraped Boolean @default(false)
 
@@ -176,6 +179,40 @@ model Page {
 
   @@unique([url, chapterId])
   @@index([chapterId])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  isSpoiler Boolean  @default(false) @map("is_spoiler")
+  userId    String
+  chapterId Int
+  parentId  Int?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  parent  Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+  likes   CommentLike[]
+
+  @@index([chapterId, createdAt])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model CommentLike {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  commentId Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@map("comment_likes")
 }
 
 model Provider {

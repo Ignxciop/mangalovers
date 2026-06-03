@@ -26,6 +26,8 @@ import {
     SelectItem,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { CommentSection } from "@/components/comments/CommentSection";
 import {
     useEffect,
     useRef,
@@ -857,6 +859,12 @@ export default function ChapterReader() {
                     >
                         volver a la serie
                     </button>
+                </div>
+
+                <Separator className="max-w-2xl mx-auto my-4" />
+
+                <div className="max-w-2xl mx-auto px-4">
+                    <CommentSection chapterId={chapter.chapterId} />
                 </div>
             </div>
         </>
