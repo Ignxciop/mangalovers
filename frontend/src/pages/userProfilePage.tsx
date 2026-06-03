@@ -20,6 +20,16 @@ import {
 } from "lucide-react";
 import { AxiosError } from "axios";
 
+const viewTransitionStyle = `
+@keyframes viewFadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-view {
+  animation: viewFadeSlideIn 0.35s ease-out;
+}
+`;
+
 const AVATAR_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
 
 function FriendActionButton({
@@ -426,6 +436,7 @@ export default function UserProfilePage() {
 
   return (
     <>
+      <style>{viewTransitionStyle}</style>
       <SEO
         title={`Perfil de ${profile.alias ?? profile.name}`}
         description={`Perfil de ${profile.name} ${profile.lastname} en Mangalovers.`}
@@ -502,7 +513,7 @@ export default function UserProfilePage() {
               </p>
             </div>
           ) : viewMode === 'both' ? (
-            <div key="both" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start transition-all duration-300">
+            <div key="both" className="animate-view grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               <section className="lg:col-span-7">
                 <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
                   <div className="flex items-center gap-3">
@@ -631,7 +642,7 @@ export default function UserProfilePage() {
               </section>
             </div>
           ) : viewMode === 'favorites' ? (
-            <div key="favorites" className="transition-all duration-300">
+            <div key="favorites" className="animate-view">
               <section>
                 <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
                   <div className="flex items-center gap-3">
@@ -724,7 +735,7 @@ export default function UserProfilePage() {
               </section>
             </div>
           ) : (
-            <div key="activity" className="transition-all duration-300">
+            <div key="activity" className="animate-view">
               <section>
                 <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
                   <div className="flex items-center gap-3">
