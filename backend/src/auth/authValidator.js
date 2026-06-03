@@ -49,6 +49,7 @@ export const updateProfileValidator = [
   body("name").optional().trim().isLength({ min: 2, max: 100 }),
   body("lastname").optional().trim().isLength({ min: 2, max: 100 }),
   body("email").optional().isEmail().normalizeEmail(),
+  body("profileVisibility").optional().isIn(["PUBLIC", "FRIENDS", "PRIVATE"]).withMessage("Visibilidad inválida"),
 ];
 
 export const updatePasswordValidator = [

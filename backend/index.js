@@ -24,6 +24,7 @@ import adminAnnouncementRoutes from "./src/admin/adminAnnouncementRoutes.js";
 import activityLogRoutes from "./src/activityLog/activityLogRoutes.js";
 import announcementRoutes from "./src/routes/announcementRoutes.js";
 import commentRoutes from "./src/comments/commentRoutes.js";
+import userRoutes from "./src/users/userRoutes.js";
 import { ActivityLogService } from "./src/activityLog/activityLogService.js";
 import { prisma } from "./src/config/prisma.js";
 
@@ -84,59 +85,58 @@ function rateLimitHandler(message) {
   };
 }
 
-const generalLimiter = rateLimit({
+const isDev = config.ENVIRONMENT === "development";
+
+function createLimiter(opts) {
+    return rateLimit({
+        ...opts,
+        max: isDev ? 100_000 : opts.max,
+        windowMs: isDev ? 60 * 1000 : opts.windowMs,
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: opts.handler,
+    });
+}
+
+const generalLimiter = createLimiter({
     windowMs: 15 * 60 * 1000,
     max: 1500,
-    standardHeaders: true,
-    legacyHeaders: false,
     handler: rateLimitHandler("Demasiadas solicitudes, intenta de nuevo más tarde"),
 });
 
-const authLimiter = rateLimit({
+const authLimiter = createLimiter({
     windowMs: 15 * 60 * 1000,
     max: 500,
-    standardHeaders: true,
-    legacyHeaders: false,
     handler: rateLimitHandler("Demasiadas solicitudes, intenta de nuevo más tarde"),
 });
 
-const heavyLimiter = rateLimit({
+const heavyLimiter = createLimiter({
     windowMs: 60 * 1000,
     max: 120,
-    standardHeaders: true,
-    legacyHeaders: false,
     handler: rateLimitHandler("Demasiadas solicitudes, intenta de nuevo más tarde"),
 });
 
-const favoriteLimiter = rateLimit({
+const favoriteLimiter = createLimiter({
     windowMs: 60 * 60 * 1000,
     max: 200,
-    standardHeaders: true,
-    legacyHeaders: false,
     handler: rateLimitHandler("Demasiados cambios en favoritos"),
 });
 
-const friendLimiter = rateLimit({
+const friendLimiter = createLimiter({
     windowMs: 60 * 60 * 1000,
     max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
     handler: rateLimitHandler("Demasiadas solicitudes de amistad"),
 });
 
-const commentLimiter = rateLimit({
+const commentLimiter = createLimiter({
     windowMs: 60 * 60 * 1000,
     max: 60,
-    standardHeaders: true,
-    legacyHeaders: false,
     handler: rateLimitHandler("Demasiados comentarios, intenta de nuevo más tarde"),
 });
 
-const commentLikeLimiter = rateLimit({
+const commentLikeLimiter = createLimiter({
     windowMs: 60 * 60 * 1000,
     max: 60,
-    standardHeaders: true,
-    legacyHeaders: false,
     handler: rateLimitHandler("Demasiados likes, intenta de nuevo más tarde"),
 });
 
@@ -180,6 +180,7 @@ app.use("/api/admin", activityLogRoutes);
 app.use("/api", sitemapRoutes);
 app.use("/api", announcementRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/users", userRoutes);
 
 app.use(errorHandler);
 

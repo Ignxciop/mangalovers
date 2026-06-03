@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { useFriendStore } from "@/store/friendStore";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Link } from "react-router-dom";
 import {
     Search,
     UserPlus,
@@ -197,16 +198,24 @@ function ActivityItem({
             )}
             style={{ animationDelay: `${index * 40}ms` }}
         >
-            <FriendAvatar
-                name={user.name}
-                avatarUrl={user.avatarUrl}
-                className="mt-0.5"
-            />
+            {user.alias ? (
+                <Link to={`/usuario/${user.alias}`} className="shrink-0">
+                    <FriendAvatar name={user.name} avatarUrl={user.avatarUrl} className="mt-0.5" />
+                </Link>
+            ) : (
+                <FriendAvatar name={user.name} avatarUrl={user.avatarUrl} className="mt-0.5" />
+            )}
             <div className="flex flex-col min-w-0 gap-0.5 flex-1">
                 <div className="flex items-center gap-1.5 text-xs leading-snug">
-                    <span className="font-semibold text-foreground truncate">
-                        {fullName}
-                    </span>
+                    {activity.user.alias ? (
+                        <Link to={`/usuario/${activity.user.alias}`} className="font-semibold text-foreground truncate hover:text-brand transition-colors">
+                            {fullName}
+                        </Link>
+                    ) : (
+                        <span className="font-semibold text-foreground truncate">
+                            {fullName}
+                        </span>
+                    )}
                     <span
                         className={cn(
                             "shrink-0",
@@ -415,16 +424,18 @@ function SearchSection() {
                 <div className="flex flex-col gap-2">
                     {results.map((user) => (
                         <FriendCardWrapper key={user.id}>
-                            <div className="flex items-center gap-3 min-w-0">
-                                <FriendAvatar
-                                    name={user.name}
-                                    avatarUrl={user.avatarUrl}
-                                />
-                                <UserInfo
-                                    name={user.name}
-                                    lastname={user.lastname}
-                                    alias={user.alias}
-                                />
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                {user.alias ? (
+                                    <Link to={`/usuario/${user.alias}`} className="flex items-center gap-3 min-w-0 flex-1">
+                                        <FriendAvatar name={user.name} avatarUrl={user.avatarUrl} />
+                                        <UserInfo name={user.name} lastname={user.lastname} alias={user.alias} />
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <FriendAvatar name={user.name} avatarUrl={user.avatarUrl} />
+                                        <UserInfo name={user.name} lastname={user.lastname} alias={user.alias} />
+                                    </>
+                                )}
                             </div>
                             {user._friendStatus === "ACCEPTED" ? (
                                 <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -519,16 +530,18 @@ function FriendsList() {
                     key={friend.id}
                     style={{ animationDelay: `${i * 30}ms` }}
                 >
-                    <div className="flex items-center gap-3 min-w-0">
-                        <FriendAvatar
-                            name={friend.name}
-                            avatarUrl={friend.avatarUrl}
-                        />
-                        <UserInfo
-                            name={friend.name}
-                            lastname={friend.lastname}
-                            alias={friend.alias}
-                        />
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {friend.alias ? (
+                            <Link to={`/usuario/${friend.alias}`} className="flex items-center gap-3 min-w-0 flex-1">
+                                <FriendAvatar name={friend.name} avatarUrl={friend.avatarUrl} />
+                                <UserInfo name={friend.name} lastname={friend.lastname} alias={friend.alias} />
+                            </Link>
+                        ) : (
+                            <>
+                                <FriendAvatar name={friend.name} avatarUrl={friend.avatarUrl} />
+                                <UserInfo name={friend.name} lastname={friend.lastname} alias={friend.alias} />
+                            </>
+                        )}
                     </div>
                     <div className="flex gap-1 shrink-0">
                         <Button
@@ -630,16 +643,18 @@ function ReceivedRequests() {
                     key={req.id}
                     style={{ animationDelay: `${i * 30}ms` }}
                 >
-                    <div className="flex items-center gap-3 min-w-0">
-                        <FriendAvatar
-                            name={req.sender.name}
-                            avatarUrl={req.sender.avatarUrl}
-                        />
-                        <UserInfo
-                            name={req.sender.name}
-                            lastname={req.sender.lastname}
-                            alias={req.sender.alias}
-                        />
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {req.sender.alias ? (
+                            <Link to={`/usuario/${req.sender.alias}`} className="flex items-center gap-3 min-w-0 flex-1">
+                                <FriendAvatar name={req.sender.name} avatarUrl={req.sender.avatarUrl} />
+                                <UserInfo name={req.sender.name} lastname={req.sender.lastname} alias={req.sender.alias} />
+                            </Link>
+                        ) : (
+                            <>
+                                <FriendAvatar name={req.sender.name} avatarUrl={req.sender.avatarUrl} />
+                                <UserInfo name={req.sender.name} lastname={req.sender.lastname} alias={req.sender.alias} />
+                            </>
+                        )}
                     </div>
                     <div className="flex gap-1.5 shrink-0">
                         <Button
@@ -702,16 +717,18 @@ function SentRequests() {
                     key={req.id}
                     style={{ animationDelay: `${i * 30}ms` }}
                 >
-                    <div className="flex items-center gap-3 min-w-0">
-                        <FriendAvatar
-                            name={req.receiver.name}
-                            avatarUrl={req.receiver.avatarUrl}
-                        />
-                        <UserInfo
-                            name={req.receiver.name}
-                            lastname={req.receiver.lastname}
-                            alias={req.receiver.alias}
-                        />
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {req.receiver.alias ? (
+                            <Link to={`/usuario/${req.receiver.alias}`} className="flex items-center gap-3 min-w-0 flex-1">
+                                <FriendAvatar name={req.receiver.name} avatarUrl={req.receiver.avatarUrl} />
+                                <UserInfo name={req.receiver.name} lastname={req.receiver.lastname} alias={req.receiver.alias} />
+                            </Link>
+                        ) : (
+                            <>
+                                <FriendAvatar name={req.receiver.name} avatarUrl={req.receiver.avatarUrl} />
+                                <UserInfo name={req.receiver.name} lastname={req.receiver.lastname} alias={req.receiver.alias} />
+                            </>
+                        )}
                     </div>
                     <span className="text-xs flex items-center gap-1 shrink-0 px-2 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
                         <Clock className="size-3.5" /> Pendiente
@@ -770,16 +787,18 @@ function BlockedUsersList() {
                     key={b.id}
                     style={{ animationDelay: `${i * 30}ms` }}
                 >
-                    <div className="flex items-center gap-3 min-w-0">
-                        <FriendAvatar
-                            name={b.user.name}
-                            avatarUrl={b.user.avatarUrl}
-                        />
-                        <UserInfo
-                            name={b.user.name}
-                            lastname={b.user.lastname}
-                            alias={b.user.alias}
-                        />
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {b.user.alias ? (
+                            <Link to={`/usuario/${b.user.alias}`} className="flex items-center gap-3 min-w-0 flex-1">
+                                <FriendAvatar name={b.user.name} avatarUrl={b.user.avatarUrl} />
+                                <UserInfo name={b.user.name} lastname={b.user.lastname} alias={b.user.alias} />
+                            </Link>
+                        ) : (
+                            <>
+                                <FriendAvatar name={b.user.name} avatarUrl={b.user.avatarUrl} />
+                                <UserInfo name={b.user.name} lastname={b.user.lastname} alias={b.user.alias} />
+                            </>
+                        )}
                     </div>
                     <Button
                         size="sm"

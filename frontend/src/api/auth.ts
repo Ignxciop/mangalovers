@@ -24,6 +24,7 @@ interface AuthData {
         aliasChanged?: boolean;
         status?: "ACTIVE" | "SUSPENDED" | "BANNED";
         suspendedUntil?: string | null;
+        profileVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
     };
 }
 

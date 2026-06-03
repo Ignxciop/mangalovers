@@ -332,11 +332,18 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                     <>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
+                                            onSelect={() => closeMobileAndNavigate(`/usuario/${user?.alias}`)}
+                                            className="rounded-lg cursor-pointer gap-2.5"
+                                        >
+                                            <UserRound className="h-4 w-4 text-muted-foreground" />
+                                            <span>Mi perfil</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
                                             onSelect={() => closeMobileAndNavigate("/perfil")}
                                             className="rounded-lg cursor-pointer gap-2.5"
                                         >
                                             <Settings className="h-4 w-4 text-muted-foreground" />
-                                            <span>Mi perfil</span>
+                                            <span>Configuración</span>
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                             onSelect={onOpenSuggestions}

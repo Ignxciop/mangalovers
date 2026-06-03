@@ -21,6 +21,7 @@ const PrivacyPolicy = lazy(() => import("./pages/privacyPolicy.tsx"));
 const ProfilePage = lazy(() => import("./pages/profilePage.tsx"));
 const StatsPage = lazy(() => import("./pages/statsPage.tsx"));
 const FriendsPage = lazy(() => import("./pages/friendsPage.tsx"));
+const UserProfilePage = lazy(() => import("./pages/userProfilePage.tsx"));
 const NotificationsPage = lazy(() => import("./pages/notificationsPage.tsx"));
 const AdminSuggestions = lazy(() => import("./pages/adminSuggestions.tsx"));
 const AdminDashboard = lazy(() => import("./pages/adminDashboard.tsx"));
@@ -98,6 +99,8 @@ function AppRoutes() {
                         path="/manga/:slug/capitulo/:chapterId"
                         element={<ChapterReader />}
                     />
+
+                    <Route path="/usuario/:alias" element={<UserProfilePage />} />
 
                     <Route element={<ProtectedRoute />}>
                         <Route
