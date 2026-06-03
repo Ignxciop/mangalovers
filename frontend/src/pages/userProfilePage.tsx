@@ -216,7 +216,7 @@ function FavoritesGrid({
           myReadMap={myReadMap}
           showComparison={showComparison}
           profile={profile}
-          onNavigate={(slug) => navigate(`/manga/${slug}`)}
+          onNavigate={(slug) => navigate(`/manga/${slug}`, { state: { from: window.location.pathname } })}
         />
       ))}
     </div>
@@ -320,7 +320,7 @@ export default function UserProfilePage() {
     let cancelled = false;
     setLoadingMine(true);
     fetchFavorites()
-      .then((res) => { if (!cancelled) setMyFavorites(res.data ?? []); })
+      .then((res) => { if (!cancelled) setMyFavorites(res ?? []); })
       .catch(() => { if (!cancelled) setMyFavorites([]); })
       .finally(() => { if (!cancelled) setLoadingMine(false); });
     return () => { cancelled = true; };
