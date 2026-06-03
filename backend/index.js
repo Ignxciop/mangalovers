@@ -23,6 +23,7 @@ import adminRoutes from "./src/admin/adminUserRoutes.js";
 import adminAnnouncementRoutes from "./src/admin/adminAnnouncementRoutes.js";
 import activityLogRoutes from "./src/activityLog/activityLogRoutes.js";
 import announcementRoutes from "./src/routes/announcementRoutes.js";
+import commentRoutes from "./src/comments/commentRoutes.js";
 import { ActivityLogService } from "./src/activityLog/activityLogService.js";
 import { prisma } from "./src/config/prisma.js";
 
@@ -123,6 +124,22 @@ const friendLimiter = rateLimit({
     handler: rateLimitHandler("Demasiadas solicitudes de amistad"),
 });
 
+const commentLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler("Demasiados comentarios, intenta de nuevo más tarde"),
+});
+
+const commentLikeLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler("Demasiados likes, intenta de nuevo más tarde"),
+});
+
 app.use("/api", generalLimiter);
 app.use("/api/auth", authLimiter);
 app.use("/api/reads/full-stats", heavyLimiter);
@@ -132,6 +149,8 @@ app.use("/api/favorites", favoriteLimiter);
 app.use("/api/friends/request", friendLimiter);
 app.use("/api/friends/block", friendLimiter);
 app.use("/api/friends/search", friendLimiter);
+app.use("/api/comments/chapter", commentLimiter);
+app.use("/api/comments/:id/like", commentLikeLimiter);
 
 app.use("/uploads", express.static("uploads"));
 
@@ -160,6 +179,7 @@ app.use("/api/admin", adminAnnouncementRoutes);
 app.use("/api/admin", activityLogRoutes);
 app.use("/api", sitemapRoutes);
 app.use("/api", announcementRoutes);
+app.use("/api/comments", commentRoutes);
 
 app.use(errorHandler);
 
