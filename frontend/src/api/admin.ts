@@ -80,3 +80,8 @@ export async function getStatusHistory(userId: string, limit = 10) {
     const { data } = await api.get<{ success: boolean; data: ActivityLogEntry[] }>(`/admin/users/${userId}/status-history`, { params: { limit } });
     return data;
 }
+
+export async function fixEmptyChapters() {
+    const { data } = await api.post<{ success: boolean; data: { count: number; message: string } }>("/admin/tools/fix-empty-chapters");
+    return data;
+}
