@@ -36,6 +36,7 @@ function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<AdminSeriesItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [selectedSeries, setSelectedSeries] = useState<AdminSeriesItem | null>(null);
     const ref = useRef<HTMLDivElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -63,6 +64,10 @@ function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
     }, [query, fetchResults]);
 
     useEffect(() => {
+        if (!value) setSelectedSeries(null);
+    }, [value]);
+
+    useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
         };
@@ -71,13 +76,12 @@ function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
     }, []);
 
     const filtered = results.filter((s) => s.id !== excludeId);
-    const selected = results.find((s) => s.id === value);
     const isBrand = label === "Primaria";
 
     return (
         <div ref={ref} className="relative">
             <label className="text-xs font-medium text-muted-foreground mb-1 block">{label}</label>
-            {value && selected ? (
+            {value && selectedSeries ? (
                 <div
                     className={cn(
                         "flex items-center gap-2 w-full rounded-lg border-2 px-3 py-2 text-sm cursor-pointer",
@@ -88,8 +92,8 @@ function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
                     onClick={() => setOpen(true)}
                 >
                     <Check className={cn("size-4 shrink-0", isBrand ? "text-brand" : "text-amber-500")} />
-                    <span className="flex-1 truncate font-medium">{selected.name}</span>
-                    <span className="text-xs opacity-60 shrink-0">#{selected.id}</span>
+                    <span className="flex-1 truncate font-medium">{selectedSeries.name}</span>
+                    <span className="text-xs opacity-60 shrink-0">#{selectedSeries.id}</span>
                     <button
                         onClick={(e) => { e.stopPropagation(); onChange(null); }}
                         className="hover:opacity-70 shrink-0"
@@ -128,7 +132,7 @@ function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
                                     "w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent",
                                     value === s.id && "bg-accent",
                                 )}
-                                onClick={() => { onChange(s.id); setOpen(false); setQuery(""); }}
+                                onClick={() => { setSelectedSeries(s); onChange(s.id); setOpen(false); setQuery(""); }}
                             >
                                 <span className="flex-1 truncate">{s.name}</span>
                                 <span className="text-xs text-muted-foreground shrink-0">#{s.id}</span>
