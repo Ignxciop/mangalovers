@@ -1,6 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import logger from "../config/logger.js";
 import { mergeSeries } from "../manga/scrapers/duplicateSeries.js";
+import { createNotification } from "../notifications/notificationService.js";
 
 export class AdminSeriesService {
   static async listSeries({ page = 1, limit = 20, search, provider }) {
@@ -144,6 +145,8 @@ export class AdminSeriesService {
         data: { primarySeriesId, fallbackSeriesId },
       });
 
+      const affectedUserIds = new Set();
+
       // Migrar favoritos del fallback al primary
       const fallbackFavs = await tx.userFavorite.findMany({
         where: { seriesId: fallbackSeriesId },
@@ -151,6 +154,7 @@ export class AdminSeriesService {
       });
 
       for (const fav of fallbackFavs) {
+        affectedUserIds.add(fav.userId);
         await tx.userFavorite.upsert({
           where: {
             userId_seriesId: { userId: fav.userId, seriesId: primarySeriesId },
@@ -194,6 +198,8 @@ export class AdminSeriesService {
       });
 
       for (const read of readsToMigrate) {
+        affectedUserIds.add(read.userId);
+
         const fallbackCh = fallbackChapters.find(
           (c) => c.id === read.chapterId,
         );
@@ -256,15 +262,33 @@ export class AdminSeriesService {
         where: { chapter: { seriesId: fallbackSeriesId } },
       });
 
-      return rel;
+      return { rel, userIds: [...affectedUserIds] };
     });
+
+    // Notificar a los usuarios afectados
+    if (relation.userIds.length > 0) {
+      const primary = await prisma.series.findUnique({
+        where: { id: primarySeriesId },
+        select: { name: true },
+      });
+
+      for (const userId of relation.userIds) {
+        createNotification({
+          userId,
+          type: "SERIES_RELATION",
+          title: "Serie vinculada",
+          body: `"${primary.name}" ahora agrupa contenido de múltiples fuentes`,
+          data: { primarySeriesId, fallbackSeriesId },
+        }).catch((err) => logger.warn({ err }, "Error creando notificación de vinculación"));
+      }
+    }
 
     logger.info(
       { primarySeriesId, fallbackSeriesId },
       "SeriesRelation creada desde admin",
     );
 
-    return relation;
+    return relation.rel;
   }
 
   static async deleteRelation(id) {
