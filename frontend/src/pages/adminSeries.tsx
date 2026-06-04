@@ -9,6 +9,7 @@ import type { AdminSeriesItem, AdminSeriesRelation } from "@/types/admin";
 import { SEO } from "@/components/seo";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -70,29 +71,49 @@ function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
     }, []);
 
     const filtered = results.filter((s) => s.id !== excludeId);
-    const selectedName = results.find((s) => s.id === value)?.name;
+    const selected = results.find((s) => s.id === value);
+    const isBrand = label === "Primaria";
 
     return (
         <div ref={ref} className="relative">
             <label className="text-xs font-medium text-muted-foreground mb-1 block">{label}</label>
-            <div
-                className={cn(
-                    "flex items-center w-full rounded-lg border bg-background px-3 py-2 text-sm cursor-text",
-                    open ? "border-ring" : "border-border",
-                )}
-                onClick={() => setOpen(true)}
-            >
-                <input
-                    className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
-                    placeholder={selectedName ?? placeholder}
-                    value={open ? query : ""}
-                    onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-                    onFocus={() => setOpen(true)}
-                />
-                {value && !open && (
-                    <span className="text-xs text-muted-foreground ml-2 shrink-0">#{value}</span>
-                )}
-            </div>
+            {value && selected ? (
+                <div
+                    className={cn(
+                        "flex items-center gap-2 w-full rounded-lg border-2 px-3 py-2 text-sm cursor-pointer",
+                        isBrand
+                            ? "border-brand/40 bg-brand/5 text-brand"
+                            : "border-amber-500/40 bg-amber-500/5 text-amber-600 dark:text-amber-400",
+                    )}
+                    onClick={() => setOpen(true)}
+                >
+                    <Check className={cn("size-4 shrink-0", isBrand ? "text-brand" : "text-amber-500")} />
+                    <span className="flex-1 truncate font-medium">{selected.name}</span>
+                    <span className="text-xs opacity-60 shrink-0">#{selected.id}</span>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onChange(null); }}
+                        className="hover:opacity-70 shrink-0"
+                    >
+                        <X className="size-3.5" />
+                    </button>
+                </div>
+            ) : (
+                <div
+                    className={cn(
+                        "flex items-center w-full rounded-lg border bg-background px-3 py-2 text-sm cursor-text",
+                        open ? "border-ring" : "border-border",
+                    )}
+                    onClick={() => setOpen(true)}
+                >
+                    <input
+                        className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+                        placeholder={placeholder}
+                        value={open ? query : ""}
+                        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+                        onFocus={() => setOpen(true)}
+                    />
+                </div>
+            )}
             {open && (
                 <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover shadow-md max-h-60 overflow-y-auto">
                     {loading ? (
@@ -196,7 +217,7 @@ export default function AdminSeries() {
     const [provider, setProvider] = useState("");
     const [showRelation, setShowRelation] = useState(false);
 
-    const limit = 20;
+    const limit = 15;
 
     const fetch = useCallback(async () => {
         setLoading(true);
@@ -235,8 +256,8 @@ export default function AdminSeries() {
                 <div className="flex items-center gap-2 mb-4 flex-wrap">
                     <div className="relative flex-1 min-w-[200px] max-w-sm">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                        <input
-                            className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-sm"
+                        <Input
+                            className="pl-9"
                             placeholder="Buscar por nombre..."
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -258,7 +279,7 @@ export default function AdminSeries() {
 
                 {loading ? (
                     <div className="space-y-2">
-                        {Array.from({ length: 8 }).map((_, i) => (
+                        {Array.from({ length: 15 }).map((_, i) => (
                             <Skeleton key={i} className="h-14 rounded-lg" />
                         ))}
                     </div>
@@ -306,7 +327,7 @@ export default function AdminSeries() {
                                                         <span key={rel.id} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                                             <Link2 className="size-3" />
                                                             {rel.fallbackSeries.name}
-                                                            <button onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
+                                                            <button type="button" onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
                                                                 <X className="size-3" />
                                                             </button>
                                                         </span>
@@ -316,7 +337,7 @@ export default function AdminSeries() {
                                                             <Link2 className="size-3" />
                                                             {rel.primarySeries.name}
                                                             <span className="opacity-60 text-xs">(primaria)</span>
-                                                            <button onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
+                                                            <button type="button" onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
                                                                 <X className="size-3" />
                                                             </button>
                                                         </span>

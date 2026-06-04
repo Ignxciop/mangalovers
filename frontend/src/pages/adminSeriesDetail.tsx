@@ -168,9 +168,9 @@ export default function AdminSeriesDetailPage() {
                                     {series.aliases.map((a) => (
                                         <span key={a.id} className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-muted/50 border border-border">
                                             {a.alias}
-                                            <button onClick={() => handleDeleteAlias(a.id)} className="hover:text-rose-500">
+                                            <Button variant="ghost" size="icon-xs" onClick={() => handleDeleteAlias(a.id)}>
                                                 <X className="size-3" />
-                                            </button>
+                                            </Button>
                                         </span>
                                     ))}
                                 </div>
@@ -216,9 +216,9 @@ export default function AdminSeriesDetailPage() {
                                                 <span>{rel.fallbackSeries.name}</span>
                                                 <span className="text-muted-foreground text-xs">#{rel.fallbackSeries.id}</span>
                                             </div>
-                                            <button onClick={() => handleDeleteRelation(rel.id)} className="text-muted-foreground hover:text-rose-500">
+                                            <Button variant="ghost" size="icon-sm" onClick={() => handleDeleteRelation(rel.id)}>
                                                 <Trash2 className="size-3.5" />
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))}
                                 </div>
@@ -239,9 +239,9 @@ export default function AdminSeriesDetailPage() {
                                                 <span>{rel.primarySeries.name}</span>
                                                 <span className="text-muted-foreground text-xs">#{rel.primarySeries.id}</span>
                                             </div>
-                                            <button onClick={() => handleDeleteRelation(rel.id)} className="text-muted-foreground hover:text-rose-500">
+                                            <Button variant="ghost" size="icon-sm" onClick={() => handleDeleteRelation(rel.id)}>
                                                 <Trash2 className="size-3.5" />
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))}
                                 </div>
