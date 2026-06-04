@@ -214,6 +214,10 @@ export class AdminSeriesService {
         });
       }
 
+      await tx.userChapterRead.deleteMany({
+        where: { chapter: { seriesId: fallbackSeriesId } },
+      });
+
       // Migrar progreso
       const progressToMigrate = await tx.userChapterProgress.findMany({
         where: { chapter: { seriesId: fallbackSeriesId } },
@@ -247,6 +251,10 @@ export class AdminSeriesService {
           update: {},
         });
       }
+
+      await tx.userChapterProgress.deleteMany({
+        where: { chapter: { seriesId: fallbackSeriesId } },
+      });
 
       return rel;
     });
