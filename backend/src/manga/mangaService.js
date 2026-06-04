@@ -21,6 +21,7 @@ export async function getAllManga(query, userId = null) {
   const skip = (page - 1) * limit;
   const where = {};
 
+  where.visible = true;
   where.fallbackRelations = { none: {} };
 
   if (search) {
@@ -137,6 +138,7 @@ export async function getLatestManga(userId, limit = 16) {
   const fetchLimit = Number(limit) * 3;
   const raw = await prisma.series.findMany({
     where: {
+      visible: true,
       lastChapterPublishedAt: { not: null },
       fallbackRelations: { none: {} },
     },
@@ -201,7 +203,7 @@ export async function getLatestManga(userId, limit = 16) {
 
 export async function getSeriesDetailBySlug(slug) {
   const series = await prisma.series.findUnique({
-    where: { slug },
+    where: { slug, visible: true },
     include: {
       genres: { include: { genre: true } },
       providerSeries: { include: { provider: true } },
@@ -265,7 +267,7 @@ export async function getSeriesDetailBySlug(slug) {
 
 export async function getChapterPages(slug, chapterId, _userId = null) {
   const series = await prisma.series.findUnique({
-    where: { slug },
+    where: { slug, visible: true },
     select: { id: true },
   });
 
@@ -367,6 +369,7 @@ export async function getRecommendedSeries(userId, limit = 12) {
 
   const rawCandidates = await prisma.series.findMany({
     where: {
+      visible: true,
       id: { notIn: favIds.length > 0 ? favIds : [-1] },
       fallbackRelations: { none: {} },
       genres: { some: { genre: { name: { in: topGenres } } } },

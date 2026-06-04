@@ -60,6 +60,15 @@ export async function deleteRelation(req, res, next) {
   }
 }
 
+export async function toggleVisibility(req, res, next) {
+  try {
+    const result = await AdminSeriesService.toggleVisibility(parseInt(req.params.id));
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function addAlias(req, res, next) {
   try {
     const { alias } = req.body;

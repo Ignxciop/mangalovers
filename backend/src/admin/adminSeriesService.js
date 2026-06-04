@@ -337,6 +337,26 @@ export class AdminSeriesService {
     return aliasRecord;
   }
 
+  static async toggleVisibility(id) {
+    const series = await prisma.series.findUnique({ where: { id }, select: { visible: true } });
+
+    if (!series) {
+      const error = new Error("Serie no encontrada");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const updated = await prisma.series.update({
+      where: { id },
+      data: { visible: !series.visible },
+      select: { id: true, visible: true },
+    });
+
+    logger.info({ seriesId: id, visible: updated.visible }, "Visibilidad de serie cambiada desde admin");
+
+    return updated;
+  }
+
   static async deleteAlias(id) {
     const alias = await prisma.seriesAlias.findUnique({ where: { id } });
 

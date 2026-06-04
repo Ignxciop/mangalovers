@@ -4,6 +4,7 @@ export async function getAllSitemapData() {
     const [series, chapters] = await Promise.all([
         prisma.series.findMany({
             where: {
+              visible: true,
               lastChapterPublishedAt: { not: null },
               fallbackRelations: { none: {} },
             },

@@ -310,6 +310,7 @@ export interface AdminSeriesItem {
     id: number;
     name: string;
     slug: string;
+    visible: boolean;
     providerSeries: AdminProviderRef[];
     primaryRelations: AdminSeriesRelation[];
     fallbackRelations: { id: number; primarySeries: { id: number; name: string; slug: string } }[];

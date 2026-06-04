@@ -18,6 +18,7 @@ import {
   mergeSeries,
   createRelation,
   deleteRelation,
+  toggleVisibility,
   addAlias,
   deleteAlias,
 } from "./adminSeriesController.js";
@@ -53,6 +54,7 @@ router.get("/series/:id", authenticate, authorize("ADMIN"), seriesIdParamValidat
 router.post("/series/merge", authenticate, authorize("ADMIN"), mergeSeriesValidator, validate, mergeSeries);
 router.post("/series/relation", authenticate, authorize("ADMIN"), createRelationValidator, validate, createRelation);
 router.delete("/series/relation/:id", authenticate, authorize("ADMIN"), relationIdParamValidator, validate, deleteRelation);
+router.patch("/series/:id/visibility", authenticate, authorize("ADMIN"), seriesIdParamValidator, validate, toggleVisibility);
 router.post("/series/:id/alias", authenticate, authorize("ADMIN"), aliasBodyValidator, validate, addAlias);
 router.delete("/series/:id/alias/:aliasId", authenticate, authorize("ADMIN"), deleteAliasValidator, validate, deleteAlias);
 

@@ -116,3 +116,8 @@ export async function adminDeleteAlias(seriesId: number, aliasId: number) {
     const { data } = await api.delete(`/admin/series/${seriesId}/alias/${aliasId}`);
     return data;
 }
+
+export async function adminToggleSeriesVisibility(id: number) {
+    const { data } = await api.patch(`/admin/series/${id}/visibility`);
+    return data;
+}

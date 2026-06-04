@@ -126,6 +126,7 @@ model Series {
   chapterCount Int
   summary      String?
   type         String?
+  visible      Boolean   @default(true)
 
   lastChapterPublishedAt DateTime?
   metadataFetchedAt DateTime?

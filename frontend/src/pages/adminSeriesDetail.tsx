@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAdminSeriesDetail, adminAddAlias, adminDeleteAlias, adminDeleteSeriesRelation } from "@/api/admin";
+import { getAdminSeriesDetail, adminAddAlias, adminDeleteAlias, adminDeleteSeriesRelation, adminToggleSeriesVisibility } from "@/api/admin";
 import type { AdminSeriesDetail } from "@/types/admin";
 import { SEO } from "@/components/seo";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, ChevronLeft, Link2, X, Plus, Trash2 } from "lucide-react";
+import { BookOpen, ChevronLeft, Link2, X, Plus, Trash2, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminSeriesDetailPage() {
@@ -52,6 +52,21 @@ export default function AdminSeriesDetailPage() {
             fetch();
         } catch (err) {
             console.error("Error al eliminar alias:", err);
+        }
+    };
+
+    const [toggling, setToggling] = useState(false);
+
+    const handleToggleVisibility = async () => {
+        if (!series) return;
+        setToggling(true);
+        try {
+            const res = await adminToggleSeriesVisibility(series.id);
+            setSeries((prev) => prev ? { ...prev, visible: res.data.visible } : null);
+        } catch (err) {
+            console.error("Error al cambiar visibilidad:", err);
+        } finally {
+            setToggling(false);
         }
     };
 
@@ -201,6 +216,29 @@ export default function AdminSeriesDetailPage() {
                                     <BookOpen className="size-12 text-muted-foreground/20" />
                                 </div>
                             )}
+                        </div>
+
+                        {/* Visibilidad */}
+                        <div className="border border-border rounded-xl p-5 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Visibilidad</h2>
+                                    <p className="text-xs text-muted-foreground/60 mt-0.5">
+                                        {series.visible
+                                            ? "Visible en listados públicos"
+                                            : "Oculta del público, solo admins"}
+                                    </p>
+                                </div>
+                                <Button
+                                    variant={series.visible ? "default" : "secondary"}
+                                    size="sm"
+                                    onClick={handleToggleVisibility}
+                                    disabled={toggling}
+                                >
+                                    {series.visible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                                    {series.visible ? "Visible" : "Oculta"}
+                                </Button>
+                            </div>
                         </div>
 
                         {/* Relaciones primarias */}
