@@ -295,3 +295,46 @@ export interface ActivityLogResponse {
     };
 }
 
+export interface AdminProviderRef {
+    provider: { name: string };
+    externalId: string;
+    slug: string;
+}
+
+export interface AdminSeriesRelation {
+    id: number;
+    fallbackSeries: { id: number; name: string; slug: string; cover?: string | null };
+}
+
+export interface AdminSeriesItem {
+    id: number;
+    name: string;
+    slug: string;
+    providerSeries: AdminProviderRef[];
+    primaryRelations: AdminSeriesRelation[];
+    fallbackRelations: { id: number; primarySeries: { id: number; name: string; slug: string } }[];
+    _count: { chapters: number };
+}
+
+export interface AdminSeriesListResponse {
+    success: boolean;
+    total: number;
+    page: number;
+    limit: number;
+    data: AdminSeriesItem[];
+}
+
+export interface AdminSeriesDetail extends AdminSeriesItem {
+    cover: string | null;
+    status: string | null;
+    summary: string | null;
+    type: string | null;
+    chapterCount: number;
+    aliases: { id: number; alias: string }[];
+}
+
+export interface AdminSeriesDetailResponse {
+    success: boolean;
+    data: AdminSeriesDetail;
+}
+

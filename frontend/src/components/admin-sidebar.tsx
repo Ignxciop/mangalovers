@@ -36,6 +36,7 @@ import {
     Sun,
     LogOut,
     Megaphone,
+    BookOpen,
 } from "lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
@@ -369,6 +370,13 @@ export function AdminSidebar() {
                                     href="/admin/metricas"
                                     icon={BarChart3}
                                     label="Métricas"
+                                />
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <NavItem
+                                    href="/admin/series"
+                                    icon={BookOpen}
+                                    label="Series"
                                 />
                             </SidebarMenuItem>
                             <SidebarMenuItem>

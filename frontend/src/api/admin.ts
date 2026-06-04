@@ -5,6 +5,7 @@ import type {
     OverviewResponse, ScraperMetricsResponse, UserMetricsResponse,
     ContentMetricsResponse, SystemMetricsResponse,
     UserStatusHistoryResponse,
+    AdminSeriesListResponse, AdminSeriesDetailResponse,
 } from "@/types/admin";
 
 export async function getUsers(params?: {
@@ -78,5 +79,40 @@ export async function getActivityLogs(params?: {
 
 export async function getStatusHistory(userId: string, limit = 10) {
     const { data } = await api.get<{ success: boolean; data: ActivityLogEntry[] }>(`/admin/users/${userId}/status-history`, { params: { limit } });
+    return data;
+}
+
+export async function getAdminSeries(params?: { page?: number; limit?: number; search?: string; provider?: string }) {
+    const { data } = await api.get<AdminSeriesListResponse>("/admin/series", { params });
+    return data;
+}
+
+export async function getAdminSeriesDetail(id: number) {
+    const { data } = await api.get<AdminSeriesDetailResponse>(`/admin/series/${id}`);
+    return data;
+}
+
+export async function adminMergeSeries(keepId: number, dropId: number) {
+    const { data } = await api.post("/admin/series/merge", { keepId, dropId });
+    return data;
+}
+
+export async function adminCreateSeriesRelation(primarySeriesId: number, fallbackSeriesId: number) {
+    const { data } = await api.post("/admin/series/relation", { primarySeriesId, fallbackSeriesId });
+    return data;
+}
+
+export async function adminDeleteSeriesRelation(id: number) {
+    const { data } = await api.delete(`/admin/series/relation/${id}`);
+    return data;
+}
+
+export async function adminAddAlias(seriesId: number, alias: string) {
+    const { data } = await api.post(`/admin/series/${seriesId}/alias`, { alias });
+    return data;
+}
+
+export async function adminDeleteAlias(seriesId: number, aliasId: number) {
+    const { data } = await api.delete(`/admin/series/${seriesId}/alias/${aliasId}`);
     return data;
 }
