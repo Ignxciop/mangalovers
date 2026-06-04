@@ -13,6 +13,7 @@ import {
     BellRing,
     BookOpen,
     MessageSquare,
+    Link2,
     UserPlus,
     UserCheck,
     Sparkles,
@@ -34,6 +35,7 @@ function NotificationIcon({ type }: { type: AppNotification["type"] }) {
         SUGGESTION_RESOLVED: { icon: MessageSquare, className: "text-amber-400" },
         NEW_CHAPTER: { icon: BookOpen, className: "text-brand-cyan" },
         COMMENT_REPLY: { icon: MessageSquare, className: "text-purple-400" },
+        SERIES_RELATION: { icon: Link2, className: "text-emerald-400" },
     };
     const { icon: Icon, className } = map[type] ?? { icon: Bell, className: "text-muted-foreground" };
     return (
@@ -55,6 +57,8 @@ function NotificationItem({ notification, index, onRead }: { notification: AppNo
         }
 
         if (notification.type === "NEW_CHAPTER" && notification.data?.slug) {
+            navigate(`/manga/${notification.data.slug}`);
+        } else if (notification.type === "SERIES_RELATION" && notification.data?.slug) {
             navigate(`/manga/${notification.data.slug}`);
         } else if (notification.type === "FRIEND_REQUEST" || notification.type === "FRIEND_ACCEPTED") {
             navigate("/amigos");

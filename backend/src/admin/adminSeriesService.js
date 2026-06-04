@@ -269,7 +269,7 @@ export class AdminSeriesService {
     if (relation.userIds.length > 0) {
       const primary = await prisma.series.findUnique({
         where: { id: primarySeriesId },
-        select: { name: true },
+        select: { name: true, slug: true },
       });
 
       for (const userId of relation.userIds) {
@@ -278,7 +278,7 @@ export class AdminSeriesService {
           type: "SERIES_RELATION",
           title: "Serie vinculada",
           body: `"${primary.name}" ahora agrupa contenido de múltiples fuentes`,
-          data: { primarySeriesId, fallbackSeriesId },
+          data: { primarySeriesId, fallbackSeriesId, slug: primary.slug },
         }).catch((err) => logger.warn({ err }, "Error creando notificación de vinculación"));
       }
     }
