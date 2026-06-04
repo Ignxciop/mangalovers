@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
     getAdminSeries,
     adminCreateSeriesRelation,
@@ -213,15 +213,25 @@ function RelationDialog({ open, onClose, onCreated }: {
 
 export default function AdminSeries() {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [data, setData] = useState<AdminSeriesItem[]>([]);
     const [total, setTotal] = useState(0);
-    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
-    const [provider, setProvider] = useState("");
     const [showRelation, setShowRelation] = useState(false);
 
+    const page = parseInt(searchParams.get("page") || "1");
+    const search = searchParams.get("search") ?? "";
+    const provider = searchParams.get("provider") ?? "";
+
     const limit = 15;
+
+    const updateParam = (key: string, value: string) => {
+        const next = new URLSearchParams(searchParams);
+        if (value) next.set(key, value);
+        else next.delete(key);
+        if (key !== "page") next.set("page", "1");
+        setSearchParams(next, { replace: true });
+    };
 
     const fetch = useCallback(async () => {
         setLoading(true);
@@ -264,13 +274,13 @@ export default function AdminSeries() {
                             className="pl-9"
                             placeholder="Buscar por nombre..."
                             value={search}
-                            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                            onChange={(e) => { updateParam("search", e.target.value); }}
                         />
                     </div>
                     <select
                         className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                         value={provider}
-                        onChange={(e) => { setProvider(e.target.value); setPage(1); }}
+                        onChange={(e) => { updateParam("provider", e.target.value); }}
                     >
                         <option value="">Todos los providers</option>
                         <option value="olympus">Olympus</option>
@@ -349,7 +359,7 @@ export default function AdminSeries() {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <Button variant="link" size="sm" onClick={() => navigate(`/admin/series/${s.id}`)}>
+                                                <Button variant="link" size="sm" onClick={() => navigate(`/admin/series/${s.id}${window.location.search}`)}>
                                                     Detalle
                                                 </Button>
                                             </td>
@@ -364,7 +374,7 @@ export default function AdminSeries() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    onClick={() => updateParam("page", String(page - 1))}
                                     disabled={page === 1}
                                 >
                                     <ChevronLeft className="size-4" /> Anterior
@@ -375,7 +385,7 @@ export default function AdminSeries() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                    onClick={() => updateParam("page", String(page + 1))}
                                     disabled={page === totalPages}
                                 >
                                     Siguiente <ChevronRight className="size-4" />

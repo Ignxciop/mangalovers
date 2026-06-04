@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 export default function AdminSeriesDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const returnSearch = window.location.search;
     const [series, setSeries] = useState<AdminSeriesDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [newAlias, setNewAlias] = useState("");
@@ -92,7 +93,7 @@ export default function AdminSeriesDetailPage() {
             <SEO title={series.name} />
 
             <AdminHeader icon={BookOpen} title={series.name}>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/admin/series")}>
+                <Button variant="ghost" size="sm" onClick={() => navigate(`/admin/series${returnSearch}`)}>
                     <ChevronLeft className="h-4 w-4" />
                     Volver
                 </Button>
