@@ -2,6 +2,16 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { authenticate } from "../middlewares/auth.js";
 import { authorize } from "../middlewares/authorize.js";
+import { validate } from "../utils/validate.js";
+import {
+  listSeriesValidator,
+  seriesIdParamValidator,
+  mergeSeriesValidator,
+  createRelationValidator,
+  relationIdParamValidator,
+  aliasBodyValidator,
+  deleteAliasValidator,
+} from "./adminSeriesValidator.js";
 import {
   listSeries,
   getSeries,
@@ -34,12 +44,12 @@ const seriesLimiter = rateLimit({
 
 const router = Router();
 
-router.get("/series", seriesLimiter, authenticate, authorize("ADMIN"), listSeries);
-router.get("/series/:id", authenticate, authorize("ADMIN"), getSeries);
-router.post("/series/merge", authenticate, authorize("ADMIN"), mergeSeries);
-router.post("/series/relation", authenticate, authorize("ADMIN"), createRelation);
-router.delete("/series/relation/:id", authenticate, authorize("ADMIN"), deleteRelation);
-router.post("/series/:id/alias", authenticate, authorize("ADMIN"), addAlias);
-router.delete("/series/:id/alias/:aliasId", authenticate, authorize("ADMIN"), deleteAlias);
+router.get("/series", seriesLimiter, authenticate, authorize("ADMIN"), listSeriesValidator, validate, listSeries);
+router.get("/series/:id", authenticate, authorize("ADMIN"), seriesIdParamValidator, validate, getSeries);
+router.post("/series/merge", authenticate, authorize("ADMIN"), mergeSeriesValidator, validate, mergeSeries);
+router.post("/series/relation", authenticate, authorize("ADMIN"), createRelationValidator, validate, createRelation);
+router.delete("/series/relation/:id", authenticate, authorize("ADMIN"), relationIdParamValidator, validate, deleteRelation);
+router.post("/series/:id/alias", authenticate, authorize("ADMIN"), aliasBodyValidator, validate, addAlias);
+router.delete("/series/:id/alias/:aliasId", authenticate, authorize("ADMIN"), deleteAliasValidator, validate, deleteAlias);
 
 export default router;

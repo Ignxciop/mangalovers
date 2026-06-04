@@ -139,87 +139,117 @@ export class AdminSeriesService {
       throw error;
     }
 
-    const relation = await prisma.seriesRelation.create({
-      data: { primarySeriesId, fallbackSeriesId },
-    });
-
-    // Migrar favoritos del fallback al primary
-    const existingFavs = await prisma.userFavorite.findMany({
-      where: { seriesId: fallbackSeriesId },
-      select: { userId: true },
-    });
-
-    for (const fav of existingFavs) {
-      await prisma.userFavorite.upsert({
-        where: {
-          userId_seriesId: { userId: fav.userId, seriesId: primarySeriesId },
-        },
-        create: { userId: fav.userId, seriesId: primarySeriesId },
-        update: {},
+    const relation = await prisma.$transaction(async (tx) => {
+      const rel = await tx.seriesRelation.create({
+        data: { primarySeriesId, fallbackSeriesId },
       });
-    }
 
-    await prisma.userFavorite.deleteMany({
-      where: { seriesId: fallbackSeriesId },
-    });
-
-    // Migrar progreso de lectura del fallback al primary
-    const readsToMigrate = await prisma.userChapterRead.findMany({
-      where: { chapter: { seriesId: fallbackSeriesId } },
-      select: { id: true, userId: true, chapterId: true },
-    });
-
-    for (const read of readsToMigrate) {
-      const sourceChapter = await prisma.chapter.findUnique({
-        where: { id: read.chapterId },
-        select: { name: true },
+      // Migrar favoritos del fallback al primary
+      const fallbackFavs = await tx.userFavorite.findMany({
+        where: { seriesId: fallbackSeriesId },
+        select: { userId: true },
       });
-      if (!sourceChapter) continue;
 
-      const primaryChapter = await prisma.chapter.findFirst({
-        where: { seriesId: primarySeriesId, name: sourceChapter.name },
-      });
-      if (primaryChapter) {
-        await prisma.userChapterRead.upsert({
+      for (const fav of fallbackFavs) {
+        await tx.userFavorite.upsert({
           where: {
-            userId_chapterId: { userId: read.userId, chapterId: primaryChapter.id },
+            userId_seriesId: { userId: fav.userId, seriesId: primarySeriesId },
           },
-          create: { userId: read.userId, chapterId: primaryChapter.id },
+          create: { userId: fav.userId, seriesId: primarySeriesId },
           update: {},
         });
       }
-    }
 
-    const progressToMigrate = await prisma.userChapterProgress.findMany({
-      where: { chapter: { seriesId: fallbackSeriesId } },
-      select: { id: true, userId: true, chapterId: true, pageNumber: true, percentage: true },
-    });
-
-    for (const prog of progressToMigrate) {
-      const sourceChapter = await prisma.chapter.findUnique({
-        where: { id: prog.chapterId },
-        select: { name: true },
+      await tx.userFavorite.deleteMany({
+        where: { seriesId: fallbackSeriesId },
       });
-      if (!sourceChapter) continue;
 
-      const primaryChapter = await prisma.chapter.findFirst({
-        where: { seriesId: primarySeriesId, name: sourceChapter.name },
+      // Mapa de capítulos del fallback → nombre
+      const fallbackChapters = await tx.chapter.findMany({
+        where: { seriesId: fallbackSeriesId },
+        select: { id: true, name: true },
       });
-      if (primaryChapter) {
-        await prisma.userChapterProgress.upsert({
+
+      const fallbackChapterNames = new Map(
+        fallbackChapters.map((c) => [c.name, c.id]),
+      );
+      const names = [...fallbackChapterNames.keys()];
+
+      // Batch: buscar capítulos del primary que coincidan por nombre
+      const primaryChapters = names.length > 0
+        ? await tx.chapter.findMany({
+            where: { seriesId: primarySeriesId, name: { in: names } },
+            select: { id: true, name: true },
+          })
+        : [];
+
+      const nameToPrimaryChapter = new Map(
+        primaryChapters.map((c) => [c.name, c.id]),
+      );
+
+      // Migrar lecturas
+      const readsToMigrate = await tx.userChapterRead.findMany({
+        where: { chapter: { seriesId: fallbackSeriesId } },
+        select: { userId: true, chapterId: true },
+      });
+
+      for (const read of readsToMigrate) {
+        const fallbackCh = fallbackChapters.find(
+          (c) => c.id === read.chapterId,
+        );
+        if (!fallbackCh) continue;
+
+        const primaryChapterId = nameToPrimaryChapter.get(fallbackCh.name);
+        if (!primaryChapterId) continue;
+
+        await tx.userChapterRead.upsert({
           where: {
-            userId_chapterId: { userId: prog.userId, chapterId: primaryChapter.id },
+            userId_chapterId: {
+              userId: read.userId,
+              chapterId: primaryChapterId,
+            },
+          },
+          create: { userId: read.userId, chapterId: primaryChapterId },
+          update: {},
+        });
+      }
+
+      // Migrar progreso
+      const progressToMigrate = await tx.userChapterProgress.findMany({
+        where: { chapter: { seriesId: fallbackSeriesId } },
+        select: {
+          userId: true, chapterId: true, pageNumber: true, percentage: true,
+        },
+      });
+
+      for (const prog of progressToMigrate) {
+        const fallbackCh = fallbackChapters.find(
+          (c) => c.id === prog.chapterId,
+        );
+        if (!fallbackCh) continue;
+
+        const primaryChapterId = nameToPrimaryChapter.get(fallbackCh.name);
+        if (!primaryChapterId) continue;
+
+        await tx.userChapterProgress.upsert({
+          where: {
+            userId_chapterId: {
+              userId: prog.userId,
+              chapterId: primaryChapterId,
+            },
           },
           create: {
             userId: prog.userId,
-            chapterId: primaryChapter.id,
+            chapterId: primaryChapterId,
             pageNumber: prog.pageNumber,
             percentage: prog.percentage,
           },
           update: {},
         });
       }
-    }
+
+      return rel;
+    });
 
     logger.info(
       { primarySeriesId, fallbackSeriesId },
