@@ -8,6 +8,10 @@ import {
 import type { AdminSeriesItem, AdminSeriesRelation } from "@/types/admin";
 import { SEO } from "@/components/seo";
 import { AdminHeader } from "@/components/AdminHeader";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -39,7 +43,8 @@ function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
         try {
             const res = await getAdminSeries({ search: q || undefined, limit: 50 });
             setResults(res.data);
-        } catch {
+        } catch (err) {
+            console.error("Error al buscar series:", err);
             setResults([]);
         } finally {
             setLoading(false);
@@ -134,25 +139,22 @@ function RelationDialog({ open, onClose, onCreated }: {
             await adminCreateSeriesRelation(primaryId, fallbackId);
             onCreated();
             onClose();
-        } catch {
-            setError("Error al crear la relación");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Error al crear la relación");
         } finally {
             setLoading(false);
         }
     };
 
-    if (!open) return null;
-
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-            <div className="bg-card border border-border rounded-xl p-6 w-full max-w-lg mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">Vincular series</h2>
-                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-                        <X className="size-5" />
-                    </button>
-                </div>
-                <p className="text-sm text-muted-foreground">La serie primaria es la principal; la fallback se usará cuando la primaria no tenga datos (capítulos extra, cover, páginas).</p>
+        <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Vincular series</DialogTitle>
+                    <DialogDescription>
+                        La serie primaria es la principal; la fallback se usará cuando la primaria no tenga datos (capítulos extra, cover, páginas).
+                    </DialogDescription>
+                </DialogHeader>
                 <div className="grid grid-cols-2 gap-3">
                     <SearchableSelect
                         value={primaryId}
@@ -171,17 +173,16 @@ function RelationDialog({ open, onClose, onCreated }: {
                 </div>
                 {error && <p className="text-xs text-rose-500">{error}</p>}
                 <div className="flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm border border-border hover:bg-muted/50">Cancelar</button>
-                    <button
+                    <Button variant="outline" onClick={onClose}>Cancelar</Button>
+                    <Button
                         onClick={handleCreate}
                         disabled={!primaryId || !fallbackId || primaryId === fallbackId || loading}
-                        className="px-4 py-2 rounded-lg text-sm bg-brand text-white hover:opacity-90 disabled:opacity-50"
                     >
                         {loading ? "Creando..." : "Vincular"}
-                    </button>
+                    </Button>
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -219,7 +220,9 @@ export default function AdminSeries() {
         try {
             await adminDeleteSeriesRelation(id);
             fetch();
-        } catch { }
+        } catch (err) {
+            console.error("Error al eliminar relación:", err);
+        }
     };
 
     return (
@@ -248,12 +251,9 @@ export default function AdminSeries() {
                         <option value="olympus">Olympus</option>
                         <option value="manhwaweb">Manhwaweb</option>
                     </select>
-                    <button
-                        onClick={() => setShowRelation(true)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-brand/10 text-brand border border-brand/30 hover:bg-brand/20"
-                    >
+                    <Button variant="outline" onClick={() => setShowRelation(true)}>
                         <Link2 className="size-4" /> Vincular
-                    </button>
+                    </Button>
                 </div>
 
                 {loading ? (
@@ -290,7 +290,7 @@ export default function AdminSeries() {
                                                 <div className="flex gap-1 flex-wrap">
                                                     {s.providerSeries.map((ps) => (
                                                         <span key={ps.slug} className={cn(
-                                                            "text-[10px] px-2 py-0.5 rounded-full border font-medium inline-flex items-center gap-1",
+                                                            "text-xs px-2 py-0.5 rounded-full border font-medium inline-flex items-center gap-1",
                                                             PROVIDER_COLORS[ps.provider.name] ?? "bg-muted/50 text-muted-foreground border-border",
                                                         )}>
                                                             {ps.provider.name}
@@ -303,7 +303,7 @@ export default function AdminSeries() {
                                             <td className="px-4 py-3">
                                                 <div className="flex gap-1 flex-wrap items-center">
                                                     {s.primaryRelations.map((rel: AdminSeriesRelation) => (
-                                                        <span key={rel.id} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                                        <span key={rel.id} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                                             <Link2 className="size-3" />
                                                             {rel.fallbackSeries.name}
                                                             <button onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
@@ -312,10 +312,10 @@ export default function AdminSeries() {
                                                         </span>
                                                     ))}
                                                     {s.fallbackRelations.map((rel) => (
-                                                        <span key={rel.id} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/30">
+                                                        <span key={rel.id} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/30">
                                                             <Link2 className="size-3" />
                                                             {rel.primarySeries.name}
-                                                            <span className="opacity-60 text-[9px]">(primaria)</span>
+                                                            <span className="opacity-60 text-xs">(primaria)</span>
                                                             <button onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
                                                                 <X className="size-3" />
                                                             </button>
@@ -324,12 +324,9 @@ export default function AdminSeries() {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <button
-                                                    onClick={() => navigate(`/admin/series/${s.id}`)}
-                                                    className="text-xs text-muted-foreground hover:text-foreground underline"
-                                                >
+                                                <Button variant="link" size="sm" onClick={() => navigate(`/admin/series/${s.id}`)}>
                                                     Detalle
-                                                </button>
+                                                </Button>
                                             </td>
                                         </tr>
                                     ))}
@@ -339,23 +336,25 @@ export default function AdminSeries() {
 
                         {totalPages > 1 && (
                             <div className="flex items-center justify-center gap-3 mt-4">
-                                <button
+                                <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                                     disabled={page === 1}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm border border-border hover:bg-muted/50 disabled:opacity-30"
                                 >
                                     <ChevronLeft className="size-4" /> Anterior
-                                </button>
+                                </Button>
                                 <span className="text-sm text-muted-foreground tabular-nums">
                                     Página {page} de {totalPages}
                                 </span>
-                                <button
+                                <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={page === totalPages}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm border border-border hover:bg-muted/50 disabled:opacity-30"
                                 >
                                     Siguiente <ChevronRight className="size-4" />
-                                </button>
+                                </Button>
                             </div>
                         )}
                     </div>

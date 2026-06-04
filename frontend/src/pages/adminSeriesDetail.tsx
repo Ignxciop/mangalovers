@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAdminSeriesDetail, adminAddAlias, adminDeleteAlias, adminDeleteSeriesRelation } from "@/api/admin";
 import type { AdminSeriesDetail } from "@/types/admin";
 import { SEO } from "@/components/seo";
 import { AdminHeader } from "@/components/AdminHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, ChevronLeft, Link2, X, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,20 +17,21 @@ export default function AdminSeriesDetailPage() {
     const [loading, setLoading] = useState(true);
     const [newAlias, setNewAlias] = useState("");
 
-    const fetch = async () => {
+    const fetch = useCallback(async () => {
         if (!id) return;
         setLoading(true);
         try {
             const res = await getAdminSeriesDetail(Number(id));
             setSeries(res.data);
-        } catch {
+        } catch (err) {
+            console.error("Error al cargar serie:", err);
             setSeries(null);
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
 
-    useEffect(() => { fetch(); }, [id]);
+    useEffect(() => { fetch(); }, [fetch]);
 
     const handleAddAlias = async () => {
         if (!newAlias.trim() || !series) return;
@@ -36,7 +39,9 @@ export default function AdminSeriesDetailPage() {
             await adminAddAlias(series.id, newAlias.trim());
             setNewAlias("");
             fetch();
-        } catch { }
+        } catch (err) {
+            console.error("Error al agregar alias:", err);
+        }
     };
 
     const handleDeleteAlias = async (aliasId: number) => {
@@ -44,7 +49,9 @@ export default function AdminSeriesDetailPage() {
         try {
             await adminDeleteAlias(series.id, aliasId);
             fetch();
-        } catch { }
+        } catch (err) {
+            console.error("Error al eliminar alias:", err);
+        }
     };
 
     const handleDeleteRelation = async (relationId: number) => {
@@ -52,7 +59,9 @@ export default function AdminSeriesDetailPage() {
         try {
             await adminDeleteSeriesRelation(relationId);
             fetch();
-        } catch { }
+        } catch (err) {
+            console.error("Error al eliminar relación:", err);
+        }
     };
 
     if (loading) {
@@ -83,13 +92,10 @@ export default function AdminSeriesDetailPage() {
             <SEO title={series.name} />
 
             <AdminHeader icon={BookOpen} title={series.name}>
-                <button
-                    onClick={() => navigate("/admin/series")}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
-                >
-                    <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                <Button variant="ghost" size="sm" onClick={() => navigate("/admin/series")}>
+                    <ChevronLeft className="h-4 w-4" />
                     Volver
-                </button>
+                </Button>
             </AdminHeader>
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0 overflow-x-hidden">
@@ -136,7 +142,7 @@ export default function AdminSeriesDetailPage() {
                                 {series.providerSeries.map((ps) => (
                                     <div key={ps.slug} className="flex items-center gap-3 text-sm">
                                         <span className={cn(
-                                            "text-[10px] px-2 py-0.5 rounded-full border font-medium inline-flex items-center gap-1",
+                                            "text-xs px-2 py-0.5 rounded-full border font-medium inline-flex items-center gap-1",
                                             ps.provider.name === "olympus"
                                                 ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30"
                                                 : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
@@ -170,20 +176,15 @@ export default function AdminSeriesDetailPage() {
                                 </div>
                             )}
                             <div className="flex gap-2">
-                                <input
-                                    className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+                                <Input
                                     placeholder="Nuevo alias..."
                                     value={newAlias}
                                     onChange={(e) => setNewAlias(e.target.value)}
                                     onKeyDown={(e) => { if (e.key === "Enter") handleAddAlias(); }}
                                 />
-                                <button
-                                    onClick={handleAddAlias}
-                                    disabled={!newAlias.trim()}
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-brand text-white hover:opacity-90 disabled:opacity-50"
-                                >
+                                <Button onClick={handleAddAlias} disabled={!newAlias.trim()}>
                                     <Plus className="size-4" /> Agregar
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>
