@@ -150,7 +150,7 @@ export default function AdminActivityLogs() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
-    const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
+    const [meta, setMeta] = useState({ total: 0, page: 1, limit: 15, totalPages: 0 });
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -172,7 +172,7 @@ export default function AdminActivityLogs() {
     const fetchLogs = useCallback(async () => {
         setLoading(true);
         try {
-            const params: Record<string, string | number> = { page, limit: 20 };
+            const params: Record<string, string | number> = { page, limit: 15 };
             if (eventFilter) params.event = eventFilter;
             if (searchQuery) params.search = searchQuery;
             const res = await getActivityLogs(params);
@@ -258,7 +258,7 @@ export default function AdminActivityLogs() {
                 {loading ? (
                     <div className="space-y-3">
                         <Skeleton className="h-10 rounded-lg" />
-                        {Array.from({ length: 6 }).map((_, i) => (
+                        {Array.from({ length: 15 }).map((_, i) => (
                             <Skeleton key={i} className="h-[52px] rounded-lg" />
                         ))}
                     </div>
