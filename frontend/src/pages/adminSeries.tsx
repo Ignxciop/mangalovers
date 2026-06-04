@@ -218,6 +218,8 @@ export default function AdminSeries() {
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [showRelation, setShowRelation] = useState(false);
+    const [searchText, setSearchText] = useState(searchParams.get("search") ?? "");
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const page = parseInt(searchParams.get("page") || "1");
     const search = searchParams.get("search") ?? "";
@@ -231,6 +233,16 @@ export default function AdminSeries() {
         else next.delete(key);
         if (key !== "page") next.set("page", "1");
         setSearchParams(next, { replace: true });
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearchText(value);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (!value.trim()) {
+            updateParam("search", "");
+            return;
+        }
+        debounceRef.current = setTimeout(() => updateParam("search", value), 300);
     };
 
     const fetch = useCallback(async () => {
@@ -273,8 +285,8 @@ export default function AdminSeries() {
                         <Input
                             className="pl-9"
                             placeholder="Buscar por nombre..."
-                            value={search}
-                            onChange={(e) => { updateParam("search", e.target.value); }}
+                            value={searchText}
+                            onChange={(e) => { handleSearchChange(e.target.value); }}
                         />
                     </div>
                     <select
