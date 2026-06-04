@@ -25,7 +25,7 @@ export class AdminSeriesService {
         orderBy: { name: "asc" },
         include: {
           providerSeries: {
-            include: { provider: { select: { name: true } } },
+            include: { provider: { select: { name: true, priority: true } } },
           },
           primaryRelations: {
             include: {
@@ -50,7 +50,7 @@ export class AdminSeriesService {
       where: { id },
       include: {
         providerSeries: {
-          include: { provider: { select: { name: true } } },
+          include: { provider: { select: { name: true, priority: true } } },
         },
         primaryRelations: {
           include: {
@@ -142,6 +142,84 @@ export class AdminSeriesService {
     const relation = await prisma.seriesRelation.create({
       data: { primarySeriesId, fallbackSeriesId },
     });
+
+    // Migrar favoritos del fallback al primary
+    const existingFavs = await prisma.userFavorite.findMany({
+      where: { seriesId: fallbackSeriesId },
+      select: { userId: true },
+    });
+
+    for (const fav of existingFavs) {
+      await prisma.userFavorite.upsert({
+        where: {
+          userId_seriesId: { userId: fav.userId, seriesId: primarySeriesId },
+        },
+        create: { userId: fav.userId, seriesId: primarySeriesId },
+        update: {},
+      });
+    }
+
+    await prisma.userFavorite.deleteMany({
+      where: { seriesId: fallbackSeriesId },
+    });
+
+    // Migrar progreso de lectura del fallback al primary
+    const readsToMigrate = await prisma.userChapterRead.findMany({
+      where: { chapter: { seriesId: fallbackSeriesId } },
+      select: { id: true, userId: true, chapterId: true },
+    });
+
+    for (const read of readsToMigrate) {
+      const sourceChapter = await prisma.chapter.findUnique({
+        where: { id: read.chapterId },
+        select: { name: true },
+      });
+      if (!sourceChapter) continue;
+
+      const primaryChapter = await prisma.chapter.findFirst({
+        where: { seriesId: primarySeriesId, name: sourceChapter.name },
+      });
+      if (primaryChapter) {
+        await prisma.userChapterRead.upsert({
+          where: {
+            userId_chapterId: { userId: read.userId, chapterId: primaryChapter.id },
+          },
+          create: { userId: read.userId, chapterId: primaryChapter.id },
+          update: {},
+        });
+      }
+    }
+
+    const progressToMigrate = await prisma.userChapterProgress.findMany({
+      where: { chapter: { seriesId: fallbackSeriesId } },
+      select: { id: true, userId: true, chapterId: true, pageNumber: true, percentage: true },
+    });
+
+    for (const prog of progressToMigrate) {
+      const sourceChapter = await prisma.chapter.findUnique({
+        where: { id: prog.chapterId },
+        select: { name: true },
+      });
+      if (!sourceChapter) continue;
+
+      const primaryChapter = await prisma.chapter.findFirst({
+        where: { seriesId: primarySeriesId, name: sourceChapter.name },
+      });
+      if (primaryChapter) {
+        await prisma.userChapterProgress.upsert({
+          where: {
+            userId_chapterId: { userId: prog.userId, chapterId: primaryChapter.id },
+          },
+          create: {
+            userId: prog.userId,
+            chapterId: primaryChapter.id,
+            pageNumber: prog.pageNumber,
+            percentage: prog.percentage,
+          },
+          update: {},
+        });
+      }
+    }
 
     logger.info(
       { primarySeriesId, fallbackSeriesId },

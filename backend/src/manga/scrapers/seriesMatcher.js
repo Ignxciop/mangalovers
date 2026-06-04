@@ -122,9 +122,37 @@ export async function linkToCanonicalSeries(
 }
 
 export async function createSeriesRelation(
-  primarySeriesId,
-  fallbackSeriesId,
+  seriesAId,
+  seriesBId,
 ) {
+  // Determinar primary según prioridad de provider
+  const [seriesA, seriesB] = await Promise.all([
+    prisma.series.findUnique({
+      where: { id: seriesAId },
+      select: {
+        providerSeries: {
+          select: { provider: { select: { id: true, priority: true } } },
+          take: 1,
+        },
+      },
+    }),
+    prisma.series.findUnique({
+      where: { id: seriesBId },
+      select: {
+        providerSeries: {
+          select: { provider: { select: { id: true, priority: true } } },
+          take: 1,
+        },
+      },
+    }),
+  ]);
+
+  const priorityA = seriesA?.providerSeries?.[0]?.provider?.priority ?? 99;
+  const priorityB = seriesB?.providerSeries?.[0]?.provider?.priority ?? 99;
+
+  const [primarySeriesId, fallbackSeriesId] =
+    priorityA <= priorityB ? [seriesAId, seriesBId] : [seriesBId, seriesAId];
+
   const existing = await prisma.seriesRelation.findUnique({
     where: {
       primarySeriesId_fallbackSeriesId: {
@@ -142,7 +170,7 @@ export async function createSeriesRelation(
       },
     });
     logger.info(
-      { primarySeriesId, fallbackSeriesId },
+      { primarySeriesId, fallbackSeriesId, priorityA, priorityB },
       "SeriesRelation creada",
     );
   }

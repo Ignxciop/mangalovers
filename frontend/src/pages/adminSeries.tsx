@@ -1,8 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     getAdminSeries,
-    adminMergeSeries,
     adminCreateSeriesRelation,
     adminDeleteSeriesRelation,
 } from "@/api/admin";
@@ -12,7 +11,7 @@ import { AdminHeader } from "@/components/AdminHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
-    BookOpen, Search, X, Plus, Link2,
+    BookOpen, Search, X, Link2, Check,
     AlertCircle, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
@@ -21,93 +20,104 @@ const PROVIDER_COLORS: Record<string, string> = {
     manhwaweb: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
 };
 
-function MergeDialog({ open, series, onClose }: {
-    open: boolean;
-    series: AdminSeriesItem[];
-    onClose: () => void;
+function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
+    value: number | null;
+    onChange: (id: number | null) => void;
+    placeholder: string;
+    excludeId: number | null;
+    label: string;
 }) {
-    const [keepId, setKeepId] = useState<number | null>(null);
-    const [dropId, setDropId] = useState<number | null>(null);
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState<AdminSeriesItem[]>([]);
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const ref = useRef<HTMLDivElement>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const handleMerge = async () => {
-        if (!keepId || !dropId) return;
-        if (!window.confirm("¿Estás seguro? Esta acción moverá capítulos, favoritos y lecturas, y eliminará la serie descartada.")) return;
+    const fetchResults = useCallback(async (q: string) => {
         setLoading(true);
-        setError(null);
-        setResult(null);
         try {
-            const res = await adminMergeSeries(keepId, dropId);
-            setResult(`Serie "${(res as { data: { dropName: string } }).data.dropName}" mergeada correctamente`);
+            const res = await getAdminSeries({ search: q || undefined, limit: 50 });
+            setResults(res.data);
         } catch {
-            setError("Error al mergear las series");
+            setResults([]);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    if (!open) return null;
+    useEffect(() => {
+        fetchResults("");
+    }, [fetchResults]);
+
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => fetchResults(query), 250);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [query, fetchResults]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const filtered = results.filter((s) => s.id !== excludeId);
+    const selectedName = results.find((s) => s.id === value)?.name;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-            <div className="bg-card border border-border rounded-xl p-6 w-full max-w-lg mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">Mergear series</h2>
-                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-                        <X className="size-5" />
-                    </button>
-                </div>
-                <p className="text-sm text-muted-foreground">Seleccioná qué serie mantener y cuál descartar. La descartada se eliminará luego de migrar sus datos.</p>
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Mantener (keeper)</label>
-                        <select
-                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                            value={keepId ?? ""}
-                            onChange={(e) => setKeepId(Number(e.target.value))}
-                        >
-                            <option value="">Seleccionar...</option>
-                            {series.map((s) => (
-                                <option key={s.id} value={s.id}>{s.name} (#{s.id})</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Descartar (dropped)</label>
-                        <select
-                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                            value={dropId ?? ""}
-                            onChange={(e) => setDropId(Number(e.target.value))}
-                        >
-                            <option value="">Seleccionar...</option>
-                            {series.map((s) => (
-                                <option key={s.id} value={s.id}>{s.name} (#{s.id})</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-                {result && <p className="text-xs text-emerald-500">{result}</p>}
-                {error && <p className="text-xs text-rose-500">{error}</p>}
-                <div className="flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm border border-border hover:bg-muted/50">Cancelar</button>
-                    <button
-                        onClick={handleMerge}
-                        disabled={!keepId || !dropId || keepId === dropId || loading}
-                        className="px-4 py-2 rounded-lg text-sm bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
-                    >
-                        {loading ? "Mergeando..." : "Mergear"}
-                    </button>
-                </div>
+        <div ref={ref} className="relative">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{label}</label>
+            <div
+                className={cn(
+                    "flex items-center w-full rounded-lg border bg-background px-3 py-2 text-sm cursor-text",
+                    open ? "border-ring" : "border-border",
+                )}
+                onClick={() => setOpen(true)}
+            >
+                <input
+                    className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
+                    placeholder={selectedName ?? placeholder}
+                    value={open ? query : ""}
+                    onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+                    onFocus={() => setOpen(true)}
+                />
+                {value && !open && (
+                    <span className="text-xs text-muted-foreground ml-2 shrink-0">#{value}</span>
+                )}
             </div>
+            {open && (
+                <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover shadow-md max-h-60 overflow-y-auto">
+                    {loading ? (
+                        <div className="px-3 py-4 text-center text-xs text-muted-foreground">Buscando...</div>
+                    ) : filtered.length === 0 ? (
+                        <div className="px-3 py-4 text-center text-xs text-muted-foreground">Sin resultados</div>
+                    ) : (
+                        filtered.map((s) => (
+                            <button
+                                key={s.id}
+                                className={cn(
+                                    "w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent",
+                                    value === s.id && "bg-accent",
+                                )}
+                                onClick={() => { onChange(s.id); setOpen(false); setQuery(""); }}
+                            >
+                                <span className="flex-1 truncate">{s.name}</span>
+                                <span className="text-xs text-muted-foreground shrink-0">#{s.id}</span>
+                                {value === s.id && <Check className="size-3.5 text-brand shrink-0" />}
+                            </button>
+                        ))
+                    )}
+                </div>
+            )}
         </div>
     );
 }
 
-function RelationDialog({ open, series, onClose, onCreated }: {
+function RelationDialog({ open, onClose, onCreated }: {
     open: boolean;
-    series: AdminSeriesItem[];
     onClose: () => void;
     onCreated: () => void;
 }) {
@@ -137,39 +147,27 @@ function RelationDialog({ open, series, onClose, onCreated }: {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
             <div className="bg-card border border-border rounded-xl p-6 w-full max-w-lg mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">Vincular series (soft merge)</h2>
+                    <h2 className="text-lg font-semibold">Vincular series</h2>
                     <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
                         <X className="size-5" />
                     </button>
                 </div>
                 <p className="text-sm text-muted-foreground">La serie primaria es la principal; la fallback se usará cuando la primaria no tenga datos (capítulos extra, cover, páginas).</p>
                 <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Primaria</label>
-                        <select
-                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                            value={primaryId ?? ""}
-                            onChange={(e) => setPrimaryId(Number(e.target.value))}
-                        >
-                            <option value="">Seleccionar...</option>
-                            {series.map((s) => (
-                                <option key={s.id} value={s.id}>{s.name} (#{s.id})</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Fallback</label>
-                        <select
-                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                            value={fallbackId ?? ""}
-                            onChange={(e) => setFallbackId(Number(e.target.value))}
-                        >
-                            <option value="">Seleccionar...</option>
-                            {series.map((s) => (
-                                <option key={s.id} value={s.id}>{s.name} (#{s.id})</option>
-                            ))}
-                        </select>
-                    </div>
+                    <SearchableSelect
+                        value={primaryId}
+                        onChange={setPrimaryId}
+                        placeholder="Buscar primaria..."
+                        excludeId={fallbackId}
+                        label="Primaria"
+                    />
+                    <SearchableSelect
+                        value={fallbackId}
+                        onChange={setFallbackId}
+                        placeholder="Buscar fallback..."
+                        excludeId={primaryId}
+                        label="Fallback"
+                    />
                 </div>
                 {error && <p className="text-xs text-rose-500">{error}</p>}
                 <div className="flex justify-end gap-2">
@@ -195,7 +193,6 @@ export default function AdminSeries() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [provider, setProvider] = useState("");
-    const [showMerge, setShowMerge] = useState(false);
     const [showRelation, setShowRelation] = useState(false);
 
     const limit = 20;
@@ -252,12 +249,6 @@ export default function AdminSeries() {
                         <option value="manhwaweb">Manhwaweb</option>
                     </select>
                     <button
-                        onClick={() => setShowMerge(true)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm border border-border hover:bg-muted/50"
-                    >
-                        <Plus className="size-4" /> Merge
-                    </button>
-                    <button
                         onClick={() => setShowRelation(true)}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-brand/10 text-brand border border-brand/30 hover:bg-brand/20"
                     >
@@ -299,10 +290,11 @@ export default function AdminSeries() {
                                                 <div className="flex gap-1 flex-wrap">
                                                     {s.providerSeries.map((ps) => (
                                                         <span key={ps.slug} className={cn(
-                                                            "text-[10px] px-2 py-0.5 rounded-full border font-medium",
+                                                            "text-[10px] px-2 py-0.5 rounded-full border font-medium inline-flex items-center gap-1",
                                                             PROVIDER_COLORS[ps.provider.name] ?? "bg-muted/50 text-muted-foreground border-border",
                                                         )}>
                                                             {ps.provider.name}
+                                                            <span className="opacity-60">#{ps.provider.priority}</span>
                                                         </span>
                                                     ))}
                                                 </div>
@@ -314,6 +306,16 @@ export default function AdminSeries() {
                                                         <span key={rel.id} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                                             <Link2 className="size-3" />
                                                             {rel.fallbackSeries.name}
+                                                            <button onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
+                                                                <X className="size-3" />
+                                                            </button>
+                                                        </span>
+                                                    ))}
+                                                    {s.fallbackRelations.map((rel) => (
+                                                        <span key={rel.id} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/30">
+                                                            <Link2 className="size-3" />
+                                                            {rel.primarySeries.name}
+                                                            <span className="opacity-60 text-[9px]">(primaria)</span>
                                                             <button onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
                                                                 <X className="size-3" />
                                                             </button>
@@ -360,8 +362,7 @@ export default function AdminSeries() {
                 )}
             </main>
 
-            <MergeDialog open={showMerge} series={data} onClose={() => setShowMerge(false)} />
-            <RelationDialog open={showRelation} series={data} onClose={() => setShowRelation(false)} onCreated={fetch} />
+            <RelationDialog open={showRelation} onClose={() => setShowRelation(false)} onCreated={fetch} />
         </div>
     );
 }

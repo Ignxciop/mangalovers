@@ -296,7 +296,7 @@ export interface ActivityLogResponse {
 }
 
 export interface AdminProviderRef {
-    provider: { name: string };
+    provider: { name: string; priority: number };
     externalId: string;
     slug: string;
 }

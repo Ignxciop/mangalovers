@@ -136,12 +136,13 @@ export default function AdminSeriesDetailPage() {
                                 {series.providerSeries.map((ps) => (
                                     <div key={ps.slug} className="flex items-center gap-3 text-sm">
                                         <span className={cn(
-                                            "text-[10px] px-2 py-0.5 rounded-full border font-medium",
+                                            "text-[10px] px-2 py-0.5 rounded-full border font-medium inline-flex items-center gap-1",
                                             ps.provider.name === "olympus"
                                                 ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30"
                                                 : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
                                         )}>
                                             {ps.provider.name}
+                                            <span className="opacity-60">#{ps.provider.priority}</span>
                                         </span>
                                         <span className="font-mono text-xs text-muted-foreground">{ps.externalId}</span>
                                         <span className="text-muted-foreground">→</span>

@@ -240,6 +240,7 @@ model CommentLike {
 model Provider {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  priority  Int      @default(99)
   createdAt DateTime @default(now())
 
   series   ProviderSeries[]
