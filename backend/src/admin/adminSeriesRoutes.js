@@ -23,24 +23,28 @@ import {
 } from "./adminSeriesController.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 
-const seriesLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 50,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: async (req, res) => {
-    if (req.user?.userId) {
-      try {
-        await ActivityLogService.logEvent(
-          req.user.userId, "RATE_LIMIT",
-          { route: req.originalUrl, method: req.method },
-          req.ip, req.headers["user-agent"],
-        );
-      } catch { /* ignore */ }
-    }
-    res.status(429).json({ success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" });
-  },
-});
+const isDev = process.env.NODE_ENV !== "production";
+
+const seriesLimiter = isDev
+  ? (req, res, next) => next()
+  : rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 50,
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: async (req, res) => {
+        if (req.user?.userId) {
+          try {
+            await ActivityLogService.logEvent(
+              req.user.userId, "RATE_LIMIT",
+              { route: req.originalUrl, method: req.method },
+              req.ip, req.headers["user-agent"],
+            );
+          } catch { /* ignore */ }
+        }
+        res.status(429).json({ success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" });
+      },
+    });
 
 const router = Router();
 
