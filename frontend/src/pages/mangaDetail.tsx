@@ -459,6 +459,7 @@ export default function MangaDetail() {
                                     <CoverImage
                                         src={series.cover}
                                         alt={series.name}
+                                        fallbackSrc={series.fallbackCover}
                                     />
                                 </div>
                                 <div className="mt-4 grid grid-cols-2 gap-2">

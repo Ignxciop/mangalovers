@@ -8,19 +8,27 @@ interface CoverImageProps {
     src: string | null | undefined;
     alt: string;
     priority?: boolean;
+    fallbackSrc?: string | null;
 }
 
-export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
-    const imgRef = useRef<HTMLImageElement>(null);
+export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverImageProps) {
     const divRef = useRef<HTMLDivElement>(null);
     const retryCountRef = useRef(0);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const loadedRef = useRef(false);
     const [status, setStatus] = useState<"loading" | "loaded" | "error">(
         src ? "loading" : "error",
     );
-    const loadedRef = useRef(false);
-    const loadImageRef = useRef<((url: string) => void) | null>(null);
-    const shouldLoadRef = useRef(priority);
+    const [useFallback, setUseFallback] = useState(false);
+    const prevSrc = useRef(src);
+
+    if (src !== prevSrc.current) {
+        prevSrc.current = src;
+        if (useFallback) setUseFallback(false);
+    }
+
+    const effectiveSrc =
+        useFallback && fallbackSrc ? fallbackSrc : src ?? "";
 
     const loadImage = useCallback((url: string) => {
         setStatus("loading");
@@ -28,31 +36,36 @@ export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
         img.onload = () => {
             setStatus("loaded");
             loadedRef.current = true;
-            if (imgRef.current) imgRef.current.src = url;
         };
         img.onerror = () => {
             if (retryCountRef.current < MAX_RETRIES) {
                 retryCountRef.current++;
                 const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
                 timerRef.current = setTimeout(() => loadImageRef.current?.(url), delay);
+            } else if (fallbackSrc && !useFallback) {
+                retryCountRef.current = 0;
+                setUseFallback(true);
+                timerRef.current = setTimeout(() => loadImage(fallbackSrc), 100);
             } else {
                 setStatus("error");
             }
         };
         img.src = url;
-    }, []);
+    }, [fallbackSrc, useFallback]);
+
+    const loadImageRef = useRef<((url: string) => void) | null>(null);
+    loadImageRef.current = loadImage;
 
     useEffect(() => {
-        loadImageRef.current = loadImage;
-    }, [loadImage]);
+        if (!src) {
+            setStatus("error");
+            return;
+        }
 
-    useEffect(() => {
-        if (!src) return;
+        retryCountRef.current = 0;
+        loadedRef.current = false;
 
         if (priority) {
-            shouldLoadRef.current = true;
-            retryCountRef.current = 0;
-            loadedRef.current = false;
             queueMicrotask(() => loadImage(src));
             return;
         }
@@ -63,7 +76,6 @@ export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    shouldLoadRef.current = true;
                     retryCountRef.current = 0;
                     loadedRef.current = false;
                     loadImage(src);
@@ -79,12 +91,14 @@ export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
             observer.disconnect();
             if (timerRef.current) clearTimeout(timerRef.current);
         };
-    }, [src, loadImage, priority]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [src, useFallback]);
 
     function handleRetry() {
-        if (!src) return;
+        if (!src && !fallbackSrc) return;
         retryCountRef.current = 0;
-        loadImage(src);
+        setUseFallback(false);
+        loadImage(src ?? fallbackSrc ?? "");
     }
 
     return (
@@ -96,7 +110,7 @@ export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
             {status === "error" && (
                 <div className="absolute inset-0 bg-muted flex flex-col items-center justify-center gap-1.5">
                     <BookOpen className="h-8 w-8 text-muted-foreground/40" />
-                    {src && (
+                    {effectiveSrc && (
                         <button
                             onClick={handleRetry}
                             className="pointer-events-auto flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md bg-brand/20 text-brand hover:bg-brand/30 transition-colors active:scale-95"
@@ -109,8 +123,7 @@ export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
             )}
 
             <img
-                ref={imgRef}
-                src={src || ""}
+                src={effectiveSrc}
                 alt={alt}
                 loading={priority ? "eager" : "lazy"}
                 {...(priority ? { fetchPriority: "high" } : {})}
@@ -128,8 +141,12 @@ export function CoverImage({ src, alt, priority = false }: CoverImageProps) {
                         retryCountRef.current++;
                         const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
                         timerRef.current = setTimeout(() => {
-                            if (src) loadImageRef.current?.(src);
+                            loadImageRef.current?.(effectiveSrc);
                         }, delay);
+                    } else if (fallbackSrc && !useFallback && !loadedRef.current) {
+                        retryCountRef.current = 0;
+                        setUseFallback(true);
+                        setStatus("loading");
                     } else if (!loadedRef.current) {
                         setStatus("error");
                     }

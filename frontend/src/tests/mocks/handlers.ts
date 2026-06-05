@@ -8,6 +8,7 @@ export const mockSeries: SeriesDetail = {
     name: "Test Serie",
     slug: "test-serie",
     cover: null,
+    fallbackCover: null,
     status: "Activo",
     type: "Manga",
     summary: "Una serie de prueba",

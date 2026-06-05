@@ -262,9 +262,20 @@ export async function getSeriesDetailBySlug(slug) {
     }
   }
 
+  let fallbackCover = null;
+  if (cluster) {
+    for (const fb of cluster.fallbacks) {
+      if (isValidImageUrl(fb.cover)) {
+        fallbackCover = fb.cover;
+        break;
+      }
+    }
+  }
+
   return {
     id: primarySeries.id, name: primarySeries.name, slug: primarySeries.slug,
     cover: isValidImageUrl(primarySeries.cover) ? primarySeries.cover : null,
+    fallbackCover,
     status: primarySeries.status, type: primarySeries.type,
     summary: primarySeries.summary, chapterCount: primarySeries.chapterCount,
     genres: primarySeries.genres.map((g) => g.genre.name),
@@ -276,7 +287,7 @@ export async function getSeriesDetailBySlug(slug) {
     _cluster: cluster ? {
       primarySlug: cluster.primary.slug,
       primaryName: cluster.primary.name,
-      fallbacks: cluster.fallbacks.map((f) => ({ slug: f.slug, name: f.name })),
+      fallbacks: cluster.fallbacks.map((f) => ({ slug: f.slug, name: f.name, cover: f.cover })),
     } : null,
   };
 }
