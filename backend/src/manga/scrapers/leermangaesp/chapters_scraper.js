@@ -6,6 +6,7 @@ import logger from "../../../config/logger.js";
 import { notifyNewChapter } from "../../../notifications/pushService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
 import { promoteStatusIfInactive } from "../resolveStatus.js";
+import { normalizeChapterNumber } from "../normalizeChapter.js";
 
 const limit = pLimit(2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -46,16 +47,16 @@ async function processSeries(providerSeries, providerId) {
         const chapters = [];
         $("#chapter-list .chapter-link").each((_, el) => {
             const $el = $(el);
-            const chapterNumber = $el.attr("data-chapter");
-            const displayNumber = chapterNumber.replace(/\.0+$/, "");
-            const chapterName = $el.find(".chapter-title").text().trim();
+            const rawNumber = $el.attr("data-chapter");
             const chapterDate = $el.find(".chapter-date").text().trim();
             const href = $el.attr("href");
 
-            if (chapterNumber) {
+            if (rawNumber) {
+                const { name, number } = normalizeChapterNumber(rawNumber);
                 chapters.push({
-                    number: chapterNumber,
-                    name: chapterName || `Capítulo ${displayNumber}`,
+                    rawNumber,
+                    number: number ?? rawNumber,
+                    name: name ?? `Capítulo ${rawNumber}`,
                     date: chapterDate || null,
                     href: href || null,
                 });
@@ -63,7 +64,7 @@ async function processSeries(providerSeries, providerId) {
         });
 
         for (const ch of chapters) {
-            const chapterExternalId = `${externalId}-${ch.number}`;
+            const chapterExternalId = `${externalId}-${ch.rawNumber}`;
 
             const existingProviderChapter =
                 await prisma.providerChapter.findUnique({
@@ -89,7 +90,7 @@ async function processSeries(providerSeries, providerId) {
 
             consecutiveExisting = 0;
 
-            const chapterNumberFloat = parseFloat(ch.number);
+            const chapterNumberFloat = typeof ch.number === "number" ? ch.number : parseFloat(ch.number);
             const existingChapterInSeries = await prisma.chapter.findFirst({
                 where: {
                     seriesId,
@@ -117,7 +118,7 @@ async function processSeries(providerSeries, providerId) {
             const newChapter = await prisma.chapter.create({
                 data: {
                     name: ch.name,
-                    number: chapterNumberFloat,
+                    number: isNaN(chapterNumberFloat) ? null : chapterNumberFloat,
                     publishedAt,
                     seriesId,
                 },

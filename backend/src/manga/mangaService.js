@@ -1,6 +1,9 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
 import { resolveSeriesCluster, batchResolveFallbackCovers } from "./seriesCluster.js";
+import axios from "axios";
+
+const HEAD_TIMEOUT_MS = 3000;
 
 function isValidImageUrl(url) {
   if (!url || typeof url !== "string") return false;
@@ -297,6 +300,29 @@ export async function getSeriesDetailBySlug(slug) {
   };
 }
 
+async function findFallbackChapter(searchIds, excludeSeriesId, number) {
+  const fallbackIds = searchIds.filter((id) => id !== excludeSeriesId);
+  if (fallbackIds.length === 0) return null;
+  return prisma.chapter.findFirst({
+    where: {
+      seriesId: { in: fallbackIds },
+      number,
+      pages: { some: {} },
+    },
+    include: { pages: { orderBy: { id: "asc" } } },
+  });
+}
+
+async function probeFirstPage(url) {
+  if (!url) return false;
+  try {
+    const res = await axios.head(url, { timeout: HEAD_TIMEOUT_MS });
+    return res.status >= 200 && res.status < 400;
+  } catch {
+    return false;
+  }
+}
+
 export async function getChapterPages(slug, chapterId, _userId = null) {
   const series = await prisma.series.findUnique({
     where: { slug, visible: true },
@@ -317,6 +343,51 @@ export async function getChapterPages(slug, chapterId, _userId = null) {
   });
 
   if (!chapter) throw new NotFoundError("Capítulo no encontrado");
+
+  if (chapter.pages.length > 0 && cluster) {
+    const primaryOk = await probeFirstPage(chapter.pages[0].url);
+    if (!primaryOk) {
+      const fallbackChapter = await findFallbackChapter(
+        searchIds,
+        chapter.seriesId,
+        chapter.number,
+      );
+      if (fallbackChapter) {
+        chapter.pages = fallbackChapter.pages;
+        chapter.series = {
+          id: fallbackChapter.seriesId,
+          name: chapter.series.name,
+          slug: chapter.series.slug,
+        };
+      }
+    }
+  } else if (cluster) {
+    const fallbackChapter = await findFallbackChapter(
+      searchIds,
+      chapter.seriesId,
+      chapter.number,
+    );
+    if (fallbackChapter) {
+      chapter.pages = fallbackChapter.pages;
+      chapter.series = {
+        id: fallbackChapter.seriesId,
+        name: chapter.series.name,
+        slug: chapter.series.slug,
+      };
+    }
+  }
+
+  let fallbackPages = null;
+  if (chapter.pages.length > 0 && cluster) {
+    const fallbackChapter = await findFallbackChapter(
+      searchIds,
+      chapter.seriesId,
+      chapter.number,
+    );
+    if (fallbackChapter && fallbackChapter.pages.length > 0) {
+      fallbackPages = fallbackChapter.pages.map((p) => ({ id: p.id, url: p.url }));
+    }
+  }
 
   const [prev, next] = await Promise.all([
     prisma.chapter.findFirst({
@@ -340,6 +411,7 @@ export async function getChapterPages(slug, chapterId, _userId = null) {
     prev: prev ?? null,
     next: next ?? null,
     pages: chapter.pages.map((p) => ({ id: p.id, url: p.url })),
+    fallbackPages,
   };
 }
 

@@ -25,6 +25,7 @@ export const mockSeries: SeriesDetail = {
 export const mockChapterPages: ChapterPages = {
     chapterId: 2,
     name: "2",
+    number: 2,
     publishedAt: "2024-01-02",
     series: { id: 1, name: "Test Serie", slug: "test-serie" },
     prev: { id: 1, name: "1" },

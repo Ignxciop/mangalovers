@@ -56,6 +56,7 @@ export interface SeriesDetail {
 export interface ChapterPages {
     chapterId: number;
     name: string;
+    number: number | null;
     publishedAt: string;
     series: {
         id: number;
@@ -68,6 +69,10 @@ export interface ChapterPages {
         id: number;
         url: string;
     }[];
+    fallbackPages?: {
+        id: number;
+        url: string;
+    }[] | null;
 }
 
 export interface RecommendedSeries {
