@@ -74,8 +74,6 @@ async function processSeries(providerSeries, providerId) {
     logger.info({ originalSlug }, "Revisando capítulos leermangaesp");
 
     let latestCreatedChapter = null;
-    const MAX_CONSECUTIVE_EXISTING = 10;
-    let consecutiveExisting = 0;
 
     try {
         const allChapters = [];
@@ -105,18 +103,8 @@ async function processSeries(providerSeries, providerId) {
                 });
 
             if (existingProviderChapter) {
-                consecutiveExisting++;
-                if (consecutiveExisting >= MAX_CONSECUTIVE_EXISTING) {
-                    logger.debug(
-                        { externalId, count: consecutiveExisting },
-                        "Capítulos existentes consecutivos, stop",
-                    );
-                    break;
-                }
                 continue;
             }
-
-            consecutiveExisting = 0;
 
             const chapterNumberFloat = typeof ch.number === "number" ? ch.number : parseFloat(ch.number);
             const existingChapterInSeries = await prisma.chapter.findFirst({
