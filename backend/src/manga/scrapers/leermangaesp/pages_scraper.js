@@ -1,0 +1,148 @@
+import axios from "axios";
+import * as cheerio from "cheerio";
+import pLimit from "p-limit";
+import { prisma } from "../../../config/prisma.js";
+import logger from "../../../config/logger.js";
+
+const limit = pLimit(3);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const BASE_URL = "https://leermangaesp.net";
+
+async function fetchReaderPages(originalSlug, chapterNumber, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const url = `${BASE_URL}/leer-m/${originalSlug}/${chapterNumber}/`;
+            logger.debug({ url }, "Fetching reader page leermangaesp");
+            const { data } = await axios.get(url, { timeout: 30000 });
+            const $ = cheerio.load(data);
+            const pages = [];
+            $("img.manga-image").each((_, el) => {
+                const src = $(el).attr("src");
+                if (src) pages.push(src);
+            });
+
+            if (!pages.length) {
+                const scriptMatch = data.match(/paginasRutas\s*=\s*\[([^\]]+)\]/);
+                if (scriptMatch) {
+                    const urls = scriptMatch[1].match(/"([^"]+)"/g);
+                    if (urls) {
+                        urls.forEach((u) => pages.push(u.replace(/"/g, "")));
+                    }
+                }
+            }
+
+            return pages;
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            await sleep(2000 * (i + 1));
+        }
+    }
+}
+
+async function processChapter(providerChapter, providerId) {
+    try {
+        logger.info(
+            {
+                chapterId: providerChapter.chapterId,
+                externalId: providerChapter.externalId,
+                seriesId: providerChapter.chapter.seriesId,
+            },
+            "Procesando capítulo leermangaesp",
+        );
+
+        const providerSeries = await prisma.providerSeries.findFirst({
+            where: {
+                providerId,
+                seriesId: providerChapter.chapter.seriesId,
+            },
+            select: { url: true, externalId: true },
+        });
+
+        const originalSlug = providerSeries?.url;
+        const chapterNumber = providerChapter.externalId
+            .split("-")
+            .slice(1)
+            .join("-")
+            .replace(/\.0+$/, "");
+
+        if (!originalSlug || !chapterNumber) {
+            logger.warn(
+                { chapterId: providerChapter.chapterId },
+                "Faltan datos para scrapear páginas leermangaesp",
+            );
+            return;
+        }
+
+        const pages = await fetchReaderPages(originalSlug, chapterNumber);
+
+        if (!pages.length) {
+            logger.warn(
+                { chapterId: providerChapter.chapterId },
+                "Sin páginas leermangaesp, se reintentará",
+            );
+            return;
+        }
+
+        await prisma.page.createMany({
+            data: pages.map((url) => ({
+                url,
+                chapterId: providerChapter.chapterId,
+            })),
+            skipDuplicates: true,
+        });
+
+        await prisma.chapter.update({
+            where: { id: providerChapter.chapterId },
+            data: { pagesScraped: true },
+        });
+
+        logger.debug(
+            { chapterId: providerChapter.chapterId, pageCount: pages.length },
+            "Páginas leermangaesp scrapeadas",
+        );
+        await sleep(200);
+    } catch (err) {
+        logger.error(
+            { chapterId: providerChapter.chapterId, err: err.message },
+            "Error páginas leermangaesp",
+        );
+    }
+}
+
+export async function scrapePages() {
+    logger.info("LeerMangaEsp - Páginas incremental...");
+
+    const provider = await prisma.provider.findUnique({
+        where: { name: "leermangaesp" },
+    });
+
+    const providerChapters = await prisma.providerChapter.findMany({
+        where: {
+            providerId: provider.id,
+            chapter: { pagesScraped: false },
+        },
+        include: {
+            chapter: true,
+        },
+    });
+
+    logger.info({ count: providerChapters.length }, "LeerMangaEsp - Capítulos por scrapear páginas");
+
+    let completed = 0;
+    const total = providerChapters.length;
+
+    await Promise.all(
+        providerChapters.map((pc) =>
+            limit(async () => {
+                await processChapter(pc, provider.id);
+                completed++;
+                if (completed % 10 === 0 || completed === total) {
+                    logger.info({ completed, total }, "LeerMangaEsp - Progreso páginas");
+                }
+            }),
+        ),
+    );
+
+    logger.info("LeerMangaEsp - Páginas listas");
+}
