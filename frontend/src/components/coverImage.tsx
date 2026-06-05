@@ -13,6 +13,7 @@ interface CoverImageProps {
 
 export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverImageProps) {
     const divRef = useRef<HTMLDivElement>(null);
+    const imgRef = useRef<HTMLImageElement>(null);
     const retryCountRef = useRef(0);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const loadedRef = useRef(false);
@@ -27,34 +28,36 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
         if (useFallback) setUseFallback(false);
     }
 
-    const effectiveSrc =
-        useFallback && fallbackSrc ? fallbackSrc : src ?? "";
+    const currentUrl = useFallback && fallbackSrc ? fallbackSrc : src ?? "";
 
-    const loadImage = useCallback((url: string) => {
+    const startLoad = useCallback((url: string) => {
+        if (loadedRef.current) return;
         setStatus("loading");
         const img = new Image();
         img.onload = () => {
+            if (loadedRef.current) return;
             setStatus("loaded");
             loadedRef.current = true;
+            if (imgRef.current) imgRef.current.src = url;
         };
         img.onerror = () => {
+            if (loadedRef.current) return;
             if (retryCountRef.current < MAX_RETRIES) {
                 retryCountRef.current++;
                 const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
-                timerRef.current = setTimeout(() => loadImageRef.current?.(url), delay);
-            } else if (fallbackSrc && !useFallback) {
+                timerRef.current = setTimeout(() => loadRef.current?.(url), delay);
+            } else if (fallbackSrc && url !== fallbackSrc) {
                 retryCountRef.current = 0;
                 setUseFallback(true);
-                timerRef.current = setTimeout(() => loadImage(fallbackSrc), 100);
             } else {
                 setStatus("error");
             }
         };
         img.src = url;
-    }, [fallbackSrc, useFallback]);
+    }, [fallbackSrc]);
 
-    const loadImageRef = useRef<((url: string) => void) | null>(null);
-    loadImageRef.current = loadImage;
+    const loadRef = useRef<((url: string) => void) | null>(null);
+    loadRef.current = startLoad;
 
     useEffect(() => {
         if (!src) {
@@ -66,7 +69,7 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
         loadedRef.current = false;
 
         if (priority) {
-            queueMicrotask(() => loadImage(src));
+            queueMicrotask(() => startLoad(currentUrl));
             return;
         }
 
@@ -76,9 +79,7 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    retryCountRef.current = 0;
-                    loadedRef.current = false;
-                    loadImage(src);
+                    startLoad(currentUrl);
                     observer.disconnect();
                 }
             },
@@ -89,7 +90,6 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
 
         return () => {
             observer.disconnect();
-            if (timerRef.current) clearTimeout(timerRef.current);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [src, useFallback]);
@@ -97,8 +97,10 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
     function handleRetry() {
         if (!src && !fallbackSrc) return;
         retryCountRef.current = 0;
+        loadedRef.current = false;
         setUseFallback(false);
-        loadImage(src ?? fallbackSrc ?? "");
+        const url = src ?? fallbackSrc ?? "";
+        queueMicrotask(() => startLoad(url));
     }
 
     return (
@@ -110,7 +112,7 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
             {status === "error" && (
                 <div className="absolute inset-0 bg-muted flex flex-col items-center justify-center gap-1.5">
                     <BookOpen className="h-8 w-8 text-muted-foreground/40" />
-                    {effectiveSrc && (
+                    {currentUrl && (
                         <button
                             onClick={handleRetry}
                             className="pointer-events-auto flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md bg-brand/20 text-brand hover:bg-brand/30 transition-colors active:scale-95"
@@ -123,7 +125,8 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
             )}
 
             <img
-                src={effectiveSrc}
+                ref={imgRef}
+                src={currentUrl}
                 alt={alt}
                 loading={priority ? "eager" : "lazy"}
                 {...(priority ? { fetchPriority: "high" } : {})}
@@ -131,23 +134,23 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
                     status === "loaded" ? "opacity-100" : "opacity-0"
                 } transition-opacity duration-300`}
                 onLoad={() => {
-                    if (!loadedRef.current) {
-                        setStatus("loaded");
-                        loadedRef.current = true;
-                    }
+                    if (loadedRef.current) return;
+                    setStatus("loaded");
+                    loadedRef.current = true;
                 }}
                 onError={() => {
-                    if (retryCountRef.current < MAX_RETRIES && !loadedRef.current) {
+                    if (loadedRef.current) return;
+                    if (retryCountRef.current < MAX_RETRIES) {
                         retryCountRef.current++;
                         const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
                         timerRef.current = setTimeout(() => {
-                            loadImageRef.current?.(effectiveSrc);
+                            loadRef.current?.(currentUrl);
                         }, delay);
-                    } else if (fallbackSrc && !useFallback && !loadedRef.current) {
+                    } else if (fallbackSrc && currentUrl !== fallbackSrc) {
                         retryCountRef.current = 0;
                         setUseFallback(true);
                         setStatus("loading");
-                    } else if (!loadedRef.current) {
+                    } else {
                         setStatus("error");
                     }
                 }}
