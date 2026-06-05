@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
+import { batchResolveFallbackCovers } from "../manga/seriesCluster.js";
 
 // ─── Streak helpers ────────────────────────────────────────────
 
@@ -269,6 +270,8 @@ export async function getUserReadingStats(userId) {
   }
   const completionPercent = seriesWithProgress > 0 ? Math.round(totalPercent / seriesWithProgress) : 0;
 
+  const fallbackCoverMap = await batchResolveFallbackCovers(favSeriesIds);
+
   const continueReading = favorites
     .filter((fav) => lastReadMap.has(fav.seriesId))
     .sort((a, b) => {
@@ -286,7 +289,9 @@ export async function getUserReadingStats(userId) {
 
       return {
         id: fav.series.id, name: fav.series.name, slug: fav.series.slug,
-        cover: fav.series.cover, lastReadChapterName: lastRead != null ? String(lastRead) : null,
+        cover: fav.series.cover,
+        fallbackCover: fallbackCoverMap.get(fav.seriesId) ?? null,
+        lastReadChapterName: lastRead != null ? String(lastRead) : null,
         lastAvailableChapterName: lastAvail != null ? String(lastAvail) : null, chaptersLeft,
       };
     });
@@ -460,21 +465,26 @@ export async function getFullStats(userId) {
     seriesReadCount.set(sid, (seriesReadCount.get(sid) ?? 0) + 1);
   }
 
-  const topSeries = [...seriesReadCount.entries()]
+  const topSeriesIds = [...seriesReadCount.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([id, chaptersRead]) => {
-      const info = seriesInfoMap.get(id);
-      return {
-        name: info?.name,
-        slug: info?.slug,
-        cover: info?.cover,
-        chapterCount: info?.chapterCount,
-        chaptersRead,
-        lastReadChapterName: lastReadMap.get(id) != null ? String(lastReadMap.get(id)) : null,
-        lastAvailableChapterName: lastChapterNumberMap.get(id) != null ? String(lastChapterNumberMap.get(id)) : null,
-      };
-    });
+    .map(([id]) => id);
+  const topFallbackMap = await batchResolveFallbackCovers(topSeriesIds);
+
+  const topSeries = topSeriesIds.map((id) => {
+    const info = seriesInfoMap.get(id);
+    const chaptersRead = seriesReadCount.get(id) ?? 0;
+    return {
+      name: info?.name,
+      slug: info?.slug,
+      cover: info?.cover,
+      fallbackCover: topFallbackMap.get(id) ?? null,
+      chapterCount: info?.chapterCount,
+      chaptersRead,
+      lastReadChapterName: lastReadMap.get(id) != null ? String(lastReadMap.get(id)) : null,
+      lastAvailableChapterName: lastChapterNumberMap.get(id) != null ? String(lastChapterNumberMap.get(id)) : null,
+    };
+  });
 
   const firstReadDate =
     reads.length > 0

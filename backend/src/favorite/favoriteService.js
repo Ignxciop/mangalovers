@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ValidationError } from "../utils/errors.js";
+import { batchResolveFallbackCovers } from "../manga/seriesCluster.js";
 
 const FAVORITE_INCLUDE = {
   series: {
@@ -14,6 +15,7 @@ async function enrichFavorites(favorites, userId) {
   if (favorites.length === 0) return [];
 
   const seriesIds = favorites.map((f) => f.seriesId);
+  const fallbackCoverMap = await batchResolveFallbackCovers(seriesIds);
 
   const [readDetails, lastChapterGroup] = await Promise.all([
     prisma.userChapterRead.findMany({
@@ -46,6 +48,10 @@ async function enrichFavorites(favorites, userId) {
 
   return favorites.map((f) => ({
     ...f,
+    series: {
+      ...f.series,
+      fallbackCover: fallbackCoverMap.get(f.seriesId) ?? null,
+    },
     lastReadChapterName: seriesReadMap.get(f.seriesId)?.lastReadChapterName ?? null,
     lastAvailableChapterName: lastChapterMap.get(f.seriesId) ?? null,
   }));

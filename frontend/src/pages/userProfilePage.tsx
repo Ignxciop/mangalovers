@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { CoverImage } from "@/components/coverImage";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { getProfile, getProfileFavorites, getProfileActivity } from "@/api/users";
@@ -115,18 +116,13 @@ function SeriesCard({
         onClick={(e) => { e.preventDefault(); onNavigate(fav.series.slug); }}
         className="block relative"
       >
-        {fav.series.cover ? (
-          <img
+        <div className="relative w-full aspect-[3/4] overflow-hidden">
+          <CoverImage
             src={fav.series.cover}
             alt={fav.series.name}
-            className="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
+            fallbackSrc={fav.series.fallbackCover}
           />
-        ) : (
-          <div className="w-full aspect-[3/4] flex items-center justify-center bg-muted/30">
-            <BookOpen className="size-8 text-muted-foreground/30" />
-          </div>
-        )}
+        </div>
 
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent pt-12 pb-3 px-3">
           <p className="text-xs font-semibold text-white truncate leading-snug drop-shadow-sm">

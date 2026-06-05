@@ -80,6 +80,47 @@ export async function resolveSeriesCluster(seriesId) {
 }
 
 /**
+ * Batch-resuelve fallbackCovers para un array de seriesIds.
+ * Retorna Map<seriesId, coverUrl | null>.
+ */
+export async function batchResolveFallbackCovers(seriesIds) {
+  if (!seriesIds.length) return new Map();
+
+  const relations = await prisma.seriesRelation.findMany({
+    where: {
+      OR: [
+        { primarySeriesId: { in: seriesIds } },
+        { fallbackSeriesId: { in: seriesIds } },
+      ],
+    },
+    include: {
+      primarySeries: { select: { cover: true } },
+      fallbackSeries: { select: { cover: true } },
+    },
+  });
+
+  const result = new Map();
+  for (const id of seriesIds) {
+    for (const rel of relations) {
+      if (rel.primarySeriesId === id && isValidHttpUrl(rel.fallbackSeries.cover)) {
+        result.set(id, rel.fallbackSeries.cover);
+        break;
+      }
+      if (rel.fallbackSeriesId === id && isValidHttpUrl(rel.primarySeries.cover)) {
+        result.set(id, rel.primarySeries.cover);
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+function isValidHttpUrl(url) {
+  if (!url || typeof url !== "string") return false;
+  return url.startsWith("http://") || url.startsWith("https://");
+}
+
+/**
  * Dado un slug, resuelve el cluster. Si el slug es de un miembro no-primary,
  * retorna el primary como resolución. Útil para redirección / unificación.
  */

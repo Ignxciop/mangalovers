@@ -1,6 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
-import { resolveSeriesCluster } from "./seriesCluster.js";
+import { resolveSeriesCluster, batchResolveFallbackCovers } from "./seriesCluster.js";
 
 function isValidImageUrl(url) {
   if (!url || typeof url !== "string") return false;
@@ -83,6 +83,8 @@ export async function getAllManga(query, userId = null) {
   const seriesList = rawList.filter((s) => !hideIds.has(s.id)).slice(0, Number(limit));
   const seriesIds = seriesList.map((s) => s.id);
 
+  const fallbackCoverMap = await batchResolveFallbackCovers(seriesIds);
+
   const [chapterMaxGroup, readDetails, total] = await Promise.all([
     seriesIds.length > 0
       ? prisma.chapter.groupBy({
@@ -117,6 +119,7 @@ export async function getAllManga(query, userId = null) {
     data: seriesList.map((s) => ({
       id: s.id, name: s.name, slug: s.slug,
       cover: isValidImageUrl(s.cover) ? s.cover : null,
+      fallbackCover: fallbackCoverMap.get(s.id) ?? null,
       status: s.status, chapterCount: s.chapterCount,
       lastChapterNumber: lastChapterMap.get(s.id) ?? null,
       lastReadChapterName: lastReadMap.get(s.id) ?? null,
@@ -163,6 +166,7 @@ export async function getLatestManga(userId, limit = 16) {
   const series = raw.filter((s) => !hideIds.has(s.id)).slice(0, Number(limit));
 
   const seriesIds = series.map((s) => s.id);
+  const fallbackCoverMap = await batchResolveFallbackCovers(seriesIds);
 
   const [chapterMaxGroup, readDetails] = await Promise.all([
     seriesIds.length > 0
@@ -196,6 +200,7 @@ export async function getLatestManga(userId, limit = 16) {
   return series.map((s) => ({
     ...s,
     cover: isValidImageUrl(s.cover) ? s.cover : null,
+    fallbackCover: fallbackCoverMap.get(s.id) ?? null,
     lastAvailableChapterName: lastChapterMap.get(s.id) ?? null,
     lastReadChapterName: lastReadMap.get(s.id) ?? null,
   }));

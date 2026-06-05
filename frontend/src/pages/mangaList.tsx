@@ -78,6 +78,7 @@ const MangaListItem = memo(function MangaListItem({
                 <CoverImage
                     src={manga.cover}
                     alt={manga.name}
+                    fallbackSrc={manga.fallbackCover}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 pointer-events-none">
                     <span className="text-white text-[10px] font-bold uppercase tracking-wider">

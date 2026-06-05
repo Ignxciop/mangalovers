@@ -3,6 +3,7 @@ export interface Manga {
     name: string;
     slug: string;
     cover: string | null;
+    fallbackCover?: string | null;
     chapterCount: number;
     lastChapterNumber?: number | null;
     lastChapterPublishedAt: string | null;
@@ -74,6 +75,7 @@ export interface RecommendedSeries {
     name: string;
     slug: string;
     cover: string | null;
+    fallbackCover?: string | null;
     status: string | null;
     chapterCount: number;
     type: string | null;
@@ -100,6 +102,7 @@ export interface Favorite {
         name: string;
         slug: string;
         cover: string | null;
+        fallbackCover?: string | null;
         status: string | null;
         type: string | null;
         chapterCount: number;

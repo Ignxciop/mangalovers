@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CoverImage } from "@/components/coverImage";
 import { fetchFullStats } from "@/api/manga";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
@@ -45,6 +46,7 @@ interface FullStats {
         name: string;
         slug: string;
         cover: string | null;
+        fallbackCover?: string | null;
         chapterCount: number;
         chaptersRead: number;
         lastReadChapterName: string | null;
@@ -362,14 +364,13 @@ function TopSeriesSection({ series }: { series: FullStats["topSeries"] }) {
                             <span className="text-[10px] font-bold text-muted-foreground w-4 shrink-0">
                                 {i + 1}
                             </span>
-                            {s.cover && (
-                                <img
+                            <div className="size-10 shrink-0 rounded-lg overflow-hidden border border-border">
+                                <CoverImage
                                     src={s.cover}
                                     alt={s.name}
-                                    loading="lazy"
-                                    className="size-10 rounded-lg object-cover shrink-0 border border-border"
+                                    fallbackSrc={s.fallbackCover}
                                 />
-                            )}
+                            </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold truncate group-hover:text-primary transition-colors">
                                     {s.name}
