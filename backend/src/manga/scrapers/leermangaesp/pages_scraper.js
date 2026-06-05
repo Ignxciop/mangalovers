@@ -9,6 +9,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const BASE_URL = "https://leermangaesp.net";
 
+function buildPagesFromRutas(data) {
+    const scriptMatch = data.match(/paginasRutas\s*=\s*\[([^\]]+)\]/);
+    if (!scriptMatch) return [];
+    const urls = scriptMatch[1].match(/"([^"]+)"/g);
+    if (!urls) return [];
+    return urls.map((u) => {
+        const path = u.replace(/"/g, "");
+        return path.startsWith("http") ? path : `${BASE_URL}${path}`;
+    });
+}
+
 async function fetchReaderPages(originalSlug, chapterNumber, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
@@ -17,22 +28,26 @@ async function fetchReaderPages(originalSlug, chapterNumber, retries = 3) {
             const { data } = await axios.get(url, { timeout: 30000 });
             const $ = cheerio.load(data);
             const pages = [];
+
             $("img.manga-image").each((_, el) => {
                 const src = $(el).attr("src");
                 if (src) pages.push(src);
             });
 
-            if (!pages.length) {
-                const scriptMatch = data.match(/paginasRutas\s*=\s*\[([^\]]+)\]/);
-                if (scriptMatch) {
-                    const urls = scriptMatch[1].match(/"([^"]+)"/g);
-                    if (urls) {
-                        urls.forEach((u) => pages.push(u.replace(/"/g, "")));
-                    }
+            const fallbackPages = buildPagesFromRutas(data);
+
+            if (pages.length > 0) {
+                try {
+                    const res = await axios.head(pages[0], { timeout: 5000 });
+                    if (res.status >= 200 && res.status < 400) return pages;
+                } catch {
+                    // CDN failed, usa fallback
                 }
             }
 
-            return pages;
+            if (fallbackPages.length > 0) return fallbackPages;
+
+            return [];
         } catch (error) {
             if (i === retries - 1) throw error;
             await sleep(2000 * (i + 1));

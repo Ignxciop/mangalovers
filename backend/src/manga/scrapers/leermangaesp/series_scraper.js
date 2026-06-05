@@ -37,6 +37,16 @@ function buildCoverUrl(portada) {
     return `${CDN_URL}/${portada}`;
 }
 
+async function verifyUrl(url) {
+    if (!url) return false;
+    try {
+        const res = await axios.head(url, { timeout: 5000 });
+        return res.status >= 200 && res.status < 400;
+    } catch {
+        return false;
+    }
+}
+
 async function fetchPage(page, tipo, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
@@ -76,9 +86,15 @@ async function fetchMetadata(originalSlug, retries = 3) {
                 if (g) genres.push(g);
             });
 
-            let cover = $("body").attr("data-portada-rel") || null;
-            if (!cover) cover = $(".manga-cover img").attr("src") || null;
-            cover = buildCoverUrl(cover);
+            let cover = null;
+            const rel = $("body").attr("data-portada-rel");
+            const abs = $(".manga-cover img").attr("src");
+            for (const candidate of [rel && buildCoverUrl(rel), abs && buildCoverUrl(abs)].filter(Boolean)) {
+                if (await verifyUrl(candidate)) {
+                    cover = candidate;
+                    break;
+                }
+            }
 
             return { summary, status, genres, cover };
         } catch {
