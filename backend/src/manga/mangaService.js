@@ -235,6 +235,7 @@ export async function getSeriesDetailBySlug(slug) {
 
   const providerEntries = [];
   const seenProviderNames = new Set();
+
   for (const ps of primarySeries.providerSeries) {
     if (!seenProviderNames.has(ps.provider.name)) {
       seenProviderNames.add(ps.provider.name);
@@ -243,6 +244,21 @@ export async function getSeriesDetailBySlug(slug) {
         externalSlug: ps.slug,
         externalUrl: isValidImageUrl(ps.url) ? ps.url : null,
       });
+    }
+  }
+
+  if (cluster) {
+    for (const fb of cluster.fallbacks) {
+      for (const ps of fb.providerSeries ?? []) {
+        if (!seenProviderNames.has(ps.provider)) {
+          seenProviderNames.add(ps.provider);
+          providerEntries.push({
+            provider: ps.provider,
+            externalSlug: ps.externalSlug,
+            externalUrl: isValidImageUrl(ps.externalUrl) ? ps.externalUrl : null,
+          });
+        }
+      }
     }
   }
 

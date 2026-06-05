@@ -53,13 +53,27 @@ export async function resolveSeriesCluster(seriesId) {
       summary: primary.series.summary,
       type: primary.series.type,
       providerName: primary.providerName,
+      providerSeries: primary.series.providerSeries.map((ps) => ({
+        provider: ps.provider.name,
+        externalSlug: ps.slug,
+        externalUrl: ps.url,
+      })),
     },
     fallbacks: fallbacks.map((f) => ({
       id: f.series.id,
       name: f.series.name,
       slug: f.series.slug,
+      cover: f.series.cover,
+      status: f.series.status,
+      summary: f.series.summary,
+      type: f.series.type,
       providerName: f.providerName,
       priority: f.priority,
+      providerSeries: f.series.providerSeries.map((ps) => ({
+        provider: ps.provider.name,
+        externalSlug: ps.slug,
+        externalUrl: ps.url,
+      })),
     })),
     allIds: members.map((m) => m.series.id),
   };
