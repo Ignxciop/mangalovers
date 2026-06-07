@@ -24,8 +24,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useFavorite } from "@/hooks/useFavorite";
 import { useReadChapters } from "@/hooks/useReadChapters";
-import { fetchSeriesProgress } from "@/api/manga";
-import { Progress } from "@/components/ui/progress";
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -119,7 +118,6 @@ const ChapterRow = memo(function ChapterRow({
     slug,
     backUrl,
     friends = [],
-    progress = null,
 }: {
     chapter: {
         id: number;
@@ -134,7 +132,6 @@ const ChapterRow = memo(function ChapterRow({
     slug: string;
     backUrl: string;
     friends?: FriendSeriesRead[];
-    progress?: { pageNumber: number | null; percentage: number | null } | null;
 }) {
     const date = new Date(chapter.publishedAt).toLocaleDateString("es-ES", {
         day: "2-digit",
@@ -205,12 +202,6 @@ const ChapterRow = memo(function ChapterRow({
                         )}
                     </span>
                 )}
-                {progress && progress.percentage != null && progress.percentage > 0 && progress.percentage < 100 && (
-                    <div className="flex items-center gap-1.5 min-w-[60px]">
-                        <Progress value={progress.percentage} className="h-1 w-12 [&>div]:bg-brand" />
-                        <span className="text-[10px] text-muted-foreground tabular-nums">{progress.percentage}%</span>
-                    </div>
-                )}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0 ml-4">
                 <Clock className="h-3 w-3" />
@@ -253,7 +244,7 @@ export default function MangaDetail() {
         save: saveFav,
         remove: removeFav,
     } = useFavorite(series?.id ?? 0);
-    const { readIds, toggle: toggleRead, markUntil } = useReadChapters(
+    const { readIds, toggle: toggleRead } = useReadChapters(
         series?.id ?? 0,
         series?.chapters ?? [],
     );
@@ -262,9 +253,6 @@ export default function MangaDetail() {
 
     const [chaptersReversed, setChaptersReversed] = useState(true);
     const [friendReads, setFriendReads] = useState<FriendSeriesRead[]>([]);
-    const [seriesProgress, setSeriesProgress] = useState<
-        Record<number, { pageNumber: number | null; percentage: number | null; updatedAt: string }>
-    >({});
 
     useEffect(() => {
         if (!series?.id || !user) return;
@@ -272,26 +260,6 @@ export default function MangaDetail() {
             .then(setFriendReads)
             .catch(() => setFriendReads([]));
     }, [series?.id, user]);
-
-    useEffect(() => {
-        if (!series?.id) return;
-        fetchSeriesProgress(series.id)
-            .then((data) => {
-                const map: Record<
-                    number,
-                    { pageNumber: number | null; percentage: number | null; updatedAt: string }
-                > = {};
-                for (const p of data) {
-                    map[p.chapterId] = {
-                        pageNumber: p.pageNumber,
-                        percentage: p.percentage,
-                        updatedAt: p.updatedAt,
-                    };
-                }
-                setSeriesProgress(map);
-            })
-            .catch(() => {});
-    }, [series?.id]);
 
     const friendReadsByChapter = useMemo(() => {
         const map = new Map<number, FriendSeriesRead[]>();
@@ -345,17 +313,8 @@ export default function MangaDetail() {
     }, [series, readIds, chaptersSorted]);
 
     const continueChapter = useMemo(() => {
-        if (!series) return null;
-        const entries = Object.entries(seriesProgress) as [string, { pageNumber: number | null; percentage: number | null; updatedAt: string }][];
-        const partial = entries
-            .filter(([, p]) => p.percentage != null && p.percentage > 0 && p.percentage < 95)
-            .sort((a, b) => new Date(b[1].updatedAt).getTime() - new Date(a[1].updatedAt).getTime());
-        if (partial.length > 0) {
-            const chapterId = Number(partial[0][0]);
-            return series.chapters.find((c) => c.id === chapterId) ?? null;
-        }
         return nextChapter;
-    }, [series, seriesProgress, nextChapter]);
+    }, [nextChapter]);
 
     const latestChapter = useMemo(() => {
         if (!series) return null;
@@ -547,14 +506,9 @@ export default function MangaDetail() {
                                     </button>
                                 )}
 
-                                {(continueChapter && (readIds.size > 0 || Object.keys(seriesProgress).length > 0)) && (
+                                {continueChapter && readIds.size > 0 && (
                                     <button
                                         onClick={() => {
-                                            const prog = seriesProgress[continueChapter.id];
-                                            const isPartial = prog && prog.percentage != null && prog.percentage < 95;
-                                            if (!isPartial) {
-                                                markUntil(continueChapter.id);
-                                            }
                                             navigate(
                                                 `/manga/${slug}/capitulo/${continueChapter.id}`,
                                                 { state: { from: backUrl } },
@@ -734,7 +688,6 @@ export default function MangaDetail() {
                                                     slug={slug ?? ""}
                                                     backUrl={backUrl}
                                                     friends={friendReadsByChapter.get(chapter.id) ?? []}
-                                                    progress={seriesProgress[chapter.id] ?? null}
                                                 />
                                             ))}
                                         </div>
