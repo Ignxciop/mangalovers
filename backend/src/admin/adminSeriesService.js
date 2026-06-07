@@ -150,7 +150,7 @@ export class AdminSeriesService {
       // Migrar favoritos del fallback al primary
       const fallbackFavs = await tx.userFavorite.findMany({
         where: { seriesId: fallbackSeriesId },
-        select: { userId: true },
+        select: { userId: true, status: true },
       });
 
       for (const fav of fallbackFavs) {
@@ -159,14 +159,12 @@ export class AdminSeriesService {
           where: {
             userId_seriesId: { userId: fav.userId, seriesId: primarySeriesId },
           },
-          create: { userId: fav.userId, seriesId: primarySeriesId },
-          update: {},
+          create: { userId: fav.userId, seriesId: primarySeriesId, status: fav.status },
+          update: { status: fav.status },
         });
       }
 
-      await tx.userFavorite.deleteMany({
-        where: { seriesId: fallbackSeriesId },
-      });
+      // NO eliminar datos originales del fallback para preservarlos al desvincular
 
       // Mapa de capítulos del fallback → nombre
       const fallbackChapters = await tx.chapter.findMany({
@@ -220,9 +218,7 @@ export class AdminSeriesService {
         });
       }
 
-      await tx.userChapterRead.deleteMany({
-        where: { chapter: { seriesId: fallbackSeriesId } },
-      });
+      // NO eliminar lecturas originales del fallback
 
       // Migrar progreso
       const progressToMigrate = await tx.userChapterProgress.findMany({
@@ -258,9 +254,7 @@ export class AdminSeriesService {
         });
       }
 
-      await tx.userChapterProgress.deleteMany({
-        where: { chapter: { seriesId: fallbackSeriesId } },
-      });
+      // NO eliminar progreso original del fallback
 
       return { rel, userIds: [...affectedUserIds] };
     });

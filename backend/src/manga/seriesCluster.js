@@ -4,41 +4,86 @@ import { prisma } from "../config/prisma.js";
  * Dado un seriesId, resuelve el cluster de series relacionadas vía SeriesRelation
  * y retorna la serie con mayor prioridad (primary) y el resto como fallbacks ordenados.
  */
+/**
+  * Recolecta recursivamente todos los IDs del cluster expandiendo por relaciones
+  * hasta que no se encuentren nuevos miembros.
+  */
+async function collectClusterIds(seedId) {
+  const allIds = new Set([seedId]);
+  let prevSize = 0;
+  while (allIds.size > prevSize) {
+    prevSize = allIds.size;
+    const rels = await prisma.seriesRelation.findMany({
+      where: {
+        OR: [
+          { primarySeriesId: { in: [...allIds] } },
+          { fallbackSeriesId: { in: [...allIds] } },
+        ],
+      },
+      select: { primarySeriesId: true, fallbackSeriesId: true },
+    });
+    for (const rel of rels) {
+      allIds.add(rel.primarySeriesId);
+      allIds.add(rel.fallbackSeriesId);
+    }
+  }
+  return [...allIds];
+}
+
 export async function resolveSeriesCluster(seriesId) {
-  const series = await prisma.series.findUnique({
-    where: { id: seriesId },
-    include: {
-      providerSeries: { include: { provider: true } },
-      primaryRelations: { include: { fallbackSeries: { include: { providerSeries: { include: { provider: true } } } } } },
-      fallbackRelations: { include: { primarySeries: { include: { providerSeries: { include: { provider: true } } } } } },
-    },
-  });
+  const allIds = await collectClusterIds(seriesId);
 
-  if (!series) return null;
+  const [seriesList, relations] = await Promise.all([
+    prisma.series.findMany({
+      where: { id: { in: allIds } },
+      include: {
+        providerSeries: { include: { provider: true } },
+      },
+    }),
+    prisma.seriesRelation.findMany({
+      where: {
+        OR: [
+          { primarySeriesId: { in: allIds } },
+          { fallbackSeriesId: { in: allIds } },
+        ],
+      },
+    }),
+  ]);
 
-  // Armar cluster: la serie actual + todas las relacionadas
-  const clusterMap = new Map();
-  clusterMap.set(series.id, series);
+  if (seriesList.length === 0) return null;
 
-  for (const rel of series.primaryRelations) {
-    if (!clusterMap.has(rel.fallbackSeries.id)) {
-      clusterMap.set(rel.fallbackSeries.id, rel.fallbackSeries);
-    }
-  }
-  for (const rel of series.fallbackRelations) {
-    if (!clusterMap.has(rel.primarySeries.id)) {
-      clusterMap.set(rel.primarySeries.id, rel.primarySeries);
-    }
-  }
+  const clusterMap = new Map(seriesList.map((s) => [s.id, s]));
+  const clusterIds = [...clusterMap.keys()];
 
-  // Determinar primary: la del cluster con provider de menor priority
+  const primaryIds = new Set(
+    relations
+      .filter((r) => clusterIds.includes(r.primarySeriesId))
+      .map((r) => r.primarySeriesId),
+  );
+  const fallbackIds = new Set(
+    relations
+      .filter((r) => clusterIds.includes(r.fallbackSeriesId))
+      .map((r) => r.fallbackSeriesId),
+  );
+  // El primary real es el que es primary en alguna relación pero NUNCA fallback (raíz de la cadena)
+  const primaryId = [...clusterIds].find((id) => primaryIds.has(id) && !fallbackIds.has(id))
+    ?? [...clusterIds].find((id) => primaryIds.has(id));
+
   const members = [...clusterMap.values()].map((s) => {
     const providerName = s.providerSeries?.[0]?.provider?.name ?? null;
     const priority = s.providerSeries?.[0]?.provider?.priority ?? 99;
     return { series: s, providerName, priority };
   });
 
-  members.sort((a, b) => a.priority - b.priority || a.series.id - b.series.id);
+  if (primaryId) {
+    members.sort((a, b) => {
+      const aIsPrimary = a.series.id === primaryId ? 0 : 1;
+      const bIsPrimary = b.series.id === primaryId ? 0 : 1;
+      return aIsPrimary - bIsPrimary || a.priority - b.priority || a.series.id - b.series.id;
+    });
+  } else {
+    members.sort((a, b) => a.priority - b.priority || a.series.id - b.series.id);
+  }
 
   const primary = members[0];
   const fallbacks = members.slice(1);

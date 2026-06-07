@@ -50,7 +50,6 @@ export async function getAllManga(query, userId = null) {
     where.lastChapterPublishedAt = { not: null };
   }
 
-  // Fetch extra items para compensar dedup de clusters
   const fetchLimit = Number(limit) * 3;
   const rawList = await prisma.series.findMany({
     where, skip, take: fetchLimit, orderBy,
@@ -62,43 +61,69 @@ export async function getAllManga(query, userId = null) {
     },
   });
 
-  // Deduplicar: mostrar solo el primary de cada cluster
-  const allIds = rawList.map((s) => s.id);
-  const relations = allIds.length > 0
-    ? await prisma.seriesRelation.findMany({
-        where: {
-          OR: [
-            { primarySeriesId: { in: allIds } },
-            { fallbackSeriesId: { in: allIds } },
-          ],
-        },
-        select: { primarySeriesId: true, fallbackSeriesId: true },
-      })
-    : [];
+  const seriesList = rawList.slice(0, Number(limit));
+  const seriesIds = seriesList.map((s) => s.id);
 
-  const hideIds = new Set();
-  for (const rel of relations) {
-    if (allIds.includes(rel.primarySeriesId)) {
-      hideIds.add(rel.fallbackSeriesId);
+  // Expandir cluster recursivamente para incluir cadenas de cualquier profundidad
+  const allRelatedIds = new Set(seriesIds);
+  let prevSize = 0;
+  while (allRelatedIds.size > prevSize) {
+    prevSize = allRelatedIds.size;
+    const rels = await prisma.seriesRelation.findMany({
+      where: {
+        OR: [
+          { primarySeriesId: { in: [...allRelatedIds] } },
+          { fallbackSeriesId: { in: [...allRelatedIds] } },
+        ],
+      },
+      select: { primarySeriesId: true, fallbackSeriesId: true },
+    });
+    for (const rel of rels) {
+      allRelatedIds.add(rel.primarySeriesId);
+      allRelatedIds.add(rel.fallbackSeriesId);
     }
   }
 
-  const seriesList = rawList.filter((s) => !hideIds.has(s.id)).slice(0, Number(limit));
-  const seriesIds = seriesList.map((s) => s.id);
+  // Construir mapa: cada ID del cluster → su primaria raiz
+  const allRels = await prisma.seriesRelation.findMany({
+    where: {
+      OR: [
+        { primarySeriesId: { in: [...allRelatedIds] } },
+        { fallbackSeriesId: { in: [...allRelatedIds] } },
+      ],
+    },
+    select: { primarySeriesId: true, fallbackSeriesId: true },
+  });
+  const fallbackToPrimary = new Map();
+  for (const rel of allRels) {
+    fallbackToPrimary.set(rel.fallbackSeriesId, rel.primarySeriesId);
+  }
+  const seriesIdToPrimary = new Map();
+  for (const id of allRelatedIds) {
+    let current = id;
+    const visited = new Set();
+    while (fallbackToPrimary.has(current) && !visited.has(current)) {
+      visited.add(current);
+      current = fallbackToPrimary.get(current);
+    }
+    seriesIdToPrimary.set(id, current);
+  }
+
+  const readSearchIds = allRelatedIds;
 
   const fallbackCoverMap = await batchResolveFallbackCovers(seriesIds);
 
   const [chapterMaxGroup, readDetails, total] = await Promise.all([
-    seriesIds.length > 0
+    readSearchIds.size > 0
       ? prisma.chapter.groupBy({
           by: ["seriesId"],
-          where: { seriesId: { in: seriesIds } },
+          where: { seriesId: { in: [...readSearchIds] } },
           _max: { number: true },
         })
       : [],
-    userId && seriesIds.length > 0
+    userId && readSearchIds.size > 0
       ? prisma.userChapterRead.findMany({
-          where: { userId, chapter: { seriesId: { in: seriesIds } } },
+          where: { userId, chapter: { seriesId: { in: [...readSearchIds] } } },
           select: { chapter: { select: { seriesId: true, number: true } } },
           orderBy: { chapter: { number: "desc" } },
         })
@@ -106,15 +131,23 @@ export async function getAllManga(query, userId = null) {
     prisma.series.count({ where }),
   ]);
 
-  const lastChapterMap = new Map(
-    chapterMaxGroup.map((g) => [g.seriesId, g._max.number]),
-  );
+  // Colapsar máximos del cluster: por cada serie primaria, tomar el max entre todos sus miembros
+  const lastChapterMap = new Map();
+  for (const g of chapterMaxGroup) {
+    const mappedId = seriesIdToPrimary.get(g.seriesId) ?? g.seriesId;
+    if (!seriesIds.includes(mappedId)) continue;
+    const current = lastChapterMap.get(mappedId);
+    if (!current || g._max.number > current) {
+      lastChapterMap.set(mappedId, g._max.number);
+    }
+  }
 
   const lastReadMap = new Map();
   for (const r of readDetails) {
     const sid = r.chapter.seriesId;
-    if (!lastReadMap.has(sid)) {
-      lastReadMap.set(sid, String(r.chapter.number));
+    const mappedId = seriesIdToPrimary.get(sid) ?? sid;
+    if (!lastReadMap.has(mappedId)) {
+      lastReadMap.set(mappedId, String(r.chapter.number));
     }
   }
 
@@ -155,48 +188,91 @@ export async function getLatestManga(userId, limit = 16) {
 
   if (raw.length === 0) return [];
 
-  const allIds = raw.map((s) => s.id);
-  const relations = await prisma.seriesRelation.findMany({
-    where: { OR: [{ primarySeriesId: { in: allIds } }, { fallbackSeriesId: { in: allIds } }] },
-    select: { primarySeriesId: true, fallbackSeriesId: true },
-  });
-
-  const hideIds = new Set();
-  for (const rel of relations) {
-    if (allIds.includes(rel.primarySeriesId)) hideIds.add(rel.fallbackSeriesId);
-  }
-
-  const series = raw.filter((s) => !hideIds.has(s.id)).slice(0, Number(limit));
-
+  const series = raw.slice(0, Number(limit));
   const seriesIds = series.map((s) => s.id);
   const fallbackCoverMap = await batchResolveFallbackCovers(seriesIds);
 
+  // Expandir cluster recursivamente para incluir cadenas de cualquier profundidad
+  const allRelatedIds = new Set(seriesIds);
+  let prevSize = 0;
+  while (allRelatedIds.size > prevSize) {
+    prevSize = allRelatedIds.size;
+    const rels = await prisma.seriesRelation.findMany({
+      where: {
+        OR: [
+          { primarySeriesId: { in: [...allRelatedIds] } },
+          { fallbackSeriesId: { in: [...allRelatedIds] } },
+        ],
+      },
+      select: { primarySeriesId: true, fallbackSeriesId: true },
+    });
+    for (const rel of rels) {
+      allRelatedIds.add(rel.primarySeriesId);
+      allRelatedIds.add(rel.fallbackSeriesId);
+    }
+  }
+
+  // Construir mapa: cada ID del cluster → su primaria raiz
+  const allRels = await prisma.seriesRelation.findMany({
+    where: {
+      OR: [
+        { primarySeriesId: { in: [...allRelatedIds] } },
+        { fallbackSeriesId: { in: [...allRelatedIds] } },
+      ],
+    },
+    select: { primarySeriesId: true, fallbackSeriesId: true },
+  });
+  const fallbackToPrimary = new Map();
+  for (const rel of allRels) {
+    fallbackToPrimary.set(rel.fallbackSeriesId, rel.primarySeriesId);
+  }
+  const seriesIdToPrimary = new Map();
+  for (const id of allRelatedIds) {
+    let current = id;
+    const visited = new Set();
+    while (fallbackToPrimary.has(current) && !visited.has(current)) {
+      visited.add(current);
+      current = fallbackToPrimary.get(current);
+    }
+    seriesIdToPrimary.set(id, current);
+  }
+
+  const readSearchIds = allRelatedIds;
+
   const [chapterMaxGroup, readDetails] = await Promise.all([
-    seriesIds.length > 0
+    readSearchIds.size > 0
       ? prisma.chapter.groupBy({
           by: ["seriesId"],
-          where: { seriesId: { in: seriesIds } },
+          where: { seriesId: { in: [...readSearchIds] } },
           _max: { number: true },
         })
       : [],
-    userId
+    userId && readSearchIds.size > 0
       ? prisma.userChapterRead.findMany({
-          where: { userId, chapter: { seriesId: { in: seriesIds } } },
+          where: { userId, chapter: { seriesId: { in: [...readSearchIds] } } },
           select: { chapter: { select: { seriesId: true, number: true } } },
           orderBy: { chapter: { number: "desc" } },
         })
       : [],
   ]);
 
-  const lastChapterMap = new Map(
-    chapterMaxGroup.map((g) => [g.seriesId, g._max.number]),
-  );
+  // Colapsar máximos del cluster
+  const lastChapterMap = new Map();
+  for (const g of chapterMaxGroup) {
+    const mappedId = seriesIdToPrimary.get(g.seriesId) ?? g.seriesId;
+    if (!seriesIds.includes(mappedId)) continue;
+    const current = lastChapterMap.get(mappedId);
+    if (!current || g._max.number > current) {
+      lastChapterMap.set(mappedId, g._max.number);
+    }
+  }
 
   const lastReadMap = new Map();
   for (const r of readDetails) {
     const sid = r.chapter.seriesId;
-    if (!lastReadMap.has(sid)) {
-      lastReadMap.set(sid, String(r.chapter.number));
+    const mappedId = seriesIdToPrimary.get(sid) ?? sid;
+    if (!lastReadMap.has(mappedId)) {
+      lastReadMap.set(mappedId, String(r.chapter.number));
     }
   }
 
@@ -236,9 +312,25 @@ export async function getSeriesDetailBySlug(slug) {
     });
   }
 
-  const chapters = await prisma.chapter.findMany({
-    where: { seriesId: primarySeries.id },
+  const chapterSearchIds = cluster ? cluster.allIds : [primarySeries.id];
+  const rawChapters = await prisma.chapter.findMany({
+    where: { seriesId: { in: chapterSearchIds } },
     orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
+  });
+
+  // Ordenar: capítulos del primary primero, luego por publishedAt desc
+  rawChapters.sort((a, b) => {
+    if (a.seriesId === primarySeries.id && b.seriesId !== primarySeries.id) return -1;
+    if (a.seriesId !== primarySeries.id && b.seriesId === primarySeries.id) return 1;
+    return new Date(b.publishedAt) - new Date(a.publishedAt);
+  });
+
+  // Deduplicar por name: si mismo nombre en primary y fallback, gana el primary
+  const seenNames = new Set();
+  const chapters = rawChapters.filter((ch) => {
+    if (seenNames.has(ch.name)) return false;
+    seenNames.add(ch.name);
+    return true;
   });
 
   const providerEntries = [];

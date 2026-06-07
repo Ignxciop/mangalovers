@@ -1,6 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
-import { batchResolveFallbackCovers } from "../manga/seriesCluster.js";
+import { batchResolveFallbackCovers, resolveSeriesCluster } from "../manga/seriesCluster.js";
 
 // ─── Streak helpers ────────────────────────────────────────────
 
@@ -65,12 +65,59 @@ export async function getReadChapterIds(userId, seriesId) {
   });
   if (!series) throw new NotFoundError("Serie no encontrada");
 
+  // Incluir lecturas de todo el cluster para no perder datos de fallbacks
+  const cluster = await resolveSeriesCluster(seriesIdNum);
+  const searchIds = cluster ? cluster.allIds : [seriesIdNum];
+
   const reads = await prisma.userChapterRead.findMany({
-    where: { userId, chapter: { seriesId: seriesIdNum } },
-    select: { chapterId: true },
+    where: { userId, chapter: { seriesId: { in: searchIds } } },
+    select: { chapterId: true, chapter: { select: { number: true } } },
   });
 
-  return reads.map((r) => r.chapterId);
+  const explicitIds = reads.map((r) => r.chapterId);
+
+  // Si no hay cluster, solo retornar lecturas explícitas
+  if (!cluster || cluster.allIds.length <= 1) return explicitIds;
+
+  // Obtener todos los capítulos del cluster para propagar lecturas
+  const allChapters = await prisma.chapter.findMany({
+    where: { seriesId: { in: searchIds } },
+    select: { id: true, name: true, number: true },
+  });
+
+  const result = new Set(explicitIds);
+
+  // 1. Propagación por nombre exacto: si un capítulo con mismo nombre
+  //    en otro miembro del cluster está leído, marcar todos
+  const chaptersByName = new Map();
+  for (const ch of allChapters) {
+    if (!chaptersByName.has(ch.name)) chaptersByName.set(ch.name, []);
+    chaptersByName.get(ch.name).push(ch.id);
+  }
+  for (const ids of chaptersByName.values()) {
+    if (ids.length > 1) {
+      const anyRead = ids.some((id) => result.has(id));
+      if (anyRead) ids.forEach((id) => result.add(id));
+    }
+  }
+
+  // 2. Propagación por número: si el usuario avanzó hasta cierto número,
+  //    marcar como leídos los capítulos con número ≤ al máximo leído
+  let maxReadNumber = 0;
+  for (const r of reads) {
+    if (r.chapter.number && r.chapter.number > maxReadNumber) {
+      maxReadNumber = r.chapter.number;
+    }
+  }
+  if (maxReadNumber > 0) {
+    for (const ch of allChapters) {
+      if (ch.number && ch.number <= maxReadNumber) {
+        result.add(ch.id);
+      }
+    }
+  }
+
+  return [...result];
 }
 
 export const toggleChapterRead = async (userId, chapterId) => {
