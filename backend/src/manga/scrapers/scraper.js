@@ -4,7 +4,11 @@ import { runManhwaweb } from "./manhwaweb/manhwaweb.js";
 import { runLeermangaesp } from "./leermangaesp/leermangaesp.js";
 import logger from "../../config/logger.js";
 
-let isRunning = false;
+let _isRunning = false;
+
+export function isRunning() {
+  return _isRunning;
+}
 
 async function snapshotCounts() {
   const [series, chapters, pages] = await Promise.all([
@@ -15,9 +19,9 @@ async function snapshotCounts() {
   return { series, chapters, pages };
 }
 
-async function trackRun(provider, fn) {
+async function trackRun(provider, fn, triggeredBy = "cron") {
   const run = await prisma.scraperRun.create({
-    data: { provider, status: "running" },
+    data: { provider, status: "running", triggeredBy },
   });
 
   try {
@@ -53,25 +57,25 @@ async function trackRun(provider, fn) {
   }
 }
 
-export async function runAllScrapers() {
-  if (isRunning) {
+export async function runAllScrapers(triggeredBy = "cron") {
+  if (_isRunning) {
     logger.warn("Scraper ya en ejecución, se omite esta corrida");
     return;
   }
 
   try {
-    isRunning = true;
+    _isRunning = true;
 
-    logger.info("Iniciando scraping global...");
+    logger.info({ triggeredBy }, "Iniciando scraping global...");
 
-    await trackRun("olympus", runOlympus);
-    await trackRun("manhwaweb", runManhwaweb);
-    await trackRun("leermangaesp", runLeermangaesp);
+    await trackRun("olympus", runOlympus, triggeredBy);
+    await trackRun("manhwaweb", runManhwaweb, triggeredBy);
+    await trackRun("leermangaesp", runLeermangaesp, triggeredBy);
 
     logger.info("Scraping global terminado");
   } catch (error) {
     logger.error({ err: error }, "Error en scraping global");
   } finally {
-    isRunning = false;
+    _isRunning = false;
   }
 }
