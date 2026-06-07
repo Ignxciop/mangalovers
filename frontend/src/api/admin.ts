@@ -6,6 +6,7 @@ import type {
     ContentMetricsResponse, SystemMetricsResponse,
     UserStatusHistoryResponse,
     AdminSeriesListResponse, AdminSeriesDetailResponse,
+    ScraperConfigResponse, ScraperStatusResponse, ScraperRunResponse,
 } from "@/types/admin";
 
 export async function getUsers(params?: {
@@ -119,5 +120,25 @@ export async function adminDeleteAlias(seriesId: number, aliasId: number) {
 
 export async function adminToggleSeriesVisibility(id: number) {
     const { data } = await api.patch(`/admin/series/${id}/visibility`);
+    return data;
+}
+
+export async function getScraperConfig() {
+    const { data } = await api.get<ScraperConfigResponse>("/admin/scraper/config");
+    return data;
+}
+
+export async function updateScraperConfig(body: { autoEnabled?: boolean; intervalMinutes?: number }) {
+    const { data } = await api.patch<ScraperConfigResponse>("/admin/scraper/config", body);
+    return data;
+}
+
+export async function triggerScraperRun() {
+    const { data } = await api.post<ScraperRunResponse>("/admin/scraper/run");
+    return data;
+}
+
+export async function getScraperStatus() {
+    const { data } = await api.get<ScraperStatusResponse>("/admin/scraper/status");
     return data;
 }

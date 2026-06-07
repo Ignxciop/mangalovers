@@ -339,3 +339,37 @@ export interface AdminSeriesDetailResponse {
     data: AdminSeriesDetail;
 }
 
+export interface ScraperConfig {
+    id: number;
+    autoEnabled: boolean;
+    intervalMinutes: number;
+    updatedAt: string;
+}
+
+export interface ScraperConfigResponse {
+    success: boolean;
+    data: ScraperConfig;
+}
+
+export interface ScraperProviderStatus {
+    name: string;
+    lastRun: ScraperRun | null;
+}
+
+export interface ScraperStatusData {
+    isRunning: boolean;
+    autoEnabled: boolean;
+    intervalMinutes: number;
+    providers: ScraperProviderStatus[];
+}
+
+export interface ScraperStatusResponse {
+    success: boolean;
+    data: ScraperStatusData;
+}
+
+export interface ScraperRunResponse {
+    success: boolean;
+    message: string;
+}
+
