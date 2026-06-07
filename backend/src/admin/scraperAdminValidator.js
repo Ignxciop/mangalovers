@@ -1,3 +1,5 @@
+const VALID_PROVIDERS = ["olympus", "manhwaweb", "leermangaesp"];
+
 export function updateConfigValidator(req, res, next) {
   const { autoEnabled, intervalMinutes } = req.body;
 
@@ -19,6 +21,18 @@ export function updateConfigValidator(req, res, next) {
 
   if (errors.length > 0) {
     const err = new Error(errors.join(". "));
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  next();
+}
+
+export function providerParamValidator(req, res, next) {
+  const { provider } = req.params;
+
+  if (!provider || !VALID_PROVIDERS.includes(provider)) {
+    const err = new Error(`Proveedor inválido. Válidos: ${VALID_PROVIDERS.join(", ")}`);
     err.statusCode = 400;
     return next(err);
   }

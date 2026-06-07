@@ -20,10 +20,11 @@ export async function handleUpdateConfig(req, res, next) {
   }
 }
 
-export async function handleTriggerRun(req, res, next) {
+export async function handleTriggerProviderRun(req, res, next) {
   try {
-    const result = await ScraperAdminService.triggerManualRun(req.user.userId);
-    res.json({ success: true, message: "Scraper iniciado manualmente" });
+    const { provider } = req.params;
+    const result = await ScraperAdminService.triggerProviderRun(provider, req.user.userId);
+    res.json({ success: true, message: `Scraper de ${provider} iniciado manualmente` });
   } catch (error) {
     next(error);
   }

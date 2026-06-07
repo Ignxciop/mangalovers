@@ -1,5 +1,5 @@
 import { prisma } from "../config/prisma.js";
-import { runAllScrapers, isRunning } from "../manga/scrapers/scraper.js";
+import { runAllScrapers, runSingleProvider, isRunning } from "../manga/scrapers/scraper.js";
 import logger from "../config/logger.js";
 
 const ACTIVE_PROVIDERS = ["olympus", "manhwaweb", "leermangaesp"];
@@ -35,23 +35,17 @@ export class ScraperAdminService {
     });
   }
 
-  static async triggerManualRun(userId) {
-    if (isRunning()) {
-      throw Object.assign(new Error("El scraper ya está en ejecución"), { statusCode: 409 });
-    }
-
-    logger.info({ userId }, "Inicio manual de scraping solicitado por admin");
-
-    await runAllScrapers("manual");
-
+  static async triggerProviderRun(provider, userId) {
+    logger.info({ provider, userId }, "Ejecucion manual de scraper solicitado por admin");
+    await runSingleProvider(provider, "manual");
     return { success: true };
   }
 
   static async getStatus() {
     const latestRuns = await Promise.all(
-      ACTIVE_PROVIDERS.map((provider) =>
+      ACTIVE_PROVIDERS.map((p) =>
         prisma.scraperRun.findFirst({
-          where: { provider },
+          where: { provider: p },
           orderBy: { startedAt: "desc" },
         }),
       ),

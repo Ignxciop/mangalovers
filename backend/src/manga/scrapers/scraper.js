@@ -4,6 +4,14 @@ import { runManhwaweb } from "./manhwaweb/manhwaweb.js";
 import { runLeermangaesp } from "./leermangaesp/leermangaesp.js";
 import logger from "../../config/logger.js";
 
+const PROVIDER_RUNNERS = {
+  olympus: runOlympus,
+  manhwaweb: runManhwaweb,
+  leermangaesp: runLeermangaesp,
+};
+
+const ACTIVE_PROVIDERS = ["olympus", "manhwaweb", "leermangaesp"];
+
 let _isRunning = false;
 
 export function isRunning() {
@@ -75,6 +83,24 @@ export async function runAllScrapers(triggeredBy = "cron") {
     logger.info("Scraping global terminado");
   } catch (error) {
     logger.error({ err: error }, "Error en scraping global");
+  } finally {
+    _isRunning = false;
+  }
+}
+
+export async function runSingleProvider(provider, triggeredBy = "cron") {
+  if (_isRunning) {
+    throw Object.assign(new Error("El scraper ya está en ejecución"), { statusCode: 409 });
+  }
+
+  const runner = PROVIDER_RUNNERS[provider];
+  if (!runner) {
+    throw Object.assign(new Error(`Proveedor desconocido: ${provider}`), { statusCode: 400 });
+  }
+
+  try {
+    _isRunning = true;
+    await trackRun(provider, runner, triggeredBy);
   } finally {
     _isRunning = false;
   }
