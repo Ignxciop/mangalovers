@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchMangaList } from "@/api/manga.ts";
 import { useCachedQuery } from "@/hooks/useCachedQuery";
+import { useAuthStore } from "@/store/authStore";
 import type { MangaListResponse } from "@/types/manga";
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -19,7 +20,8 @@ export function useMangaList(params: Record<string, string | number>) {
 
     const search = useDebounce(rawSearch, 300);
 
-    const cacheKey = `manga-list:${JSON.stringify({ search, page, status, type, provider, sort, order, genres })}`;
+    const user = useAuthStore((s) => s.user);
+    const cacheKey = `manga-list:${user?.id ?? "anon"}:${JSON.stringify({ search, page, status, type, provider, sort, order, genres })}`;
 
     return useCachedQuery<MangaListResponse | null>(
         cacheKey,
