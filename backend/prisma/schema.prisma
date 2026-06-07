@@ -399,10 +399,20 @@ model ScraperRun {
   pagesScraped     Int      @default(0)
   errors           Int      @default(0)
   errorMessage     String?
+  triggeredBy      String?  @default("cron")  // "cron" | "manual"
 
   @@index([provider, startedAt])
   @@index([startedAt])
   @@map("scraper_runs")
+}
+
+model ScraperConfig {
+  id              Int      @id @default(autoincrement())
+  autoEnabled     Boolean  @default(true)
+  intervalMinutes Int      @default(60)
+  updatedAt       DateTime @updatedAt
+
+  @@map("scraper_config")
 }
 
 model Notification {
