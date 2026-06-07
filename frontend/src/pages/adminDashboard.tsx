@@ -1,17 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getMetricsOverview, getScraperConfig, updateScraperConfig, triggerScraperRun, getScraperStatus } from "@/api/admin";
-import type { OverviewMetrics, ScraperConfig, ScraperStatusData } from "@/types/admin";
+import { getMetricsOverview } from "@/api/admin";
+import type { OverviewMetrics } from "@/types/admin";
 import { SEO } from "@/components/seo";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
     Users, BookOpen, FileText, Lightbulb, Activity, UserPlus,
-    CheckCircle2, AlertCircle, ArrowRight, Play, RotateCw,
-    PauseCircle, RefreshCw,
+    CheckCircle2, AlertCircle, Clock, ArrowRight,
 } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -86,22 +83,65 @@ function Elapsed({ finishedAt }: { finishedAt: string | null }) {
     return `hace ${Math.floor(mins / 60)}h ${mins % 60}min`;
 }
 
-function LastRunBadge({ run }: { run: { status: string; finishedAt: string | null; seriesProcessed: number; chaptersCreated: number; pagesScraped: number; errors: number; errorMessage?: string | null } | null }) {
-    if (!run) return <span className="text-xs text-muted-foreground">Sin datos</span>;
-    const isOk = run.status === "success";
+function ScraperStatus({ scraper }: { scraper: OverviewMetrics["scraper"] }) {
+    if (!scraper) {
+        return (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="size-4" />
+                Sin ejecuciones registradas
+            </div>
+        );
+    }
+
+    const isOk = scraper.status === "success";
+
     return (
-        <div className="flex items-center gap-2">
-            {isOk ? (
-                <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-            ) : (
-                <AlertCircle className="size-3.5 text-rose-500 shrink-0" />
+        <div className="space-y-2">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    {isOk ? (
+                        <CheckCircle2 className="size-4 text-emerald-500" />
+                    ) : (
+                        <AlertCircle className="size-4 text-rose-500" />
+                    )}
+                    <span className={cn(
+                        "text-xs font-medium",
+                        isOk ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                    )}>
+                        {isOk ? "Operativo" : "Falló"}
+                    </span>
+                </div>
+                    <span className="text-xs text-muted-foreground"><Elapsed finishedAt={scraper.finishedAt} /></span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>Series: {scraper.seriesProcessed}</span>
+                <span>Capítulos: {scraper.chaptersCreated}</span>
+                <span>Páginas: {scraper.pagesScraped}</span>
+                <span>Errores: {scraper.errors}</span>
+            </div>
+            {scraper.errorMessage && (
+                <p className="text-xs text-rose-500/70 break-words mt-1">{scraper.errorMessage}</p>
             )}
-            <span className={cn("text-xs", isOk ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
-                {isOk ? "OK" : "Falló"}
-            </span>
-            <span className="text-xs text-muted-foreground">
-                <Elapsed finishedAt={run.finishedAt} />
-            </span>
+        </div>
+    );
+}
+
+function SuggestionBar({ status, count, total }: { status: string; count: number; total: number }) {
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+    const barColor = {
+        OPEN: "bg-amber-500",
+        REVIEWING: "bg-blue-500",
+        RESOLVED: "bg-emerald-500",
+        REJECTED: "bg-muted-foreground/30",
+        CLOSED: "bg-muted-foreground/50",
+    };
+    return (
+        <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground w-20 shrink-0">{STATUS_LABELS[status] ?? status}</span>
+            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                <div className={cn("h-full rounded-full transition-all", barColor[status as keyof typeof barColor] ?? "bg-muted-foreground/30")} style={{ width: `${pct}%` }} />
+            </div>
+            <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">{count}</span>
         </div>
     );
 }
@@ -111,56 +151,12 @@ export default function AdminDashboard() {
     const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const [scraperConfig, setScraperConfig] = useState<ScraperConfig | null>(null);
-    const [scraperStatus, setScraperStatus] = useState<ScraperStatusData | null>(null);
-    const [scraperLoading, setScraperLoading] = useState(false);
-    const [runLoading, setRunLoading] = useState(false);
-
     useEffect(() => {
         getMetricsOverview()
             .then((res) => setMetrics(res.data))
             .catch(() => { })
             .finally(() => setLoading(false));
     }, []);
-
-    function loadScraperData() {
-        setScraperLoading(true);
-        Promise.all([
-            getScraperConfig(),
-            getScraperStatus(),
-        ])
-            .then(([config, status]) => {
-                setScraperConfig(config.data);
-                setScraperStatus(status.data);
-            })
-            .catch(() => { })
-            .finally(() => setScraperLoading(false));
-    }
-
-    useEffect(() => {
-        loadScraperData();
-        const id = setInterval(loadScraperData, 5000);
-        return () => clearInterval(id);
-    }, []);
-
-    async function handleToggleAuto(enabled: boolean) {
-        if (!scraperConfig) return;
-        try {
-            const res = await updateScraperConfig({ autoEnabled: enabled });
-            setScraperConfig(res.data);
-        } catch { }
-    }
-
-    async function handleManualRun() {
-        setRunLoading(true);
-        try {
-            await triggerScraperRun();
-            setTimeout(loadScraperData, 2000);
-        } catch { }
-        setTimeout(() => setRunLoading(false), 10000);
-    }
-
-    const isRunning = scraperStatus?.isRunning ?? false;
 
     const quickLinks = [
         { label: "Usuarios", path: "/admin/usuarios", icon: Users, accent: "sky" as const },
@@ -205,69 +201,8 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <MiniSection title="Control del scraper">
-                                {scraperLoading && !scraperConfig ? (
-                                    <div className="space-y-3">
-                                        <Skeleton className="h-5 w-48" />
-                                        <Skeleton className="h-9 w-full" />
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                {isRunning ? (
-                                                    <RotateCw className="size-4 text-sky-500 animate-spin" />
-                                                ) : scraperConfig?.autoEnabled ? (
-                                                    <Play className="size-4 text-emerald-500" />
-                                                ) : (
-                                                    <PauseCircle className="size-4 text-muted-foreground" />
-                                                )}
-                                                <span className="text-sm font-medium">
-                                                    {isRunning ? "Ejecutándose..." : scraperConfig?.autoEnabled ? "Automático activado" : "Automático desactivado"}
-                                                </span>
-                                            </div>
-                                            <Switch
-                                                checked={scraperConfig?.autoEnabled ?? false}
-                                                onCheckedChange={handleToggleAuto}
-                                                disabled={isRunning}
-                                            />
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="gap-1.5"
-                                                disabled={isRunning || runLoading}
-                                                onClick={handleManualRun}
-                                            >
-                                                {runLoading ? (
-                                                    <RefreshCw className="size-3.5 animate-spin" />
-                                                ) : (
-                                                    <Play className="size-3.5" />
-                                                )}
-                                                {runLoading ? "Iniciando..." : "Ejecutar ahora"}
-                                            </Button>
-                                            {scraperConfig && (
-                                                <span className="text-xs text-muted-foreground">
-                                                    Intervalo: cada {scraperConfig.intervalMinutes} min
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {scraperStatus?.providers && (
-                                            <div className="space-y-1.5 pt-2 border-t border-border">
-                                                <p className="text-xs font-medium text-muted-foreground mb-2">Proveedores</p>
-                                                {scraperStatus.providers.map((p) => (
-                                                    <div key={p.name} className="flex items-center justify-between">
-                                                        <span className="text-xs capitalize">{p.name}</span>
-                                                        <LastRunBadge run={p.lastRun} />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                            <MiniSection title="Última ejecución del scraper">
+                                <ScraperStatus scraper={metrics.scraper} />
                             </MiniSection>
 
                             <MiniSection title="Sugerencias por estado">
@@ -308,26 +243,6 @@ export default function AdminDashboard() {
                     </div>
                 )}
             </main>
-        </div>
-    );
-}
-
-function SuggestionBar({ status, count, total }: { status: string; count: number; total: number }) {
-    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-    const barColor: Record<string, string> = {
-        OPEN: "bg-amber-500",
-        REVIEWING: "bg-blue-500",
-        RESOLVED: "bg-emerald-500",
-        REJECTED: "bg-muted-foreground/30",
-        CLOSED: "bg-muted-foreground/50",
-    };
-    return (
-        <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground w-20 shrink-0">{STATUS_LABELS[status] ?? status}</span>
-            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                <div className={cn("h-full rounded-full transition-all", barColor[status] ?? "bg-muted-foreground/30")} style={{ width: `${pct}%` }} />
-            </div>
-            <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">{count}</span>
         </div>
     );
 }

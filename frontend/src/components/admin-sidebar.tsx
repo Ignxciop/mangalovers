@@ -37,6 +37,7 @@ import {
     LogOut,
     Megaphone,
     BookOpen,
+    Wrench,
 } from "lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
@@ -384,6 +385,13 @@ export function AdminSidebar() {
                                     href="/admin/anuncios"
                                     icon={Megaphone}
                                     label="Anuncios"
+                                />
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <NavItem
+                                    href="/admin/herramientas"
+                                    icon={Wrench}
+                                    label="Herramientas"
                                 />
                             </SidebarMenuItem>
                         </SidebarMenu>
