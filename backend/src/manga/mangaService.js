@@ -439,6 +439,7 @@ export async function getRecommendedSeries(userId, limit = 12) {
     select: {
       chapter: {
         select: {
+          seriesId: true,
           series: {
             select: { genres: { select: { genre: { select: { name: true } } } } },
           },
@@ -450,7 +451,9 @@ export async function getRecommendedSeries(userId, limit = 12) {
   });
 
   const genreCount = new Map();
+  const readSeriesSet = new Set();
   for (const r of reads) {
+    readSeriesSet.add(r.chapter.seriesId);
     for (const g of r.chapter.series.genres) {
       const name = g.genre.name;
       genreCount.set(name, (genreCount.get(name) ?? 0) + 1);
@@ -470,11 +473,12 @@ export async function getRecommendedSeries(userId, limit = 12) {
   });
 
   const favIds = favorites.map((f) => f.seriesId);
+  const excludeIds = [...new Set([...favIds, ...readSeriesSet])];
 
   const rawCandidates = await prisma.series.findMany({
     where: {
       visible: true,
-      id: { notIn: favIds.length > 0 ? favIds : [-1] },
+      id: { notIn: excludeIds.length > 0 ? excludeIds : [-1] },
       fallbackRelations: { none: {} },
       genres: { some: { genre: { name: { in: topGenres } } } },
     },
@@ -502,7 +506,7 @@ export async function getRecommendedSeries(userId, limit = 12) {
   const weekSeed = getWeekSeed();
 
   const scored = candidates
-    .filter((s) => !favIds.includes(s.id))
+    .filter((s) => !excludeIds.includes(s.id))
     .map((s) => {
       const seriesGenres = s.genres.map((g) => g.genre.name);
       const score = topGenres.filter((g) => seriesGenres.includes(g)).length;
