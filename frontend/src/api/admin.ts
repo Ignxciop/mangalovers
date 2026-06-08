@@ -157,3 +157,8 @@ export async function refillMissingPages(provider: string) {
     const { data } = await api.post<{ success: boolean; data: { reset: number; message?: string } }>(`/admin/scraper/refill-pages/${provider}`);
     return data;
 }
+
+export async function fixEmptyChapters() {
+    const { data } = await api.post<{ success: boolean; data: { count: number; message: string } }>("/admin/tools/fix-empty-chapters");
+    return data;
+}
