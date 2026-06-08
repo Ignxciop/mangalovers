@@ -10,7 +10,6 @@ import {
     BookOpen,
     ZoomIn,
     ZoomOut,
-    AlertCircle,
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -494,35 +493,11 @@ export default function ChapterReader() {
         currentPage: prefs.mode === "pagination" ? paginationPage : undefined,
     });
 
-    const [usePrimary, setUsePrimary] = useState(false);
-    const switchedRef = useRef(false);
-
     const activePages = useMemo(() => {
         if (!chapter) return [];
-        if (usePrimary) return chapter.pages ?? [];
         if (chapter.fallbackPages?.length) return chapter.fallbackPages;
         return chapter.pages ?? [];
-    }, [chapter, usePrimary]);
-
-    useEffect(() => {
-        switchedRef.current = false;
-        setUsePrimary(false);
-    }, [chapterId, chapter?.chapterId]);
-
-    const handleImageFailed = useCallback(() => {
-        if (switchedRef.current) return;
-        if (!usePrimary || !chapter?.fallbackPages?.length) return;
-        switchedRef.current = true;
-        setUsePrimary(false);
-    }, [usePrimary, chapter?.fallbackPages]);
-
-    const handleManualSwitch = useCallback(() => {
-        if (!chapter?.fallbackPages?.length) return;
-        switchedRef.current = false;
-        setUsePrimary((p) => !p);
-    }, [chapter?.fallbackPages]);
-
-    const showFallbackBanner = !usePrimary && !!chapter?.fallbackPages;
+    }, [chapter]);
 
     useEffect(() => {
         if (!chapter || !series) return;
@@ -825,19 +800,6 @@ export default function ChapterReader() {
                     onNext={markUntil}
                 />
 
-                {showFallbackBanner && (
-                    <div className="w-full max-w-2xl mx-auto px-4 mb-3">
-                        <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs">
-                            <div className="flex items-center gap-2 text-amber-200">
-                                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                                <span>
-                                    Mostrando imágenes del proveedor alternativo. Si el principal funciona, puedes cambiarlo abajo.
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 {prefs.mode === "cascade" ? (
                     <div
                         className="flex flex-col items-center gap-1 mx-auto"
@@ -848,7 +810,6 @@ export default function ChapterReader() {
                                 <ChapterImage
                                     src={page.url}
                                     alt={`Página ${index + 1}`}
-                                    onAllRetriesFailed={handleImageFailed}
                                 />
                             </div>
                         ))}
@@ -863,19 +824,7 @@ export default function ChapterReader() {
                         hasPrevChapter={!!chapter.prev}
                         hasNextChapter={!!chapter.next}
                         onPageChange={setPaginationPage}
-                        onImageFailed={handleImageFailed}
                     />
-                )}
-
-                {chapter?.fallbackPages && chapter.fallbackPages.length > 0 && (
-                    <div className="w-full max-w-2xl mx-auto px-4 mt-3">
-                        <button
-                            onClick={handleManualSwitch}
-                            className="w-full text-xs text-muted-foreground hover:text-foreground border border-white/10 bg-white/5 hover:bg-white/10 rounded-lg py-2 transition-colors"
-                        >
-                            {usePrimary ? "¿Las imágenes no cargan? Usar proveedor alternativo" : "Usar proveedor principal"}
-                        </button>
-                    </div>
                 )}
 
                 {progressPercent !== null && chaptersLeft !== null && (
