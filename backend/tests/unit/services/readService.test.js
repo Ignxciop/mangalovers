@@ -374,6 +374,7 @@ describe("readService.markChaptersUntil", () => {
         { userId: "u1", chapterId: 4 },
         { userId: "u1", chapterId: 5 },
       ]),
+      skipDuplicates: true,
     });
   });
 

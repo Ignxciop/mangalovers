@@ -2,6 +2,10 @@ import { prisma } from "../../config/prisma.js";
 import { runOlympus } from "./olympus/olympus.js";
 import { runManhwaweb } from "./manhwaweb/manhwaweb.js";
 import { runLeermangaesp } from "./leermangaesp/leermangaesp.js";
+import { scrapePages as olympusScrapePages } from "./olympus/pages_scraper.js";
+import { scrapePages as manhwawebScrapePages } from "./manhwaweb/pages_scraper.js";
+import { scrapePages as leermangaespScrapePages } from "./leermangaesp/pages_scraper.js";
+import { getAbortSignal, abortScraper, resetAbortSignal } from "./scraperAbort.js";
 import logger from "../../config/logger.js";
 
 const PROVIDER_RUNNERS = {
@@ -16,6 +20,14 @@ let _isRunning = false;
 
 export function isRunning() {
   return _isRunning;
+}
+
+export function stopScraper() {
+  if (!_isRunning) {
+    throw Object.assign(new Error("No hay scraper en ejecución"), { statusCode: 409 });
+  }
+  abortScraper();
+  _isRunning = false;
 }
 
 async function snapshotCounts() {
@@ -65,24 +77,35 @@ async function trackRun(provider, fn, triggeredBy = "cron") {
   }
 }
 
-export async function runAllScrapers(triggeredBy = "cron") {
+export async function runAllScrapers(triggeredBy = "cron", providers = ACTIVE_PROVIDERS) {
   if (_isRunning) {
     logger.warn("Scraper ya en ejecución, se omite esta corrida");
     return;
   }
 
+  const toRun = providers.filter((p) => PROVIDER_RUNNERS[p]);
+  if (toRun.length === 0) {
+    logger.warn("No hay proveedores habilitados para ejecutar");
+    return;
+  }
+
   try {
     _isRunning = true;
+    resetAbortSignal();
 
-    logger.info({ triggeredBy }, "Iniciando scraping global...");
+    logger.info({ triggeredBy, providers: toRun }, "Iniciando scraping...");
 
-    await trackRun("olympus", runOlympus, triggeredBy);
-    await trackRun("manhwaweb", runManhwaweb, triggeredBy);
-    await trackRun("leermangaesp", runLeermangaesp, triggeredBy);
+    for (const provider of toRun) {
+      if (getAbortSignal().aborted) {
+        logger.info("Scraper abortado, cancelando proveedores restantes");
+        break;
+      }
+      await trackRun(provider, PROVIDER_RUNNERS[provider], triggeredBy);
+    }
 
-    logger.info("Scraping global terminado");
+    logger.info("Scraping terminado");
   } catch (error) {
-    logger.error({ err: error }, "Error en scraping global");
+    logger.error({ err: error }, "Error en scraping");
   } finally {
     _isRunning = false;
   }
@@ -100,6 +123,32 @@ export async function runSingleProvider(provider, triggeredBy = "cron") {
 
   try {
     _isRunning = true;
+    resetAbortSignal();
+    await trackRun(provider, runner, triggeredBy);
+  } finally {
+    _isRunning = false;
+  }
+}
+
+const PAGES_ONLY_RUNNERS = {
+  olympus: olympusScrapePages,
+  manhwaweb: manhwawebScrapePages,
+  leermangaesp: leermangaespScrapePages,
+};
+
+export async function runPagesOnly(provider, triggeredBy = "manual") {
+  if (_isRunning) {
+    throw Object.assign(new Error("El scraper ya está en ejecución"), { statusCode: 409 });
+  }
+
+  const runner = PAGES_ONLY_RUNNERS[provider];
+  if (!runner) {
+    throw Object.assign(new Error(`Proveedor desconocido: ${provider}`), { statusCode: 400 });
+  }
+
+  try {
+    _isRunning = true;
+    resetAbortSignal();
     await trackRun(provider, runner, triggeredBy);
   } finally {
     _isRunning = false;

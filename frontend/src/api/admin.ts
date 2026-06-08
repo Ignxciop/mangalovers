@@ -128,7 +128,7 @@ export async function getScraperConfig() {
     return data;
 }
 
-export async function updateScraperConfig(body: { autoEnabled?: boolean; intervalMinutes?: number }) {
+export async function updateScraperConfig(body: { autoEnabled?: boolean; intervalMinutes?: number; enabledProviders?: string[] }) {
     const { data } = await api.patch<ScraperConfigResponse>("/admin/scraper/config", body);
     return data;
 }
@@ -140,5 +140,20 @@ export async function triggerScraperRun() {
 
 export async function getScraperStatus() {
     const { data } = await api.get<ScraperStatusResponse>("/admin/scraper/status");
+    return data;
+}
+
+export interface MissingPagesData {
+    providers: { provider: string; count: number }[];
+    total: number;
+}
+
+export async function getMissingPages() {
+    const { data } = await api.get<{ success: boolean; data: MissingPagesData }>("/admin/scraper/missing-pages");
+    return data;
+}
+
+export async function refillMissingPages(provider: string) {
+    const { data } = await api.post<{ success: boolean; data: { reset: number; message?: string } }>(`/admin/scraper/refill-pages/${provider}`);
     return data;
 }

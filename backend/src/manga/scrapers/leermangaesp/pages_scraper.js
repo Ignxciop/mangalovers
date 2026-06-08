@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
+import { getAbortSignal } from "../scraperAbort.js";
 
 const limit = pLimit(3);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -144,12 +145,15 @@ export async function scrapePages() {
 
     logger.info({ count: providerChapters.length }, "LeerMangaEsp - Capítulos por scrapear páginas");
 
+    const signal = getAbortSignal();
+
     let completed = 0;
     const total = providerChapters.length;
 
     await Promise.all(
         providerChapters.map((pc) =>
             limit(async () => {
+                if (signal.aborted) return;
                 await processChapter(pc, provider.id);
                 completed++;
                 if (completed % 10 === 0 || completed === total) {
@@ -158,6 +162,11 @@ export async function scrapePages() {
             }),
         ),
     );
+
+    if (signal.aborted) {
+        logger.info("LeerMangaEsp - Scrapeo de páginas detenido manualmente");
+        return;
+    }
 
     logger.info("LeerMangaEsp - Páginas listas");
 }

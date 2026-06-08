@@ -30,10 +30,38 @@ export async function handleTriggerProviderRun(req, res, next) {
   }
 }
 
+export async function handleStopScraper(req, res, next) {
+  try {
+    const result = await ScraperAdminService.stopRunningScraper();
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function handleGetStatus(req, res, next) {
   try {
     const status = await ScraperAdminService.getStatus();
     res.json({ success: true, data: status });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleGetMissingPages(req, res, next) {
+  try {
+    const data = await ScraperAdminService.getMissingPages();
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleRefillMissingPages(req, res, next) {
+  try {
+    const { provider } = req.params;
+    const result = await ScraperAdminService.refillMissingPages(provider);
+    res.json({ success: true, data: result });
   } catch (error) {
     next(error);
   }

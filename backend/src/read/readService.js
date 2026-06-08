@@ -162,6 +162,7 @@ export async function markChaptersUntil(userId, chapterId) {
   if (toCreate.length > 0) {
     await prisma.userChapterRead.createMany({
       data: toCreate.map((c) => ({ userId, chapterId: c.id })),
+      skipDuplicates: true,
     });
   }
 

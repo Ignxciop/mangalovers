@@ -2,6 +2,7 @@ import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
+import { getAbortSignal } from "../scraperAbort.js";
 
 const limit = pLimit(3);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -69,11 +70,21 @@ export async function scrapePages() {
         },
     });
 
+    const signal = getAbortSignal();
+
     await Promise.all(
         providerChapters.map((pc) =>
-            limit(() => processChapter(pc, provider.id)),
+            limit(() => {
+                if (signal.aborted) return;
+                return processChapter(pc, provider.id);
+            }),
         ),
     );
+
+    if (signal.aborted) {
+        logger.info("ManhwaWeb - Scrapeo de páginas detenido manualmente");
+        return;
+    }
 
     logger.info("ManhwaWeb - Páginas listas");
 }

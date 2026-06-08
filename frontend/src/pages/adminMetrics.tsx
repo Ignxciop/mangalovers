@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getScraperMetrics, getUserMetrics, getContentMetrics, getSystemMetrics } from "@/api/admin";
-import type { ScraperMetricsData, UserMetricsData, ContentMetricsData, SystemMetricsData } from "@/types/admin";
+import type { ScraperMetricsData, UserMetricsData, ContentMetricsData, SystemMetricsData, RecentError } from "@/types/admin";
 import { SEO } from "@/components/seo";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +9,7 @@ import {
     BarChart3, Server, Users, BookOpen, Activity,
     CheckCircle2, AlertCircle, XCircle, Clock, Zap,
     Flame, TrendingUp, FileText, Tag,
+    Copy, ChevronDown, ChevronUp,
 } from "lucide-react";
 
 type Tab = "scrapers" | "usuarios" | "contenido" | "sistema";
@@ -410,28 +411,86 @@ function SystemTab({ data }: { data: SystemMetricsData }) {
                 {data.recentErrors.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-6">Sin errores recientes</p>
                 ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="space-y-1 max-h-[32rem] overflow-y-auto pr-1">
                         {data.recentErrors.map((err) => (
-                            <div key={err.id} className="flex items-start justify-between py-2 border-b border-border last:border-0">
-                                <div className="flex items-start gap-2.5 min-w-0">
-                                    <AlertCircle className="size-4 text-rose-500 shrink-0 mt-0.5" />
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-medium truncate">{err.user}</p>
-                                        {err.metadata && (
-                                            <p className="text-xs text-muted-foreground truncate max-w-xs">
-                                                {JSON.stringify(err.metadata).slice(0, 80)}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                <span className="text-xs text-muted-foreground shrink-0">
-                                    {new Date(err.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                            </div>
+                            <ErrorRow key={err.id} err={err} />
                         ))}
                     </div>
                 )}
             </div>
+        </div>
+    );
+}
+
+function ErrorRow({ err }: { err: RecentError }) {
+    const [expanded, setExpanded] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const meta = err.metadata ?? {};
+    const route = (meta as Record<string, unknown>).route as string ?? "";
+    const method = (meta as Record<string, unknown>).method as string ?? "";
+    const message = (meta as Record<string, unknown>).message as string ?? "";
+
+    async function handleCopy() {
+        const text = JSON.stringify({ user: err.user, ...meta, createdAt: err.createdAt }, null, 2);
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+
+    return (
+        <div className="border border-border/50 rounded-lg px-3 py-2.5">
+            <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2 min-w-0 flex-1">
+                    <AlertCircle className="size-4 text-rose-500 shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium">{err.user}</span>
+                            {route && (
+                                <span className="text-xs text-muted-foreground font-mono truncate max-w-64" title={route}>
+                                    {method} {route}
+                                </span>
+                            )}
+                        </div>
+                        {message && (
+                            <p className="text-xs text-muted-foreground/80 mt-0.5 font-mono line-clamp-1 break-all">
+                                {message}
+                            </p>
+                        )}
+                    </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(err.createdAt).toLocaleDateString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <button
+                        onClick={handleCopy}
+                        className="p-1 rounded-md hover:bg-muted transition-colors"
+                        title="Copiar error completo"
+                    >
+                        {copied ? (
+                            <CheckCircle2 className="size-3.5 text-emerald-500" />
+                        ) : (
+                            <Copy className="size-3.5 text-muted-foreground" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setExpanded(!expanded)}
+                        className="p-1 rounded-md hover:bg-muted transition-colors"
+                        title={expanded ? "Contraer" : "Expandir"}
+                    >
+                        {expanded ? (
+                            <ChevronUp className="size-3.5 text-muted-foreground" />
+                        ) : (
+                            <ChevronDown className="size-3.5 text-muted-foreground" />
+                        )}
+                    </button>
+                </div>
+            </div>
+            {expanded && (
+                <pre className="mt-2 p-2 bg-muted/50 rounded-md text-[11px] leading-relaxed font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap break-all max-h-48 overflow-y-auto">
+                    {JSON.stringify({ user: err.user, ...meta, createdAt: err.createdAt }, null, 2)}
+                </pre>
+            )}
         </div>
     );
 }
