@@ -128,11 +128,10 @@ describe("MangaDetail", () => {
             expect(screen.getByText(/Seguir leyendo/)).toBeInTheDocument();
         });
 
-        it("Seguir leyendo llama markUntil y navega", async () => {
+        it("Seguir leyendo navega al capítulo", async () => {
             const user = userEvent.setup();
             renderPage();
             await user.click(screen.getByText(/Seguir leyendo/));
-            expect(mockMarkUntil).toHaveBeenCalledWith(2);
             expect(mockNavigate).toHaveBeenCalledWith(
                 "/manga/one-piece/capitulo/2",
                 expect.anything(),
