@@ -169,7 +169,7 @@ function MissingPagesSection({ loadData }: { loadData: () => void }) {
             await refillMissingPages(provider);
             await fetch();
             loadData();
-        } catch { }
+        } catch { /* ignore */ }
         setRefilling(null);
     }
 
@@ -259,7 +259,7 @@ export default function AdminTools() {
         try {
             const res = await updateScraperConfig({ autoEnabled: enabled });
             setConfig(res.data);
-        } catch { }
+        } catch { /* ignore */ }
     }
 
     async function handleToggleProvider(provider: string, enabled: boolean) {
@@ -272,7 +272,7 @@ export default function AdminTools() {
         try {
             const res = await updateScraperConfig({ enabledProviders: next });
             setConfig(res.data);
-        } catch { }
+        } catch { /* ignore */ }
     }
 
     async function handleRunProvider(provider: string) {
@@ -293,7 +293,7 @@ export default function AdminTools() {
         setStopping((prev) => ({ ...prev, [provider]: true }));
         try {
             await api.post(`/admin/scraper/stop/${provider}`);
-        } catch { }
+        } catch { /* ignore */ }
         setTimeout(() => {
             setStopping((prev) => ({ ...prev, [provider]: false }));
         }, 1000);
