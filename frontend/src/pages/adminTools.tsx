@@ -45,6 +45,7 @@ function ProviderCard({
     isRunning,
     lastRun,
     runState,
+    stopping,
     onRun,
     onStop,
     onToggleEnabled,
@@ -55,6 +56,7 @@ function ProviderCard({
     isRunning: boolean;
     lastRun: { status: string; finishedAt: string | null; seriesProcessed: number; chaptersCreated: number; pagesScraped: number; errors: number; errorMessage?: string | null } | null;
     runState: RunState[string];
+    stopping: boolean;
     onRun: (provider: string) => void;
     onStop: (provider: string) => void;
     onToggleEnabled: (provider: string, enabled: boolean) => void;
@@ -80,15 +82,20 @@ function ProviderCard({
                     </label>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    {isRunning ? (
+                    {isRunning || stopping ? (
                         <Button
                             variant="destructive"
                             size="sm"
                             className="gap-1.5"
+                            disabled={stopping}
                             onClick={() => onStop(name)}
                         >
-                            <Square className="size-3.5" />
-                            Detener
+                            {stopping ? (
+                                <RefreshCw className="size-3.5 animate-spin" />
+                            ) : (
+                                <Square className="size-3.5" />
+                            )}
+                            {stopping ? "Deteniendo..." : "Detener"}
                         </Button>
                     ) : (
                         <Button
@@ -217,6 +224,7 @@ export default function AdminTools() {
     const [status, setStatus] = useState<ScraperStatusData | null>(null);
     const [loading, setLoading] = useState(true);
     const [runStates, setRunStates] = useState<RunState>({});
+    const [stopping, setStopping] = useState<Record<string, boolean>>({});
     function loadData() {
         Promise.all([
             getScraperConfig(),
@@ -225,6 +233,16 @@ export default function AdminTools() {
             .then(([c, s]) => {
                 setConfig(c.data);
                 setStatus(s.data);
+                setStopping((prev) => {
+                    const next = { ...prev };
+                    for (const p of ALL_PROVIDERS) {
+                        const sp = s.data.providers.find((sp) => sp.name === p.id);
+                        if (!sp?.isRunning && prev[p.id]) {
+                            delete next[p.id];
+                        }
+                    }
+                    return next;
+                });
             })
             .catch(() => { })
             .finally(() => setLoading(false));
@@ -272,10 +290,13 @@ export default function AdminTools() {
     }
 
     async function handleStopProvider(provider: string) {
+        setStopping((prev) => ({ ...prev, [provider]: true }));
         try {
             await api.post(`/admin/scraper/stop/${provider}`);
-            loadData();
         } catch { }
+        setTimeout(() => {
+            setStopping((prev) => ({ ...prev, [provider]: false }));
+        }, 1000);
     }
 
     return (
@@ -351,6 +372,7 @@ export default function AdminTools() {
                                 isRunning={status?.providers.find((sp) => sp.name === p.id)?.isRunning ?? false}
                                 lastRun={status?.providers.find((sp) => sp.name === p.id)?.lastRun ?? null}
                                 runState={runStates[p.id] ?? "idle"}
+                                stopping={stopping[p.id] ?? false}
                                 onRun={handleRunProvider}
                                 onStop={handleStopProvider}
                                 onToggleEnabled={handleToggleProvider}

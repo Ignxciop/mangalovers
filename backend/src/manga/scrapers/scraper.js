@@ -34,7 +34,6 @@ export function stopScraper(provider) {
     throw Object.assign(new Error(`No hay scraper de ${provider} en ejecución`), { statusCode: 409 });
   }
   abortScraper(provider);
-  _runningProviders.delete(provider);
 }
 
 async function snapshotCounts() {
@@ -56,10 +55,12 @@ async function trackRun(provider, fn, triggeredBy = "cron") {
     await fn();
     const after = await snapshotCounts();
 
+    const aborted = getAbortSignal(provider).aborted;
+
     await prisma.scraperRun.update({
       where: { id: run.id },
       data: {
-        status: "success",
+        status: aborted ? "cancelled" : "success",
         finishedAt: new Date(),
         seriesProcessed: Math.max(0, after.series - before.series),
         chaptersCreated: Math.max(0, after.chapters - before.chapters),
@@ -67,7 +68,7 @@ async function trackRun(provider, fn, triggeredBy = "cron") {
       },
     });
 
-    logger.info({ provider, id: run.id }, "ScraperRun completado");
+    logger.info({ provider, id: run.id, status: aborted ? "cancelled" : "success" }, "ScraperRun finalizado");
   } catch (error) {
     await prisma.scraperRun.update({
       where: { id: run.id },

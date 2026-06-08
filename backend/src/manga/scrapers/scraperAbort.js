@@ -10,13 +10,11 @@ export function getAbortSignal(provider) {
 export function abortScraper(provider) {
   if (controllers[provider]) {
     controllers[provider].abort();
-    delete controllers[provider];
   }
 }
 
 export function resetAbortSignal(provider) {
-  if (controllers[provider] && !controllers[provider].signal.aborted) {
-    return;
+  if (!controllers[provider] || controllers[provider].signal.aborted) {
+    controllers[provider] = new AbortController();
   }
-  controllers[provider] = new AbortController();
 }
