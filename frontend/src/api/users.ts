@@ -24,6 +24,7 @@ export interface ProfileFavorite {
     name: string;
     slug: string;
     cover: string | null;
+    fallbackCover?: string | null;
     status: string | null;
     type: string | null;
     chapterCount: number;

@@ -1,7 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import logger from "../config/logger.js";
 
-const providers = [{ name: "olympus" }, { name: "manhwaweb" }];
+const providers = [{ name: "olympus" }, { name: "manhwaweb" }, { name: "leermangaesp" }];
 
 export async function seedProviders() {
     logger.info("Verificando providers...");

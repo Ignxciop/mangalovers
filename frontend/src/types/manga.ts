@@ -3,6 +3,7 @@ export interface Manga {
     name: string;
     slug: string;
     cover: string | null;
+    fallbackCover?: string | null;
     chapterCount: number;
     lastChapterNumber?: number | null;
     lastChapterPublishedAt: string | null;
@@ -42,6 +43,7 @@ export interface SeriesDetail {
     name: string;
     slug: string;
     cover: string | null;
+    fallbackCover?: string | null;
     status: string | null;
     type: string | null;
     summary: string | null;
@@ -54,6 +56,7 @@ export interface SeriesDetail {
 export interface ChapterPages {
     chapterId: number;
     name: string;
+    number: number | null;
     publishedAt: string;
     series: {
         id: number;
@@ -66,6 +69,10 @@ export interface ChapterPages {
         id: number;
         url: string;
     }[];
+    fallbackPages?: {
+        id: number;
+        url: string;
+    }[] | null;
 }
 
 export interface RecommendedSeries {
@@ -73,6 +80,7 @@ export interface RecommendedSeries {
     name: string;
     slug: string;
     cover: string | null;
+    fallbackCover?: string | null;
     status: string | null;
     chapterCount: number;
     type: string | null;
@@ -99,6 +107,7 @@ export interface Favorite {
         name: string;
         slug: string;
         cover: string | null;
+        fallbackCover?: string | null;
         status: string | null;
         type: string | null;
         chapterCount: number;

@@ -8,24 +8,28 @@ import { listUsers, updateRole, updateStatus, getStatusHistory } from "./adminUs
 import { getMetrics, getOverview, getScraperMetrics, getUserMetrics, getContentMetrics, getSystemMetrics } from "./adminMetricsController.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 
-const adminLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: async (req, res) => {
-    if (req.user?.userId) {
-      try {
-        await ActivityLogService.logEvent(
-          req.user.userId, "RATE_LIMIT",
-          { route: req.originalUrl, method: req.method },
-          req.ip, req.headers["user-agent"],
-        );
-      } catch { /* ignore */ }
-    }
-    res.status(429).json({ success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" });
-  },
-});
+const isDev = process.env.ENVIRONMENT === "development" || process.env.NODE_ENV === "development";
+
+const adminLimiter = isDev
+  ? (req, res, next) => next()
+  : rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: async (req, res) => {
+        if (req.user?.userId) {
+          try {
+            await ActivityLogService.logEvent(
+              req.user.userId, "RATE_LIMIT",
+              { route: req.originalUrl, method: req.method },
+              req.ip, req.headers["user-agent"],
+            );
+          } catch { /* ignore */ }
+        }
+        res.status(429).json({ success: false, message: "Demasiadas solicitudes, intenta de nuevo más tarde" });
+      },
+    });
 
 const router = Router();
 

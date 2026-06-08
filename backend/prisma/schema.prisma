@@ -126,15 +126,18 @@ model Series {
   chapterCount Int
   summary      String?
   type         String?
+  visible      Boolean   @default(true)
 
   lastChapterPublishedAt DateTime?
   metadataFetchedAt DateTime?
 
-  chapters       Chapter[]
-  providerSeries ProviderSeries[]
-  genres         SeriesGenre[]
-  favorites      UserFavorite[]
-  aliases        SeriesAlias[]
+  chapters         Chapter[]
+  providerSeries   ProviderSeries[]
+  genres           SeriesGenre[]
+  favorites        UserFavorite[]
+  aliases          SeriesAlias[]
+  primaryRelations SeriesRelation[] @relation("PrimarySeries")
+  fallbackRelations SeriesRelation[] @relation("FallbackSeries")
 
   lastChaptersCheck DateTime?
   createdAt         DateTime  @default(now())
@@ -152,6 +155,19 @@ model SeriesAlias {
   series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@map("series_aliases")
+}
+
+model SeriesRelation {
+  id               Int      @id @default(autoincrement())
+  primarySeriesId  Int
+  fallbackSeriesId Int
+  createdAt        DateTime @default(now())
+
+  primarySeries  Series @relation("PrimarySeries", fields: [primarySeriesId], references: [id], onDelete: Cascade)
+  fallbackSeries Series @relation("FallbackSeries", fields: [fallbackSeriesId], references: [id], onDelete: Cascade)
+
+  @@unique([primarySeriesId, fallbackSeriesId])
+  @@map("series_relations")
 }
 
 model Chapter {
@@ -225,6 +241,7 @@ model CommentLike {
 model Provider {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  priority  Int      @default(99)
   createdAt DateTime @default(now())
 
   series   ProviderSeries[]
@@ -382,10 +399,21 @@ model ScraperRun {
   pagesScraped     Int      @default(0)
   errors           Int      @default(0)
   errorMessage     String?
+  triggeredBy      String?  @default("cron")  // "cron" | "manual"
 
   @@index([provider, startedAt])
   @@index([startedAt])
   @@map("scraper_runs")
+}
+
+model ScraperConfig {
+  id               Int      @id @default(autoincrement())
+  autoEnabled      Boolean  @default(true)
+  intervalMinutes  Int      @default(60)
+  enabledProviders Json     @default("[\"olympus\",\"manhwaweb\",\"leermangaesp\"]")
+  updatedAt        DateTime @updatedAt
+
+  @@map("scraper_config")
 }
 
 model Notification {

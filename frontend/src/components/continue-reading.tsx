@@ -16,6 +16,7 @@ export interface ContinueReadingItem {
     name: string;
     slug: string;
     cover: string | null;
+    fallbackCover?: string | null;
     lastReadChapterName: string | null;
     lastAvailableChapterName: string | null;
     chaptersLeft: number | null;
@@ -63,6 +64,7 @@ const ContinueItem = memo(function ContinueItem({
                 <CoverImage
                     src={item.cover}
                     alt={item.name}
+                    fallbackSrc={item.fallbackCover}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-brand/20 via-transparent to-transparent" />

@@ -12,6 +12,9 @@ vi.mock("../../../src/config/prisma.js", () => ({
     userChapterRead: {
       findMany: vi.fn(),
     },
+    seriesRelation: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 
@@ -150,9 +153,10 @@ describe("mangaService.getAllManga", () => {
 
     const result = await getAllManga({ page: 3, limit: 10 });
 
-    expect(prisma.series.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 20, take: 10 }),
-    );
+    const pagCall = prisma.series.findMany.mock.calls[0][0];
+    expect(pagCall.skip).toBe(20);
+    // take es limit*3 por over-fetch para dedup, luego se slicea internamente
+    expect(pagCall.take).toBe(30);
     expect(result.meta.page).toBe(3);
     expect(result.meta.totalPages).toBe(5);
   });

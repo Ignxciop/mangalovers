@@ -7,7 +7,7 @@ import { MANUAL_ALIASES } from "../manualAliases.js";
 import {
     syncManualAliases,
     resolveCanonicalSeries,
-    linkToCanonicalSeries,
+    createSeriesRelation,
 } from "../seriesMatcher.js";
 import { updateSeriesStatus } from "../resolveStatus.js";
 
@@ -87,19 +87,6 @@ async function processSeries(seriesData, providerId, tipo) {
 
     const resolved = await resolveCanonicalSeries(name, "olympus");
 
-    if (resolved) {
-        await linkToCanonicalSeries(
-            resolved.series.id,
-            providerId,
-            externalId,
-            slug,
-            type,
-        );
-        await updateSeriesStatus(resolved.series.id, status);
-        logger.info({ name, method: resolved.method, canonicalSeries: resolved.series.name }, "Vinculado manhwaweb");
-        return;
-    }
-
     const metadata = await fetchMetadata(externalId);
 
     const genres =
@@ -116,8 +103,8 @@ async function processSeries(seriesData, providerId, tipo) {
     const summary = metadata?._sinopsis ?? null;
 
     try {
-        await prisma.$transaction(async (tx) => {
-            const updatedSeries = await tx.series.upsert({
+        const updatedSeries = await prisma.$transaction(async (tx) => {
+            const s = await tx.series.upsert({
                 where: { slug },
                 create: {
                     name,
@@ -141,25 +128,35 @@ async function processSeries(seriesData, providerId, tipo) {
             });
 
             if (genres.length) {
-                await syncGenres(updatedSeries.id, genres, tx);
+                await syncGenres(s.id, genres, tx);
             }
 
             await tx.providerSeries.upsert({
                 where: { providerId_externalId: { providerId, externalId } },
                 create: {
                     providerId,
-                    seriesId: updatedSeries.id,
+                    seriesId: s.id,
                     externalId,
                     slug,
                 },
                 update: {
-                    seriesId: updatedSeries.id,
+                    seriesId: s.id,
                     slug,
                 },
             });
+
+            return s;
         });
 
-        logger.info({ type, name }, "Serie procesada manhwaweb");
+        if (resolved) {
+            await createSeriesRelation(resolved.series.id, updatedSeries.id);
+            logger.info(
+                { name, method: resolved.method, canonicalSeries: resolved.series.name, newSeriesId: updatedSeries.id },
+                "Serie manhwaweb creada con relación a olympus",
+            );
+        } else {
+            logger.info({ type, name, seriesId: updatedSeries.id }, "Serie manhwaweb creada sin relación");
+        }
     } catch (error) {
         logger.error({ externalId, err: error.message }, "Error procesando serie manhwaweb");
     }

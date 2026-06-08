@@ -3,7 +3,11 @@ import { prisma } from "../config/prisma.js";
 export async function getAllSitemapData() {
     const [series, chapters] = await Promise.all([
         prisma.series.findMany({
-            where: { lastChapterPublishedAt: { not: null } },
+            where: {
+              visible: true,
+              lastChapterPublishedAt: { not: null },
+              fallbackRelations: { none: {} },
+            },
             orderBy: { updatedAt: "desc" },
             select: {
                 slug: true,

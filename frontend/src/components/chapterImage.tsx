@@ -1,166 +1,111 @@
-import { useState, useRef, useEffect, useCallback, memo } from "react";
+import { useState, useRef, useCallback, useEffect, memo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw, AlertCircle } from "lucide-react";
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 1;
 const RETRY_DELAY = 1500;
-const PRELOAD_RANGE = 6;
-
-const preloadQueue: string[] = [];
-let preloadTimer: ReturnType<typeof setTimeout> | null = null;
-
-function schedulePreload() {
-    if (preloadTimer) clearTimeout(preloadTimer);
-    preloadTimer = setTimeout(() => {
-        const urls = preloadQueue.splice(0, PRELOAD_RANGE);
-        urls.forEach((url) => {
-            const link = document.createElement("link");
-            link.rel = "preload";
-            link.as = "image";
-            link.href = url;
-            document.head.appendChild(link);
-            setTimeout(() => link.remove(), 5000);
-        });
-        preloadTimer = null;
-    }, 300);
-}
-
-function queuePreload(url: string) {
-    if (!preloadQueue.includes(url)) {
-        preloadQueue.push(url);
-        schedulePreload();
-    }
-}
+const TIMEOUT_MS = 10000;
 
 interface ChapterImageProps {
     src: string;
     alt: string;
     onLoad?: () => void;
+    onAllRetriesFailed?: () => void;
 }
 
-export const ChapterImage = memo(function ChapterImage({ src, alt, onLoad }: ChapterImageProps) {
-    const imgRef = useRef<HTMLImageElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [status, setStatus] = useState<"loading" | "loaded" | "error">(
-        "loading",
-    );
-    const retryCountRef = useRef(0);
-    const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [inView, setInView] = useState(false);
-    const loadedRef = useRef(false);
-    const loadImageRef = useRef<((url: string) => void) | null>(null);
+function ChapterImageInner({ src, alt, onLoad, onAllRetriesFailed }: ChapterImageProps) {
+    const [loaded, setLoaded] = useState(false);
+    const [errored, setErrored] = useState(false);
+    const [currentSrc, setCurrentSrc] = useState(src);
+    const retryRef = useRef(0);
+    const settledRef = useRef(false);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    useEffect(() => {
-        const el = containerRef.current;
-        if (!el) return;
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setInView(true);
-                    observer.disconnect();
-                }
-            },
-            { rootMargin: "1500px" },
-        );
-
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, []);
-
-    const loadImage = useCallback((url: string) => {
-        setStatus("loading");
-        const img = new Image();
-        img.onload = () => {
-            setStatus("loaded");
-            loadedRef.current = true;
-            if (imgRef.current) {
-                imgRef.current.src = url;
-            }
-            onLoad?.();
-        };
-        img.onerror = () => {
-            if (retryCountRef.current < MAX_RETRIES) {
-                retryCountRef.current++;
-                const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
-                retryTimerRef.current = setTimeout(() => loadImageRef.current?.(url), delay);
-            } else {
-                setStatus("error");
-            }
-        };
-        img.src = url;
+    const handleLoad = useCallback(() => {
+        if (settledRef.current) return;
+        settledRef.current = true;
+        setLoaded(true);
+        setErrored(false);
+        onLoad?.();
     }, [onLoad]);
 
-    useEffect(() => {
-        loadImageRef.current = loadImage;
-    }, [loadImage]);
+    const doRetry = useCallback(() => {
+        retryRef.current++;
+        settledRef.current = false;
+        setErrored(false);
+        setLoaded(false);
+        const busted = currentSrc.includes("?")
+            ? currentSrc + "&_retry=" + retryRef.current
+            : currentSrc + "?_retry=" + retryRef.current;
+        setCurrentSrc(busted);
+    }, [currentSrc]);
+
+    const handleError = useCallback(() => {
+        if (settledRef.current) return;
+        if (retryRef.current < MAX_RETRIES) {
+            const delay = RETRY_DELAY * Math.pow(2, retryRef.current);
+            timerRef.current = setTimeout(doRetry, delay);
+        } else {
+            settledRef.current = true;
+            setErrored(true);
+            onAllRetriesFailed?.();
+        }
+    }, [doRetry, onAllRetriesFailed]);
 
     useEffect(() => {
-        if (!inView) return;
-
-        retryCountRef.current = 0;
-        loadedRef.current = false;
-        loadImage(src); // eslint-disable-line react-hooks/set-state-in-effect
-
-        queuePreload(src);
-
-        return () => {
-            if (retryTimerRef.current) {
-                clearTimeout(retryTimerRef.current);
+        if (loaded || errored) return;
+        const timeoutId = setTimeout(() => {
+            if (!settledRef.current) {
+                handleError();
             }
-        };
-    }, [src, inView, loadImage]);
+        }, TIMEOUT_MS);
+        return () => clearTimeout(timeoutId);
+    }, [currentSrc, loaded, errored, handleError]);
 
-    function handleRetry() {
-        retryCountRef.current = 0;
-        loadImage(src);
+    function handleRetryButton() {
+        retryRef.current = 0;
+        settledRef.current = false;
+        setErrored(false);
+        setLoaded(false);
+        setCurrentSrc(src);
+    }
+
+    if (errored) {
+        return (
+            <div className="w-full aspect-[3/4] flex flex-col items-center justify-center gap-3 bg-accent/20 rounded-none">
+                <AlertCircle className="h-6 w-6 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">
+                    Error al cargar
+                </p>
+                <button
+                    onClick={handleRetryButton}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-brand text-white hover:brightness-110 transition-all active:scale-95"
+                >
+                    <RefreshCw className="h-3 w-3" />
+                    Reintentar
+                </button>
+            </div>
+        );
     }
 
     return (
-        <div ref={containerRef} className="w-full relative">
-            {status === "loading" && (
+        <div className="w-full relative">
+            {!loaded && (
                 <Skeleton className="w-full aspect-[3/4] rounded-none" />
             )}
-
-            {status === "error" && (
-                <div className="w-full aspect-[3/4] flex flex-col items-center justify-center gap-3 bg-accent/20 rounded-none">
-                    <AlertCircle className="h-6 w-6 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">
-                        Error al cargar
-                    </p>
-                    <button
-                        onClick={handleRetry}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-brand text-white hover:brightness-110 transition-all active:scale-95"
-                    >
-                        <RefreshCw className="h-3 w-3" />
-                        Reintentar
-                    </button>
-                </div>
-            )}
-
             <img
-                ref={imgRef}
+                src={currentSrc}
                 alt={alt}
-                className={`w-full select-none block ${
-                    status !== "loaded" ? "hidden" : ""
-                }`}
-                onLoad={() => {
-                    if (!loadedRef.current) {
-                        setStatus("loaded");
-                        loadedRef.current = true;
-                        onLoad?.();
-                    }
-                }}
-                onError={() => {
-                    if (retryCountRef.current < MAX_RETRIES && !loadedRef.current) {
-                        retryCountRef.current++;
-                        const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
-                        setTimeout(() => loadImageRef.current?.(src), delay);
-                    } else if (!loadedRef.current) {
-                        setStatus("error");
-                    }
-                }}
+                loading="lazy"
+                className="w-full select-none block"
+                style={{ visibility: loaded ? "visible" : "hidden" }}
+                onLoad={handleLoad}
+                onError={handleError}
             />
         </div>
     );
+}
+
+export const ChapterImage = memo(function ChapterImage(props: ChapterImageProps) {
+    return <ChapterImageInner key={props.src} {...props} />;
 });

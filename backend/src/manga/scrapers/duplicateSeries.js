@@ -1,214 +1,117 @@
 import { prisma } from "../../config/prisma.js";
 import logger from "../../config/logger.js";
-import { MANUAL_ALIASES } from "../scrapers/manualAliases.js";
-import {
-    normalizeSeriesName,
-    matchManga,
-    syncManualAliases,
-} from "../scrapers/seriesMatcher.js";
 import { resolveStatus } from "../scrapers/resolveStatus.js";
 
-async function mergeSeries(keepId, dropId, manhwawebId) {
-    await prisma.$transaction(async (tx) => {
-        const existingChapters = await tx.chapter.findMany({
-            where: { seriesId: keepId },
-            select: { name: true },
-        });
-        const existingNames = new Set(existingChapters.map((c) => c.name));
+export async function mergeSeries(keepId, dropId, manhwawebId) {
+  await prisma.$transaction(async (tx) => {
+    const existingChapters = await tx.chapter.findMany({
+      where: { seriesId: keepId },
+      select: { name: true },
+    });
+    const existingNames = new Set(existingChapters.map((c) => c.name));
 
-        const chaptersToMigrate = await tx.chapter.findMany({
-            where: { seriesId: dropId },
-        });
+    const chaptersToMigrate = await tx.chapter.findMany({
+      where: { seriesId: dropId },
+    });
 
-        for (const ch of chaptersToMigrate) {
-            if (existingNames.has(ch.name)) {
-                const keepChapter = await tx.chapter.findFirst({
-                    where: { seriesId: keepId, name: ch.name },
-                });
-                if (keepChapter) {
-                    await tx.providerChapter.updateMany({
-                        where: { chapterId: ch.id },
-                        data: { chapterId: keepChapter.id },
-                    });
-                }
-            } else {
-                await tx.chapter.update({
-                    where: { id: ch.id },
-                    data: { seriesId: keepId },
-                });
-            }
+    for (const ch of chaptersToMigrate) {
+      if (existingNames.has(ch.name)) {
+        const keepChapter = await tx.chapter.findFirst({
+          where: { seriesId: keepId, name: ch.name },
+        });
+        if (keepChapter) {
+          await tx.providerChapter.updateMany({
+            where: { chapterId: ch.id },
+            data: { chapterId: keepChapter.id },
+          });
         }
-
-        await tx.userFavorite.updateMany({
-            where: { seriesId: dropId },
-            data: { seriesId: keepId },
+      } else {
+        await tx.chapter.update({
+          where: { id: ch.id },
+          data: { seriesId: keepId },
         });
-
-        const readsToMigrate = await tx.userChapterRead.findMany({
-            where: { chapter: { seriesId: dropId } },
-            select: { id: true, userId: true, chapterId: true },
-        });
-
-        for (const read of readsToMigrate) {
-            const sourceChapter = await tx.chapter.findUnique({
-                where: { id: read.chapterId },
-                select: { name: true },
-            });
-            if (!sourceChapter) continue;
-
-            const keepChapter = await tx.chapter.findFirst({
-                where: { seriesId: keepId, name: sourceChapter.name },
-            });
-            if (keepChapter) {
-                await tx.userChapterRead.upsert({
-                    where: {
-                        userId_chapterId: {
-                            userId: read.userId,
-                            chapterId: keepChapter.id,
-                        },
-                    },
-                    create: { userId: read.userId, chapterId: keepChapter.id },
-                    update: {},
-                });
-            }
-        }
-
-        const mwPs = await tx.providerSeries.findFirst({
-            where: { providerId: manhwawebId, seriesId: dropId },
-        });
-
-        if (mwPs) {
-            const existingLink = await tx.providerSeries.findUnique({
-                where: {
-                    providerId_seriesId: {
-                        providerId: manhwawebId,
-                        seriesId: keepId,
-                    },
-                },
-            });
-
-            if (existingLink) {
-                await tx.providerSeries.delete({ where: { id: mwPs.id } });
-            } else {
-                await tx.providerSeries.update({
-                    where: { id: mwPs.id },
-                    data: { seriesId: keepId },
-                });
-            }
-        }
-
-        const droppedSeries = await tx.series.findUnique({
-            where: { id: dropId },
-            select: { status: true },
-        });
-        if (droppedSeries?.status) {
-            const keptSeries = await tx.series.findUnique({
-                where: { id: keepId },
-                select: { status: true },
-            });
-            const resolved = resolveStatus(keptSeries?.status, droppedSeries.status);
-            if (resolved !== keptSeries?.status) {
-                await tx.series.update({
-                    where: { id: keepId },
-                    data: { status: resolved },
-                });
-            }
-        }
-
-        await tx.page.deleteMany({ where: { chapter: { seriesId: dropId } } });
-        await tx.chapter.deleteMany({ where: { seriesId: dropId } });
-        await tx.seriesGenre.deleteMany({ where: { seriesId: dropId } });
-        await tx.series.delete({ where: { id: dropId } });
-    });
-}
-
-export async function deduplicateSeries() {
-    logger.info("Deduplicacion de series");
-
-    const olympus = await prisma.provider.findUnique({
-        where: { name: "olympus" },
-    });
-    const manhwaweb = await prisma.provider.findUnique({
-        where: { name: "manhwaweb" },
-    });
-
-    await syncManualAliases(MANUAL_ALIASES, "olympus");
-
-    const olympusSeries = await prisma.providerSeries.findMany({
-        where: { providerId: olympus.id },
-        include: { series: true },
-    });
-
-    const manhwawebSeries = await prisma.providerSeries.findMany({
-        where: { providerId: manhwaweb.id },
-        include: { series: true },
-    });
-
-    const olympusByNormalized = new Map();
-    const olympusByAlias = new Map();
-
-    const allAliases = await prisma.seriesAlias.findMany({
-        select: { alias: true, seriesId: true },
-    });
-    for (const a of allAliases) {
-        olympusByAlias.set(a.alias, a.seriesId);
+      }
     }
 
-    for (const ps of olympusSeries) {
-        olympusByNormalized.set(normalizeSeriesName(ps.series.name), ps);
+    await tx.userFavorite.updateMany({
+      where: { seriesId: dropId },
+      data: { seriesId: keepId },
+    });
+
+    const readsToMigrate = await tx.userChapterRead.findMany({
+      where: { chapter: { seriesId: dropId } },
+      select: { id: true, userId: true, chapterId: true },
+    });
+
+    for (const read of readsToMigrate) {
+      const sourceChapter = await tx.chapter.findUnique({
+        where: { id: read.chapterId },
+        select: { name: true },
+      });
+      if (!sourceChapter) continue;
+
+      const keepChapter = await tx.chapter.findFirst({
+        where: { seriesId: keepId, name: sourceChapter.name },
+      });
+      if (keepChapter) {
+        await tx.userChapterRead.upsert({
+          where: {
+            userId_chapterId: {
+              userId: read.userId,
+              chapterId: keepChapter.id,
+            },
+          },
+          create: { userId: read.userId, chapterId: keepChapter.id },
+          update: {},
+        });
+      }
     }
 
-    let merged = 0;
-    let skipped = 0;
+    const mwPs = await tx.providerSeries.findFirst({
+      where: { providerId: manhwawebId, seriesId: dropId },
+    });
 
-    for (const mwPs of manhwawebSeries) {
-        const alreadyLinked = olympusSeries.some(
-            (ops) => ops.seriesId === mwPs.seriesId,
-        );
-        if (alreadyLinked) continue;
+    if (mwPs) {
+      const existingLink = await tx.providerSeries.findUnique({
+        where: {
+          providerId_seriesId: {
+            providerId: manhwawebId,
+            seriesId: keepId,
+          },
+        },
+      });
 
-        const mwName = mwPs.series.name;
-        let keepPs = null;
-        let method = null;
-
-        const aliasSeriesId = olympusByAlias.get(mwName.toLowerCase());
-        if (aliasSeriesId) {
-            keepPs = olympusSeries.find((ps) => ps.seriesId === aliasSeriesId);
-            method = "alias";
-        }
-
-        if (!keepPs) {
-            keepPs = olympusByNormalized.get(normalizeSeriesName(mwName));
-            if (keepPs) method = "normalized_exact";
-        }
-
-        if (!keepPs) {
-            let bestScore = 0;
-            for (const ops of olympusSeries) {
-                const result = matchManga(mwName, ops.series.name);
-                if (result.decision === "merge" && result.score > bestScore) {
-                    bestScore = result.score;
-                    keepPs = ops;
-                    method = `token_match (${(result.score * 100).toFixed(0)}%)`;
-                }
-            }
-        }
-
-        if (!keepPs) {
-            skipped++;
-            continue;
-        }
-
-        const keepId = keepPs.seriesId;
-        const dropId = mwPs.seriesId;
-
-        if (keepId === dropId) continue;
-
-        logger.info({ method, mwName, keepName: keepPs.series.name, dropId, keepId }, "Fusionando series");
-
-        await mergeSeries(keepId, dropId, manhwaweb.id);
-        merged++;
+      if (existingLink) {
+        await tx.providerSeries.delete({ where: { id: mwPs.id } });
+      } else {
+        await tx.providerSeries.update({
+          where: { id: mwPs.id },
+          data: { seriesId: keepId },
+        });
+      }
     }
 
-    logger.info({ merged, skipped }, "Deduplicación completada");
+    const droppedSeries = await tx.series.findUnique({
+      where: { id: dropId },
+      select: { status: true },
+    });
+    if (droppedSeries?.status) {
+      const keptSeries = await tx.series.findUnique({
+        where: { id: keepId },
+        select: { status: true },
+      });
+      const resolved = resolveStatus(keptSeries?.status, droppedSeries.status);
+      if (resolved !== keptSeries?.status) {
+        await tx.series.update({
+          where: { id: keepId },
+          data: { status: resolved },
+        });
+      }
+    }
+
+    await tx.page.deleteMany({ where: { chapter: { seriesId: dropId } } });
+    await tx.chapter.deleteMany({ where: { seriesId: dropId } });
+    await tx.seriesGenre.deleteMany({ where: { seriesId: dropId } });
+    await tx.series.delete({ where: { id: dropId } });
+  });
 }

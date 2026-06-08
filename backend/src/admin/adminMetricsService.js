@@ -135,30 +135,12 @@ export class AdminMetricsService {
   }
 
   static async getScraperMetrics() {
-    const [recentRuns, olympusRuns, manhwawebRuns, olympusSummary, manhwawebSummary, seriesByProvider] = await Promise.all([
+    const ACTIVE_PROVIDERS = ["olympus", "manhwaweb", "leermangaesp"];
+
+    const [recentRuns, seriesByProvider] = await Promise.all([
       prisma.scraperRun.findMany({
         orderBy: { startedAt: "desc" },
         take: 30,
-      }),
-      prisma.scraperRun.findMany({
-        where: { provider: "olympus" },
-        orderBy: { startedAt: "desc" },
-        take: 1,
-      }),
-      prisma.scraperRun.findMany({
-        where: { provider: "manhwaweb" },
-        orderBy: { startedAt: "desc" },
-        take: 1,
-      }),
-      prisma.scraperRun.aggregate({
-        where: { provider: "olympus", startedAt: { gte: daysAgo(7) } },
-        _sum: { seriesProcessed: true, chaptersCreated: true, pagesScraped: true, errors: true },
-        _count: true,
-      }),
-      prisma.scraperRun.aggregate({
-        where: { provider: "manhwaweb", startedAt: { gte: daysAgo(7) } },
-        _sum: { seriesProcessed: true, chaptersCreated: true, pagesScraped: true, errors: true },
-        _count: true,
       }),
       prisma.providerSeries.groupBy({
         by: ["providerId"],
@@ -166,13 +148,33 @@ export class AdminMetricsService {
       }),
     ]);
 
-    const providers = await prisma.provider.findMany();
+    const providers = (await prisma.provider.findMany())
+      .filter((p) => ACTIVE_PROVIDERS.includes(p.name));
+
+    const latestRunPromises = providers.map((p) =>
+      prisma.scraperRun.findFirst({
+        where: { provider: p.name },
+        orderBy: { startedAt: "desc" },
+      }),
+    );
+    const weekAggPromises = providers.map((p) =>
+      prisma.scraperRun.aggregate({
+        where: { provider: p.name, startedAt: { gte: daysAgo(7) } },
+        _sum: { seriesProcessed: true, chaptersCreated: true, pagesScraped: true, errors: true },
+        _count: true,
+      }),
+    );
+
+    const [latestRuns, weekAggs] = await Promise.all([
+      Promise.all(latestRunPromises),
+      Promise.all(weekAggPromises),
+    ]);
 
     return {
       recentRuns,
-      providers: providers.map((p) => {
-        const lastRun = p.name === "olympus" ? olympusRuns[0] : manhwawebRuns[0];
-        const summary = p.name === "olympus" ? olympusSummary : manhwawebSummary;
+      providers: providers.map((p, i) => {
+        const lastRun = latestRuns[i];
+        const summary = weekAggs[i];
         const seriesCount = seriesByProvider.find((s) => s.providerId === p.id)?._count.seriesId ?? 0;
         return {
           id: p.id,

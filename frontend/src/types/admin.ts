@@ -295,3 +295,85 @@ export interface ActivityLogResponse {
     };
 }
 
+export interface AdminProviderRef {
+    provider: { name: string; priority: number };
+    externalId: string;
+    slug: string;
+}
+
+export interface AdminSeriesRelation {
+    id: number;
+    fallbackSeries: { id: number; name: string; slug: string; cover?: string | null };
+}
+
+export interface AdminSeriesItem {
+    id: number;
+    name: string;
+    slug: string;
+    visible: boolean;
+    providerSeries: AdminProviderRef[];
+    primaryRelations: AdminSeriesRelation[];
+    fallbackRelations: { id: number; primarySeries: { id: number; name: string; slug: string } }[];
+    _count: { chapters: number };
+}
+
+export interface AdminSeriesListResponse {
+    success: boolean;
+    total: number;
+    page: number;
+    limit: number;
+    data: AdminSeriesItem[];
+}
+
+export interface AdminSeriesDetail extends AdminSeriesItem {
+    cover: string | null;
+    status: string | null;
+    summary: string | null;
+    type: string | null;
+    chapterCount: number;
+    aliases: { id: number; alias: string }[];
+}
+
+export interface AdminSeriesDetailResponse {
+    success: boolean;
+    data: AdminSeriesDetail;
+}
+
+export interface ScraperConfig {
+    id: number;
+    autoEnabled: boolean;
+    intervalMinutes: number;
+    enabledProviders: string[];
+    updatedAt: string;
+}
+
+export interface ScraperConfigResponse {
+    success: boolean;
+    data: ScraperConfig;
+}
+
+export interface ScraperProviderStatus {
+    name: string;
+    enabled: boolean;
+    isRunning: boolean;
+    lastRun: ScraperRun | null;
+}
+
+export interface ScraperStatusData {
+    isRunning: boolean;
+    autoEnabled: boolean;
+    intervalMinutes: number;
+    enabledProviders: string[];
+    providers: ScraperProviderStatus[];
+}
+
+export interface ScraperStatusResponse {
+    success: boolean;
+    data: ScraperStatusData;
+}
+
+export interface ScraperRunResponse {
+    success: boolean;
+    message: string;
+}
+
