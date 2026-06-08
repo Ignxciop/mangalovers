@@ -15,5 +15,6 @@ docker compose up -d
 
 ## Runtime operations
 - `seedProviders()` runs automatically when backend starts.
-- Cron scrapes series automatically every hour.
-- Manual scrapers in `backend/src/scripts/`.
+- `scraperCron.js` reads `enabledProviders` from `ScraperConfig` DB and runs scrapers every configured interval (default 1h).
+- Manual scrapers in `backend/src/scripts/` or via `/admin/scraper/run/:provider`.
+- **PostgreSQL backup**: external cron job at `0 16 * * *` → `~/backups/mangalovers-db` with `pg_dump --format=custom`. Not inside the repo.
