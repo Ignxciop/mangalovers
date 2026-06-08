@@ -494,45 +494,35 @@ export default function ChapterReader() {
         currentPage: prefs.mode === "pagination" ? paginationPage : undefined,
     });
 
-    const [usingFallback, setUsingFallback] = useState(false);
-    const failedCountRef = useRef(0);
+    const [usePrimary, setUsePrimary] = useState(false);
     const switchedRef = useRef(false);
-    const AUTO_SWITCH_THRESHOLD = 1;
 
-    const activePages =
-        usingFallback && chapter?.fallbackPages && chapter.fallbackPages.length > 0
-            ? chapter.fallbackPages
-            : chapter?.pages ?? [];
+    const activePages = useMemo(() => {
+        if (!chapter) return [];
+        if (usePrimary) return chapter.pages ?? [];
+        if (chapter.fallbackPages?.length) return chapter.fallbackPages;
+        return chapter.pages ?? [];
+    }, [chapter, usePrimary]);
 
     useEffect(() => {
-        failedCountRef.current = 0;
         switchedRef.current = false;
-        setUsingFallback(false);
+        setUsePrimary(false);
     }, [chapterId, chapter?.chapterId]);
 
     const handleImageFailed = useCallback(() => {
         if (switchedRef.current) return;
-        if (!chapter?.fallbackPages || chapter.fallbackPages.length === 0) return;
-        failedCountRef.current += 1;
-        if (failedCountRef.current >= AUTO_SWITCH_THRESHOLD) {
-            switchedRef.current = true;
-            setUsingFallback(true);
-        }
-    }, [chapter?.fallbackPages]);
+        if (!usePrimary || !chapter?.fallbackPages?.length) return;
+        switchedRef.current = true;
+        setUsePrimary(false);
+    }, [usePrimary, chapter?.fallbackPages]);
 
     const handleManualSwitch = useCallback(() => {
-        if (!chapter?.fallbackPages || chapter.fallbackPages.length === 0) return;
-        switchedRef.current = true;
-        setUsingFallback(true);
+        if (!chapter?.fallbackPages?.length) return;
+        switchedRef.current = false;
+        setUsePrimary((p) => !p);
     }, [chapter?.fallbackPages]);
 
-    const handleSwitchBack = useCallback(() => {
-        switchedRef.current = false;
-        failedCountRef.current = 0;
-        setUsingFallback(false);
-    }, []);
-
-    const showFallbackBanner = usingFallback && !!chapter?.fallbackPages;
+    const showFallbackBanner = !usePrimary && !!chapter?.fallbackPages;
 
     useEffect(() => {
         if (!chapter || !series) return;
@@ -841,15 +831,9 @@ export default function ChapterReader() {
                             <div className="flex items-center gap-2 text-amber-200">
                                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                                 <span>
-                                    Usando proveedor alternativo. Algunas páginas del proveedor principal no pudieron cargarse.
+                                    Mostrando imágenes del proveedor alternativo. Si el principal funciona, puedes cambiarlo abajo.
                                 </span>
                             </div>
-                            <button
-                                onClick={handleSwitchBack}
-                                className="shrink-0 rounded-md border border-amber-500/40 px-2 py-1 text-amber-200 hover:bg-amber-500/20 transition-colors"
-                            >
-                                Volver
-                            </button>
                         </div>
                     </div>
                 )}
@@ -883,13 +867,13 @@ export default function ChapterReader() {
                     />
                 )}
 
-                {!usingFallback && chapter?.fallbackPages && chapter.fallbackPages.length > 0 && (
+                {chapter?.fallbackPages && chapter.fallbackPages.length > 0 && (
                     <div className="w-full max-w-2xl mx-auto px-4 mt-3">
                         <button
                             onClick={handleManualSwitch}
                             className="w-full text-xs text-muted-foreground hover:text-foreground border border-white/10 bg-white/5 hover:bg-white/10 rounded-lg py-2 transition-colors"
                         >
-                            ¿Las imágenes no cargan? Cambiar de proveedor
+                            {usePrimary ? "¿Las imágenes no cargan? Usar proveedor alternativo" : "Usar proveedor principal"}
                         </button>
                     </div>
                 )}

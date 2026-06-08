@@ -10,6 +10,7 @@ import { normalizeChapterNumber } from "../normalizeChapter.js";
 
 const limit = pLimit(2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MAX_CONSECUTIVE_EXISTING = 10;
 
 const BASE_URL = "https://leermangaesp.net";
 
@@ -76,81 +77,87 @@ async function processSeries(providerSeries, providerId) {
     let latestCreatedChapter = null;
 
     try {
-        const allChapters = [];
         let before = null;
         let maxPages = 20;
+        let consecutiveExisting = 0;
+        let shouldStopAll = false;
 
-        for (let page = 0; page < maxPages; page++) {
+        for (let page = 0; page < maxPages && !shouldStopAll; page++) {
             const html = await fetchPage(originalSlug, before);
             const { chapters, nextBefore } = extractChaptersFromHTML(html, externalId);
 
-            allChapters.push(...chapters);
-
-            if (!nextBefore) break;
-            before = nextBefore;
-            await sleep(1500);
-        }
-
-        for (const ch of allChapters) {
-            const existingProviderChapter =
-                await prisma.providerChapter.findUnique({
-                    where: {
-                        providerId_externalId: {
-                            providerId,
-                            externalId: ch.externalId,
+            for (const ch of chapters) {
+                const existingProviderChapter =
+                    await prisma.providerChapter.findUnique({
+                        where: {
+                            providerId_externalId: {
+                                providerId,
+                                externalId: ch.externalId,
+                            },
                         },
+                    });
+
+                if (existingProviderChapter) {
+                    consecutiveExisting++;
+                    if (consecutiveExisting >= MAX_CONSECUTIVE_EXISTING) {
+                        shouldStopAll = true;
+                        logger.debug({ originalSlug, consecutiveExisting }, "Ya existen suficientes capítulos, deteniendo");
+                    }
+                    continue;
+                }
+
+                consecutiveExisting = 0;
+
+                const chapterNumberFloat = typeof ch.number === "number" ? ch.number : parseFloat(ch.number);
+                const existingChapterInSeries = await prisma.chapter.findFirst({
+                    where: {
+                        seriesId,
+                        OR: [
+                            { name: ch.name },
+                            ...(!isNaN(chapterNumberFloat) ? [{ number: chapterNumberFloat }] : []),
+                        ],
                     },
                 });
 
-            if (existingProviderChapter) {
-                continue;
-            }
+                if (existingChapterInSeries) {
+                    await prisma.providerChapter.create({
+                        data: {
+                            providerId,
+                            externalId: ch.externalId,
+                            chapterId: existingChapterInSeries.id,
+                        },
+                    });
+                    latestCreatedChapter = existingChapterInSeries;
+                    continue;
+                }
 
-            const chapterNumberFloat = typeof ch.number === "number" ? ch.number : parseFloat(ch.number);
-            const existingChapterInSeries = await prisma.chapter.findFirst({
-                where: {
-                    seriesId,
-                    OR: [
-                        { name: ch.name },
-                        ...(!isNaN(chapterNumberFloat) ? [{ number: chapterNumberFloat }] : []),
-                    ],
-                },
-            });
+                const publishedAt = ch.date ? new Date(ch.date) : new Date();
 
-            if (existingChapterInSeries) {
+                const newChapter = await prisma.chapter.create({
+                    data: {
+                        name: ch.name,
+                        number: isNaN(chapterNumberFloat) ? null : chapterNumberFloat,
+                        publishedAt,
+                        seriesId,
+                    },
+                });
+
+                latestCreatedChapter = newChapter;
+
                 await prisma.providerChapter.create({
                     data: {
                         providerId,
                         externalId: ch.externalId,
-                        chapterId: existingChapterInSeries.id,
+                        chapterId: newChapter.id,
                     },
                 });
-                latestCreatedChapter = existingChapterInSeries;
-                continue;
+
+                logger.debug({ chapterName: ch.name, externalId }, "Capítulo nuevo leermangaesp");
             }
 
-            const publishedAt = ch.date ? new Date(ch.date) : new Date();
-
-            const newChapter = await prisma.chapter.create({
-                data: {
-                    name: ch.name,
-                    number: isNaN(chapterNumberFloat) ? null : chapterNumberFloat,
-                    publishedAt,
-                    seriesId,
-                },
-            });
-
-            latestCreatedChapter = newChapter;
-
-            await prisma.providerChapter.create({
-                data: {
-                    providerId,
-                    externalId: ch.externalId,
-                    chapterId: newChapter.id,
-                },
-            });
-
-            logger.debug({ chapterName: ch.name, externalId }, "Capítulo nuevo leermangaesp");
+            if (!nextBefore || shouldStopAll) break;
+            before = nextBefore;
+            await sleep(1500);
         }
 
         await updateSeriesMetadata(seriesId);
