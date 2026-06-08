@@ -73,7 +73,7 @@ export async function scrapePages() {
         },
     });
 
-    const signal = getAbortSignal();
+    const signal = getAbortSignal("olympus");
 
     await Promise.all(
         providerChapters.map((pc) =>

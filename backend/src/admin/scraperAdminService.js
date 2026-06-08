@@ -47,9 +47,9 @@ export class ScraperAdminService {
     return { success: true };
   }
 
-  static async stopRunningScraper() {
-    stopScraper();
-    logger.info("Scraper detenido manualmente por admin");
+  static async stopRunningScraper(provider) {
+    stopScraper(provider);
+    logger.info({ provider }, "Scraper detenido manualmente por admin");
     return { success: true };
   }
 
@@ -72,6 +72,7 @@ export class ScraperAdminService {
       providers: ALL_PROVIDERS.map((name, i) => ({
         name,
         enabled: config.enabledProviders.includes(name),
+        isRunning: isRunning(name),
         lastRun: latestRuns[i],
       })),
     };

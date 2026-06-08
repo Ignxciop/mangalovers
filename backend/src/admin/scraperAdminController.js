@@ -32,7 +32,8 @@ export async function handleTriggerProviderRun(req, res, next) {
 
 export async function handleStopScraper(req, res, next) {
   try {
-    const result = await ScraperAdminService.stopRunningScraper();
+    const { provider } = req.params;
+    const result = await ScraperAdminService.stopRunningScraper(provider);
     res.json(result);
   } catch (error) {
     next(error);

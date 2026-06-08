@@ -355,6 +355,7 @@ export interface ScraperConfigResponse {
 export interface ScraperProviderStatus {
     name: string;
     enabled: boolean;
+    isRunning: boolean;
     lastRun: ScraperRun | null;
 }
 

@@ -1,22 +1,22 @@
-let _abortController = null;
+const controllers = {};
 
-export function getAbortSignal() {
-  if (!_abortController) {
-    _abortController = new AbortController();
+export function getAbortSignal(provider) {
+  if (!controllers[provider]) {
+    controllers[provider] = new AbortController();
   }
-  return _abortController.signal;
+  return controllers[provider].signal;
 }
 
-export function abortScraper() {
-  if (_abortController) {
-    _abortController.abort();
-    _abortController = null;
+export function abortScraper(provider) {
+  if (controllers[provider]) {
+    controllers[provider].abort();
+    delete controllers[provider];
   }
 }
 
-export function resetAbortSignal() {
-  if (_abortController && !_abortController.signal.aborted) {
+export function resetAbortSignal(provider) {
+  if (controllers[provider] && !controllers[provider].signal.aborted) {
     return;
   }
-  _abortController = new AbortController();
+  controllers[provider] = new AbortController();
 }

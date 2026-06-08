@@ -42,51 +42,71 @@ function ProviderCard({
     name,
     label,
     enabled,
+    isRunning,
     lastRun,
     runState,
-    isGlobalRunning,
     onRun,
+    onStop,
     onToggleEnabled,
 }: {
     name: string;
     label: string;
     enabled: boolean;
+    isRunning: boolean;
     lastRun: { status: string; finishedAt: string | null; seriesProcessed: number; chaptersCreated: number; pagesScraped: number; errors: number; errorMessage?: string | null } | null;
     runState: RunState[string];
-    isGlobalRunning: boolean;
     onRun: (provider: string) => void;
+    onStop: (provider: string) => void;
     onToggleEnabled: (provider: string, enabled: boolean) => void;
 }) {
     const isOk = lastRun?.status === "success";
-    const busy = runState === "loading" || (isGlobalRunning && runState !== "done");
+    const busy = runState === "loading" || (isRunning && runState !== "done");
 
     return (
         <div className="border border-border rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Checkbox
-                        id={`provider-${name}`}
-                        checked={enabled}
-                        onCheckedChange={(v) => onToggleEnabled(name, v === true)}
-                    />
+                    {isRunning ? (
+                        <RotateCw className="size-4 text-sky-500 animate-spin" />
+                    ) : (
+                        <Checkbox
+                            id={`provider-${name}`}
+                            checked={enabled}
+                            onCheckedChange={(v) => onToggleEnabled(name, v === true)}
+                        />
+                    )}
                     <label htmlFor={`provider-${name}`} className="text-sm font-semibold capitalize cursor-pointer">
                         {label}
                     </label>
                 </div>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    disabled={busy}
-                    onClick={() => onRun(name)}
-                >
-                    {runState === "loading" ? (
-                        <RefreshCw className="size-3.5 animate-spin" />
+                <div className="flex items-center gap-1.5">
+                    {isRunning ? (
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => onStop(name)}
+                        >
+                            <Square className="size-3.5" />
+                            Detener
+                        </Button>
                     ) : (
-                        <Play className="size-3.5" />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={busy}
+                            onClick={() => onRun(name)}
+                        >
+                            {runState === "loading" ? (
+                                <RefreshCw className="size-3.5 animate-spin" />
+                            ) : (
+                                <Play className="size-3.5" />
+                            )}
+                            {runState === "loading" ? "Ejecutando..." : "Ejecutar"}
+                        </Button>
                     )}
-                    {runState === "loading" ? "Ejecutando..." : "Ejecutar"}
-                </Button>
+                </div>
             </div>
             {lastRun ? (
                 <div className="space-y-1 text-xs text-muted-foreground">
@@ -251,7 +271,12 @@ export default function AdminTools() {
         }
     }
 
-    const isGlobalRunning = status?.isRunning ?? false;
+    async function handleStopProvider(provider: string) {
+        try {
+            await api.post(`/admin/scraper/stop/${provider}`);
+            loadData();
+        } catch { }
+    }
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
@@ -263,40 +288,19 @@ export default function AdminTools() {
                 <div className="border border-border rounded-lg p-4 mb-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            {isGlobalRunning ? (
-                                <RotateCw className="size-4 text-sky-500 animate-spin" />
-                            ) : config?.autoEnabled ? (
+                            {config?.autoEnabled ? (
                                 <Play className="size-4 text-emerald-500" />
                             ) : (
                                 <PauseCircle className="size-4 text-muted-foreground" />
                             )}
                             <span className="text-sm font-medium">
-                                {isGlobalRunning ? "Ejecutándose..." : config?.autoEnabled ? "Scraper automático activado" : "Scraper automático desactivado"}
+                                {config?.autoEnabled ? "Scraper automático activado" : "Scraper automático desactivado"}
                             </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            {isGlobalRunning && (
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="gap-1.5"
-                                    onClick={async () => {
-                                        try {
-                                            await api.post("/admin/scraper/stop");
-                                            loadData();
-                                        } catch { }
-                                    }}
-                                >
-                                    <Square className="size-3.5" />
-                                    Detener
-                                </Button>
-                            )}
-                            <Switch
-                                checked={config?.autoEnabled ?? false}
-                                onCheckedChange={handleToggleAuto}
-                                disabled={isGlobalRunning}
-                            />
-                        </div>
+                        <Switch
+                            checked={config?.autoEnabled ?? false}
+                            onCheckedChange={handleToggleAuto}
+                        />
                     </div>
                     {config && (
                         <p className="text-xs text-muted-foreground mt-2">
@@ -312,6 +316,7 @@ export default function AdminTools() {
                     <div className="flex flex-wrap gap-4">
                         {ALL_PROVIDERS.map((p) => {
                             const checked = config?.enabledProviders?.includes(p.id) ?? false;
+                            const running = status?.providers.find((sp) => sp.name === p.id)?.isRunning ?? false;
                             return (
                                 <label
                                     key={p.id}
@@ -319,7 +324,7 @@ export default function AdminTools() {
                                 >
                                     <Checkbox
                                         checked={checked}
-                                        disabled={isGlobalRunning || (checked && (config?.enabledProviders?.length ?? 0) <= 1)}
+                                        disabled={running || (checked && (config?.enabledProviders?.length ?? 0) <= 1)}
                                         onCheckedChange={(v) => handleToggleProvider(p.id, v === true)}
                                     />
                                     {p.label}
@@ -343,10 +348,11 @@ export default function AdminTools() {
                                 name={p.id}
                                 label={p.label}
                                 enabled={config?.enabledProviders?.includes(p.id) ?? false}
+                                isRunning={status?.providers.find((sp) => sp.name === p.id)?.isRunning ?? false}
                                 lastRun={status?.providers.find((sp) => sp.name === p.id)?.lastRun ?? null}
                                 runState={runStates[p.id] ?? "idle"}
-                                isGlobalRunning={isGlobalRunning}
                                 onRun={handleRunProvider}
+                                onStop={handleStopProvider}
                                 onToggleEnabled={handleToggleProvider}
                             />
                         ))}

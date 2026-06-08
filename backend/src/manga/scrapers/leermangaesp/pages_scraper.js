@@ -145,7 +145,7 @@ export async function scrapePages() {
 
     logger.info({ count: providerChapters.length }, "LeerMangaEsp - Capítulos por scrapear páginas");
 
-    const signal = getAbortSignal();
+    const signal = getAbortSignal("leermangaesp");
 
     let completed = 0;
     const total = providerChapters.length;
