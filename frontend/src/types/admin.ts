@@ -343,6 +343,7 @@ export interface ScraperConfig {
     id: number;
     autoEnabled: boolean;
     intervalMinutes: number;
+    enabledProviders: string[];
     updatedAt: string;
 }
 
@@ -353,6 +354,7 @@ export interface ScraperConfigResponse {
 
 export interface ScraperProviderStatus {
     name: string;
+    enabled: boolean;
     lastRun: ScraperRun | null;
 }
 
@@ -360,6 +362,7 @@ export interface ScraperStatusData {
     isRunning: boolean;
     autoEnabled: boolean;
     intervalMinutes: number;
+    enabledProviders: string[];
     providers: ScraperProviderStatus[];
 }
 

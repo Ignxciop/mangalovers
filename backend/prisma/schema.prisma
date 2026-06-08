@@ -407,10 +407,11 @@ model ScraperRun {
 }
 
 model ScraperConfig {
-  id              Int      @id @default(autoincrement())
-  autoEnabled     Boolean  @default(true)
-  intervalMinutes Int      @default(60)
-  updatedAt       DateTime @updatedAt
+  id               Int      @id @default(autoincrement())
+  autoEnabled      Boolean  @default(true)
+  intervalMinutes  Int      @default(60)
+  enabledProviders Json     @default("[\"olympus\",\"manhwaweb\",\"leermangaesp\"]")
+  updatedAt        DateTime @updatedAt
 
   @@map("scraper_config")
 }

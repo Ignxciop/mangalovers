@@ -1,7 +1,7 @@
 const VALID_PROVIDERS = ["olympus", "manhwaweb", "leermangaesp"];
 
 export function updateConfigValidator(req, res, next) {
-  const { autoEnabled, intervalMinutes } = req.body;
+  const { autoEnabled, intervalMinutes, enabledProviders } = req.body;
 
   const errors = [];
 
@@ -15,7 +15,19 @@ export function updateConfigValidator(req, res, next) {
     }
   }
 
-  if (autoEnabled === undefined && intervalMinutes === undefined) {
+  if (enabledProviders !== undefined) {
+    if (!Array.isArray(enabledProviders) || enabledProviders.length === 0) {
+      errors.push("enabledProviders debe ser un arreglo con al menos un proveedor");
+    } else {
+      for (const p of enabledProviders) {
+        if (!VALID_PROVIDERS.includes(p)) {
+          errors.push(`Proveedor inválido: ${p}. Válidos: ${VALID_PROVIDERS.join(", ")}`);
+        }
+      }
+    }
+  }
+
+  if (autoEnabled === undefined && intervalMinutes === undefined && enabledProviders === undefined) {
     errors.push("Debe proporcionar al menos un campo a actualizar");
   }
 

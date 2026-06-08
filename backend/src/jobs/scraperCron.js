@@ -28,6 +28,7 @@ export async function initScraperCron() {
   const config = await prisma.scraperConfig.findFirst();
   const interval = config?.intervalMinutes ?? 60;
   const autoEnabled = config?.autoEnabled ?? true;
+  const enabledProviders = config?.enabledProviders ?? ["olympus", "manhwaweb", "leermangaesp"];
 
   if (cronTask) {
     cronTask.stop();
@@ -53,10 +54,10 @@ export async function initScraperCron() {
     }
 
     isRunning = true;
-    logger.info({ schedule }, "Cron ejecutando scraping automático...");
+    logger.info({ schedule, providers: enabledProviders }, "Cron ejecutando scraping automático...");
 
     try {
-      await runAllScrapers();
+      await runAllScrapers("cron", enabledProviders);
     } catch (error) {
       logger.error({ err: error }, "Error en scraper cron");
     } finally {
@@ -64,7 +65,7 @@ export async function initScraperCron() {
     }
   });
 
-  logger.info({ schedule, interval }, "Scraper cron inicializado");
+  logger.info({ schedule, interval, providers: enabledProviders }, "Scraper cron inicializado");
 }
 
 export async function restartScraperCron() {
