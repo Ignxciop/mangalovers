@@ -36,7 +36,24 @@ export async function getAllManga(query, userId = null) {
   if (type) where.type = type;
 
   if (read === "true" && userId) {
-    where.chapters = { some: { reads: { some: { userId } } } };
+    const readEntries = await prisma.userChapterRead.findMany({
+      where: { userId },
+      select: { chapter: { select: { seriesId: true } } },
+    });
+
+    const seriesIds = new Set(readEntries.map((r) => r.chapter.seriesId));
+
+    // Expandir a todos los miembros del cluster para que series
+    // leídas vía un fallback también aparezcan con el filtro
+    const expandedIds = new Set(seriesIds);
+    for (const sid of seriesIds) {
+      const cluster = await resolveSeriesCluster(sid);
+      if (cluster) {
+        for (const id of cluster.allIds) expandedIds.add(id);
+      }
+    }
+
+    where.id = { in: [...expandedIds] };
   }
 
   if (genres) {
