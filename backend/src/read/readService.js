@@ -507,21 +507,33 @@ export async function getFullStats(userId) {
   // Resolver clusters para todos los IDs relevantes
   const allUniqueIds = [...new Set(allSeriesIds)];
   const clusterMaxMap = new Map();
+  const seriesToClusterKey = new Map();
   for (const sid of allUniqueIds) {
     if (clusterMaxMap.has(sid)) continue;
     const cluster = await resolveSeriesCluster(sid);
-    const ids = cluster ? cluster.allIds : [sid];
+    const ids = cluster ? [...cluster.allIds].sort((a, b) => a - b) : [sid];
+    const clusterKey = ids.join(",");
     let maxNum = 0;
     for (const id of ids) {
       const n = lastChapterNumberMap.get(id) ?? 0;
       if (n > maxNum) maxNum = n;
+      seriesToClusterKey.set(id, clusterKey);
     }
     for (const id of ids) {
       clusterMaxMap.set(id, maxNum > 0 ? maxNum : null);
     }
   }
 
-  const totalChaptersRead = reads.length;
+  // Deduplicar lecturas por cluster: mismo número en distintos miembros
+  // del cluster no debe inflar el conteo
+  const clusterNumbers = new Map();
+  for (const r of reads) {
+    if (r.chapter.number == null) continue;
+    const key = seriesToClusterKey.get(r.chapter.seriesId) ?? String(r.chapter.seriesId);
+    if (!clusterNumbers.has(key)) clusterNumbers.set(key, new Set());
+    clusterNumbers.get(key).add(r.chapter.number);
+  }
+  const totalChaptersRead = [...clusterNumbers.values()].reduce((sum, s) => sum + s.size, 0);
   const totalPagesEstimated = totalChaptersRead * 20;
   const estimatedHours = Math.round((totalChaptersRead * 7) / 60);
   const totalSeries = favorites.length;
