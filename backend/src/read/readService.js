@@ -291,12 +291,18 @@ export async function getUserReadingStats(userId) {
 
   const allClusterIdArray = [...allClusterIds];
 
-  const [lastChapterGroup, readDetails] = await Promise.all([
+  const [lastChapterGroup, allChapterNumbers, readDetails] = await Promise.all([
     allClusterIdArray.length > 0
       ? prisma.chapter.groupBy({
           by: ["seriesId"],
           where: { seriesId: { in: allClusterIdArray }, number: { not: null } },
           _max: { number: true },
+        })
+      : [],
+    allClusterIdArray.length > 0
+      ? prisma.chapter.findMany({
+          where: { seriesId: { in: allClusterIdArray }, number: { not: null } },
+          select: { seriesId: true, number: true },
         })
       : [],
     prisma.userChapterRead.findMany({
@@ -325,11 +331,15 @@ export async function getUserReadingStats(userId) {
     readCountMap.set(sid, (readCountMap.get(sid) ?? 0) + 1);
   }
 
-  // Construir mapas cluster-aware: max chapter number, reads y lastRead
-  // de TODOS los miembros del cluster, no solo de la serie individual.
-  // readCount se calcula con números de capítulo ÚNICOS para no duplicar
-  // cuando el mismo capítulo existe en múltiples providers del cluster.
+  // Construir mapas cluster-aware:
+  //   clusterLastAvail → max chapter number en el cluster (para display)
+  //   clusterChapterCount → total de capítulos DISTINTOS en el cluster (para resta)
+  //   clusterReadCount → números de capítulo ÚNICOS leídos en el cluster
+  //   clusterLastRead → último número leído en el cluster
+  // Usar COUNT en vez de MAX para totalChapters evita errores cuando hay
+  // capítulos decimales, gaps, o miembros del cluster con sets incompletos.
   const clusterLastAvail = new Map();
+  const clusterChapterCount = new Map();
   const clusterReadCount = new Map();
   const clusterLastRead = new Map();
   for (const fav of favorites) {
@@ -337,30 +347,37 @@ export async function getUserReadingStats(userId) {
     if (clusterLastAvail.has(sid)) continue;
 
     const ids = clusterMembership.get(sid) ?? [sid];
+    const idSet = new Set(ids);
 
     let maxNum = 0;
-    const uniqueNumbers = new Set();
+    const totalNumbers = new Set();
+    const uniqueReadNumbers = new Set();
     let maxLastRead = null;
     for (const id of ids) {
       const n = lastAvailableMap.get(id) ?? 0;
       if (n > maxNum) maxNum = n;
-      // Recolectar números de capítulo únicos para este cluster
       for (const r of readDetails) {
         if (r.chapter.seriesId === id && r.chapter.number != null) {
-          uniqueNumbers.add(r.chapter.number);
+          uniqueReadNumbers.add(r.chapter.number);
           if (maxLastRead == null || r.chapter.number > maxLastRead) maxLastRead = r.chapter.number;
         }
       }
     }
+    // Recolectar números únicos de TODOS los capítulos del cluster
+    for (const ch of allChapterNumbers) {
+      if (idSet.has(ch.seriesId)) totalNumbers.add(ch.number);
+    }
 
     clusterLastAvail.set(sid, maxNum > 0 ? maxNum : null);
-    clusterReadCount.set(sid, uniqueNumbers.size);
+    clusterChapterCount.set(sid, totalNumbers.size > 0 ? totalNumbers.size : null);
+    clusterReadCount.set(sid, uniqueReadNumbers.size);
     clusterLastRead.set(sid, maxLastRead);
-    // También poblar claves para los otros miembros del cluster
+    // Propagar a otros miembros del cluster
     for (const id of ids) {
       if (!clusterLastAvail.has(id)) {
         clusterLastAvail.set(id, maxNum > 0 ? maxNum : null);
-        clusterReadCount.set(id, uniqueNumbers.size);
+        clusterChapterCount.set(id, totalNumbers.size > 0 ? totalNumbers.size : null);
+        clusterReadCount.set(id, uniqueReadNumbers.size);
         clusterLastRead.set(id, maxLastRead);
       }
     }
@@ -399,8 +416,8 @@ export async function getUserReadingStats(userId) {
       const lastRead = clusterLastRead.get(fav.seriesId) ?? null;
       const lastAvail = clusterLastAvail.get(fav.seriesId) ?? null;
       const readCountForSeries = clusterReadCount.get(fav.seriesId) ?? 0;
-      const totalChapters = lastAvail ?? fav.series.chapterCount;
-      const chaptersLeft = totalChapters > 0 ? Math.max(0, totalChapters - readCountForSeries) : null;
+      const totalChapters = clusterChapterCount.get(fav.seriesId) ?? lastAvail ?? fav.series.chapterCount;
+      const chaptersLeft = totalChapters != null && totalChapters > 0 ? Math.max(0, totalChapters - readCountForSeries) : null;
 
       return {
         id: fav.series.id, name: fav.series.name, slug: fav.series.slug,

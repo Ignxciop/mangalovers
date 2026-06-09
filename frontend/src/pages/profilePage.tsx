@@ -1,5 +1,5 @@
 import { SEO } from "@/components/seo";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     User,
     Lock,
@@ -34,10 +35,6 @@ import {
     BellOff,
     BellRing,
     AtSign,
-    BookOpen,
-    Heart,
-    BookMinus,
-    Loader2,
     ChevronRight,
     ShieldAlert,
     Eye,
@@ -49,9 +46,8 @@ import { useAuthStore } from "@/store/authStore";
 import { api } from "@/api/axios";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { isInAppEnabled, setInAppEnabled } from "@/lib/inAppNotifications";
-import { getActivityFeed } from "@/api/friends";
-import type { FriendActivity } from "@/api/friends";
-import { timeAgo } from "@/lib/date";
+import { getSocket } from "@/api/socket";
+import { Switch } from "@/components/ui/switch";
 
 const AVATAR_API = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
 
@@ -683,102 +679,6 @@ export function NotificationSection() {
     );
 }
 
-function ActivitySection() {
-    const [activities, setActivities] = useState<FriendActivity[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        let cancelled = false;
-        async function load() {
-            setLoading(true);
-            try {
-                const res = await getActivityFeed(1, 10, "own");
-                if (cancelled) return;
-                setActivities(res.data);
-            } catch {
-                if (!cancelled) setActivities([]);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        }
-        load();
-        return () => { cancelled = true; };
-    }, []);
-
-    function eventConfig(event: FriendActivity) {
-        switch (event.event) {
-            case "MARK_READ":
-                return {
-                    icon: BookOpen,
-                    dot: "bg-brand-green shadow-[0_0_6px] shadow-brand-green/50",
-                    iconBg: "bg-brand-green/10 text-brand-green",
-                    text: `Leíste ${event.metadata.chapterName ?? "un capítulo"}${event.metadata.seriesName ? ` de ${event.metadata.seriesName}` : ""}`,
-                };
-            case "ADD_FAVORITE":
-                return {
-                    icon: Heart,
-                    dot: "bg-rose-500 shadow-[0_0_6px] shadow-rose-500/50",
-                    iconBg: "bg-rose-500/10 text-rose-500",
-                    text: `Agregaste ${event.metadata.seriesName ?? "una serie"} a favoritos`,
-                };
-            case "REMOVE_FAVORITE":
-                return {
-                    icon: BookMinus,
-                    dot: "bg-orange-500 shadow-[0_0_6px] shadow-orange-500/50",
-                    iconBg: "bg-orange-500/10 text-orange-500",
-                    text: `Eliminaste ${event.metadata.seriesName ?? "una serie"} de favoritos`,
-                };
-        }
-    }
-
-    if (loading) {
-        return (
-            <SectionCard accent="green" icon={Loader2} title="Actividad reciente" description="Cargando actividad…">
-                <div className="flex items-center justify-center py-8">
-                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
-                </div>
-            </SectionCard>
-        );
-    }
-
-    if (activities.length === 0) {
-        return (
-            <SectionCard accent="green" icon={BookOpen} title="Actividad reciente" description="Aún no hay actividad registrada">
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <BookOpen className="size-8 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm text-muted-foreground">Tus acciones aparecerán aquí</p>
-                </div>
-            </SectionCard>
-        );
-    }
-
-    return (
-        <SectionCard accent="green" icon={BookOpen} title="Actividad reciente" description="Tus últimas acciones en la plataforma">
-            <div className="relative pl-6 space-y-0">
-                <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border" />
-                {activities.map((a) => {
-                    const cfg = eventConfig(a)!;
-                    const Icon = cfg.icon;
-                    return (
-                        <div key={a.id} className="relative pb-4 last:pb-0 group">
-                            <span className={`absolute -left-[15px] top-[7px] size-2.5 rounded-full ring-2 ring-background ${cfg.dot}`} />
-                            <div className="flex items-start gap-3 rounded-xl px-3 py-2.5 group-hover:bg-muted/30 transition-colors">
-                                <div className={`size-7 rounded-lg ${cfg.iconBg} flex items-center justify-center shrink-0 mt-0.5`}>
-                                    <Icon className="size-3.5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-foreground/90">{cfg.text}</p>
-                                    <p className="text-xs text-muted-foreground/60 mt-0.5">{timeAgo(a.createdAt)}</p>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </SectionCard>
-    );
-}
-
 export function InAppNotificationSection() {
     const [enabled, setEnabled] = useState(() => isInAppEnabled());
 
@@ -810,6 +710,59 @@ export function InAppNotificationSection() {
                         </Button>
                     )}
                 </div>
+            </div>
+        </SectionCard>
+    );
+}
+
+function OnlineVisibilitySection() {
+    const { user } = useAuth();
+    const setAuth = useAuthStore((s) => s.setAuth);
+    const accessToken = useAuthStore((s) => s.accessToken);
+    const [hideOnline, setHideOnline] = useState(user?.hideOnline ?? false);
+    const [loading, setLoading] = useState(false);
+
+    async function handleToggle(value: boolean) {
+        setHideOnline(value);
+        setLoading(true);
+        try {
+            const { data } = await api.patch("/auth/profile", { hideOnline: value });
+            setAuth(accessToken!, data.data.user);
+            const socket = getSocket();
+            socket?.emit("presence:toggle-visibility", { hideOnline: value });
+        } catch {
+            setHideOnline(!value);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <SectionCard
+            accent="purple"
+            icon={hideOnline ? EyeOff : Eye}
+            title="Estado en línea"
+            description="Controla si apareces conectado para tus amigos"
+        >
+            <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                        <span className={`size-2.5 rounded-full ${hideOnline ? "bg-muted-foreground/30" : "bg-emerald-500 shadow-[0_0_6px] shadow-emerald-500/50"}`} />
+                        <span className="text-sm font-medium">
+                            {hideOnline ? "Invisible" : "Visible"}
+                        </span>
+                    </div>
+                    <Switch
+                        checked={!hideOnline}
+                        onCheckedChange={(checked) => handleToggle(!checked)}
+                        disabled={loading}
+                    />
+                </div>
+                <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                    {hideOnline
+                        ? "No aparecerás como conectado para tus amigos. Tus amigos no recibirán notificaciones cuando te conectes o desconectes."
+                        : "Aparecerás como conectado para tus amigos cuando estés en línea."}
+                </p>
             </div>
         </SectionCard>
     );
@@ -896,37 +849,66 @@ function PrivacySection() {
 }
 
 export default function ProfilePage() {
+    const [tab, setTab] = useState("perfil");
+
     return (
         <>
             <SEO title="Mi Perfil" description="Administra tu perfil, cambia tu contraseña y gestiona las notificaciones en Mangalovers." canonicalPath="/perfil" />
             <div className="min-h-screen bg-background">
                 <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="flex items-center h-16 px-4 md:px-6 lg:px-8 gap-4">
+                    <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
                         <SidebarTrigger />
-                        <div className="flex items-center gap-2 min-w-0">
-                            <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <span className="text-sm font-semibold truncate">Mi perfil</span>
+                        <div className="flex justify-center min-w-0">
+                            <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <span className="text-sm font-semibold truncate">Mi perfil</span>
+                            </div>
                         </div>
                     </div>
                 </header>
 
-                <main className="px-4 md:px-6 lg:px-8 py-6 space-y-8">
+                <main className="container mx-auto px-4 py-8 space-y-8">
                     <ProfileHero />
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                        <div className="lg:col-span-7 space-y-6">
-                            <ProfileSection />
-                            <AliasSection />
-                            <InAppNotificationSection />
-                            <PrivacySection />
-                            <PasswordSection />
+                    <Tabs value={tab} onValueChange={setTab} className="w-full">
+                        <TabsList variant="line" className="w-full justify-start gap-0 border-b border-border rounded-none h-auto pb-1.5 bg-transparent">
+                            <TabsTrigger value="perfil" className="flex-1 px-2 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                                <User className="size-4 shrink-0" />
+                                <span className="truncate">Perfil</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="privacidad" className="flex-1 px-2 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                                <Eye className="size-4 shrink-0" />
+                                <span className="truncate">Privacidad</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="notificaciones" className="flex-1 px-2 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                                <Bell className="size-4 shrink-0" />
+                                <span className="truncate">Notificaciones</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="cuenta" className="flex-1 px-2 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                                <Lock className="size-4 shrink-0" />
+                                <span className="truncate">Cuenta</span>
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <div className="mt-6">
+                            <TabsContent value="perfil" className="space-y-6">
+                                <ProfileSection />
+                                <AliasSection />
+                            </TabsContent>
+                            <TabsContent value="privacidad" className="space-y-6">
+                                <OnlineVisibilitySection />
+                                <PrivacySection />
+                            </TabsContent>
+                            <TabsContent value="notificaciones" className="space-y-6">
+                                <InAppNotificationSection />
+                                <NotificationSection />
+                            </TabsContent>
+                            <TabsContent value="cuenta" className="space-y-6">
+                                <PasswordSection />
+                                <DeleteAccountSection />
+                            </TabsContent>
                         </div>
-                        <div className="lg:col-span-5 space-y-6">
-                            <ActivitySection />
-                            <NotificationSection />
-                            <DeleteAccountSection />
-                        </div>
-                    </div>
+                    </Tabs>
                 </main>
             </div>
         </>
