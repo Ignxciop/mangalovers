@@ -52,7 +52,9 @@ export function useAuth() {
             setAuth(data.accessToken, data.user);
             navigate("/");
         } catch (err: unknown) {
-            setError(getErrorMessage(err));
+            const message = getErrorMessage(err);
+            setError(message);
+            throw err;
         } finally {
             setIsLoading(false);
         }
