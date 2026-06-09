@@ -6,6 +6,7 @@ import "./styles/global.css";
 import { registerServiceWorker } from "./lib/registerServiceWorker";
 import { useAuthStore } from "@/store/authStore";
 import { connectSocket, disconnectSocket } from "@/api/socket";
+import { useSocketNotifications } from "@/hooks/useSocketNotifications";
 
 void registerServiceWorker();
 
@@ -21,6 +22,8 @@ function SocketManager({ children }: { children: React.ReactNode }) {
         }
         return () => disconnectSocket();
     }, [isAuthenticated, accessToken]);
+
+    useSocketNotifications();
 
     return <>{children}</>;
 }

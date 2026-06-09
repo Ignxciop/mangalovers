@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import { socketAuthMiddleware } from "./authMiddleware.js";
+import { registerNotificationNamespace } from "./notificationHandler.js";
 import logger from "../config/logger.js";
 
 let io;
@@ -36,6 +37,8 @@ export function initSocket(server) {
       );
     });
   });
+
+  registerNotificationNamespace(io);
 
   logger.info("Socket.IO inicializado");
   return io;
