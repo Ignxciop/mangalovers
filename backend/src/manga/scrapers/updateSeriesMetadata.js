@@ -28,20 +28,18 @@ async function collectClusterIds(seedId) {
 export async function updateSeriesMetadata(seriesId) {
     const clusterIds = await collectClusterIds(seriesId);
 
-    const seriesIds = clusterIds;
-
     const latestChapter = await prisma.chapter.findFirst({
-        where: { seriesId: { in: seriesIds } },
+        where: { seriesId: { in: clusterIds } },
         orderBy: { publishedAt: "desc" },
         select: { publishedAt: true },
     });
 
     const chapterCount = await prisma.chapter.count({
-        where: { seriesId: { in: seriesIds } },
+        where: { seriesId: { in: clusterIds } },
     });
 
-    await prisma.series.update({
-        where: { id: seriesId },
+    await prisma.series.updateMany({
+        where: { id: { in: clusterIds } },
         data: {
             lastChaptersCheck: new Date(),
             lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
