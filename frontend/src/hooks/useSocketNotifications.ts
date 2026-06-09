@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { getSocket, subscribeToSocket } from "@/api/socket";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useFriendStore } from "@/store/friendStore";
+import { isInAppEnabled } from "@/lib/inAppNotifications";
 
 export function useSocketNotifications() {
     const socket = useSyncExternalStore(subscribeToSocket, getSocket, getSocket);
@@ -16,10 +17,12 @@ export function useSocketNotifications() {
 
         const handleNew = (data: { type: string; title: string; body?: string }) => {
             incrementUnread();
-            toast(data.title, {
-                description: data.body,
-                duration: 5000,
-            });
+            if (isInAppEnabled()) {
+                toast(data.title, {
+                    description: data.body,
+                    duration: 5000,
+                });
+            }
             if (data.type === "FRIEND_REQUEST") {
                 incrementPending();
             } else if (data.type === "FRIEND_ACCEPTED") {
