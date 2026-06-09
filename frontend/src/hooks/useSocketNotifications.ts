@@ -1,14 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { getSocket } from "@/api/socket";
+import { getSocket, subscribeToSocket } from "@/api/socket";
 import { useNotificationStore } from "@/store/notificationStore";
 
 export function useSocketNotifications() {
+    const socket = useSyncExternalStore(subscribeToSocket, getSocket, getSocket);
     const incrementUnread = useNotificationStore((s) => s.incrementUnread);
     const setUnreadCount = useNotificationStore((s) => s.setUnreadCount);
 
     useEffect(() => {
-        const socket = getSocket();
         if (!socket) return;
 
         const handleNew = (data: { title: string; body?: string }) => {
@@ -30,5 +30,5 @@ export function useSocketNotifications() {
             socket.off("notification:new", handleNew);
             socket.off("unread:count", handleCount);
         };
-    }, [incrementUnread, setUnreadCount]);
+    }, [socket, incrementUnread, setUnreadCount]);
 }

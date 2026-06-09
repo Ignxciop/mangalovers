@@ -3,6 +3,18 @@ import { io, type Socket } from "socket.io-client";
 const SOCKET_URL = (import.meta.env.VITE_API_URL ?? "").replace("/api", "");
 
 let socket: Socket | null = null;
+let socketChangeListeners: Array<() => void> = [];
+
+function notifySocketChange() {
+  socketChangeListeners.forEach((cb) => cb());
+}
+
+export function subscribeToSocket(cb: () => void) {
+  socketChangeListeners.push(cb);
+  return () => {
+    socketChangeListeners = socketChangeListeners.filter((l) => l !== cb);
+  };
+}
 
 export function getSocket(): Socket | null {
   return socket;
@@ -35,6 +47,7 @@ export function connectSocket(token: string | null): Socket {
     console.warn("[WS] Error de conexion:", err.message);
   });
 
+  notifySocketChange();
   return socket;
 }
 
@@ -44,4 +57,5 @@ export function disconnectSocket() {
     socket.disconnect();
     socket = null;
   }
+  notifySocketChange();
 }
