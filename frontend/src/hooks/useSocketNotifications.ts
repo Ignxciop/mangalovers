@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { toast } from "sonner";
 import { getSocket } from "@/api/socket";
 import { useNotificationStore } from "@/store/notificationStore";
 
@@ -10,8 +11,12 @@ export function useSocketNotifications() {
         const socket = getSocket();
         if (!socket) return;
 
-        const handleNew = () => {
+        const handleNew = (data: { title: string; body?: string }) => {
             incrementUnread();
+            toast(data.title, {
+                description: data.body,
+                duration: 5000,
+            });
         };
 
         const handleCount = (data: { count: number }) => {
