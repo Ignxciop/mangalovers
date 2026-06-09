@@ -48,7 +48,6 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { isInAppEnabled, setInAppEnabled } from "@/lib/inAppNotifications";
 import { getSocket } from "@/api/socket";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AVATAR_API = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
 
