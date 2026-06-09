@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getScraperConfig, updateScraperConfig, getScraperStatus, getMissingPages, refillMissingPages } from "@/api/admin";
 import type { MissingPagesData } from "@/api/admin";
 import { api } from "@/api/axios";
 import type { ScraperConfig, ScraperStatusData } from "@/types/admin";
+import { useScraperSocket, type ScraperRunState } from "@/hooks/useScraperSocket";
 import { SEO } from "@/components/seo";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,8 +14,6 @@ import {
     Wrench, Play, RotateCw, PauseCircle, RefreshCw,
     CheckCircle2, AlertCircle, ImageIcon, Square,
 } from "lucide-react";
-
-type RunState = Record<string, "idle" | "loading" | "done">;
 
 const ALL_PROVIDERS = [
     { id: "olympus", label: "Olympus" },
@@ -41,25 +40,21 @@ function Elapsed({ finishedAt }: { finishedAt: string | null }) {
 function ProviderCard({
     name,
     label,
-    enabled,
     isRunning,
     lastRun,
     runState,
     stopping,
     onRun,
     onStop,
-    onToggleEnabled,
 }: {
     name: string;
     label: string;
-    enabled: boolean;
     isRunning: boolean;
     lastRun: { status: string; finishedAt: string | null; seriesProcessed: number; chaptersCreated: number; pagesScraped: number; errors: number; errorMessage?: string | null } | null;
-    runState: RunState[string];
+    runState: ScraperRunState;
     stopping: boolean;
     onRun: (provider: string) => void;
     onStop: (provider: string) => void;
-    onToggleEnabled: (provider: string, enabled: boolean) => void;
 }) {
     const isOk = lastRun?.status === "success";
     const busy = runState === "loading" || (isRunning && runState !== "done");
@@ -67,20 +62,7 @@ function ProviderCard({
     return (
         <div className="border border-border rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    {isRunning ? (
-                        <RotateCw className="size-4 text-sky-500 animate-spin" />
-                    ) : (
-                        <Checkbox
-                            id={`provider-${name}`}
-                            checked={enabled}
-                            onCheckedChange={(v) => onToggleEnabled(name, v === true)}
-                        />
-                    )}
-                    <label htmlFor={`provider-${name}`} className="text-sm font-semibold capitalize cursor-pointer">
-                        {label}
-                    </label>
-                </div>
+                <span className="text-sm font-semibold capitalize">{label}</span>
                 <div className="flex items-center gap-1.5">
                     {isRunning || stopping ? (
                         <Button
@@ -115,7 +97,12 @@ function ProviderCard({
                     )}
                 </div>
             </div>
-            {lastRun ? (
+            {isRunning || runState === "loading" ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <RotateCw className="size-3.5 text-sky-500 animate-spin" />
+                    <span className="text-sky-500">Ejecutándose...</span>
+                </div>
+            ) : lastRun ? (
                 <div className="space-y-1 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">
                         {isOk ? (
@@ -220,12 +207,13 @@ function MissingPagesSection({ loadData }: { loadData: () => void }) {
 }
 
 export default function AdminTools() {
+    const scraperState = useScraperSocket();
     const [config, setConfig] = useState<ScraperConfig | null>(null);
     const [status, setStatus] = useState<ScraperStatusData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [runStates, setRunStates] = useState<RunState>({});
     const [stopping, setStopping] = useState<Record<string, boolean>>({});
-    function loadData() {
+
+    const loadData = useCallback(() => {
         Promise.all([
             getScraperConfig(),
             getScraperStatus(),
@@ -246,13 +234,11 @@ export default function AdminTools() {
             })
             .catch(() => { })
             .finally(() => setLoading(false));
-    }
+    }, []);
 
     useEffect(() => {
         loadData();
-        const id = setInterval(loadData, 5000);
-        return () => clearInterval(id);
-    }, []);
+    }, [loadData, scraperState]);
 
     async function handleToggleAuto(enabled: boolean) {
         if (!config) return;
@@ -276,17 +262,9 @@ export default function AdminTools() {
     }
 
     async function handleRunProvider(provider: string) {
-        setRunStates((prev) => ({ ...prev, [provider]: "loading" }));
         try {
             await api.post(`/admin/scraper/run/${provider}`);
-            setRunStates((prev) => ({ ...prev, [provider]: "done" }));
-            setTimeout(() => {
-                setRunStates((prev) => ({ ...prev, [provider]: "idle" }));
-                loadData();
-            }, 3000);
-        } catch {
-            setRunStates((prev) => ({ ...prev, [provider]: "idle" }));
-        }
+        } catch { /* WS lo maneja */ }
     }
 
     async function handleStopProvider(provider: string) {
@@ -307,7 +285,7 @@ export default function AdminTools() {
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0 overflow-x-hidden">
                 <div className="border border-border rounded-lg p-4 mb-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             {config?.autoEnabled ? (
                                 <Play className="size-4 text-emerald-500" />
@@ -324,34 +302,33 @@ export default function AdminTools() {
                         />
                     </div>
                     {config && (
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <p className="text-xs text-muted-foreground mb-3">
                             Intervalo: cada {config.intervalMinutes} minuto{config.intervalMinutes !== 1 ? "s" : ""}
                         </p>
                     )}
-                </div>
-
-                <div className="border border-border rounded-lg p-4 mb-6">
-                    <p className="text-xs font-medium text-muted-foreground mb-3">
-                        Proveedores activos en el scraper automático
-                    </p>
-                    <div className="flex flex-wrap gap-4">
-                        {ALL_PROVIDERS.map((p) => {
-                            const checked = config?.enabledProviders?.includes(p.id) ?? false;
-                            const running = status?.providers.find((sp) => sp.name === p.id)?.isRunning ?? false;
-                            return (
-                                <label
-                                    key={p.id}
-                                    className="flex items-center gap-2 text-sm cursor-pointer"
-                                >
-                                    <Checkbox
-                                        checked={checked}
-                                        disabled={running || (checked && (config?.enabledProviders?.length ?? 0) <= 1)}
-                                        onCheckedChange={(v) => handleToggleProvider(p.id, v === true)}
-                                    />
-                                    {p.label}
-                                </label>
-                            );
-                        })}
+                    <div className="border-t border-border pt-3">
+                        <p className="text-xs font-medium text-muted-foreground mb-3">
+                            Proveedores activos en el scraper automático
+                        </p>
+                        <div className="flex flex-wrap gap-4">
+                            {ALL_PROVIDERS.map((p) => {
+                                const checked = config?.enabledProviders?.includes(p.id) ?? false;
+                                const running = status?.providers.find((sp) => sp.name === p.id)?.isRunning ?? false;
+                                return (
+                                    <label
+                                        key={p.id}
+                                        className="flex items-center gap-2 text-sm cursor-pointer"
+                                    >
+                                        <Checkbox
+                                            checked={checked}
+                                            disabled={running || (checked && (config?.enabledProviders?.length ?? 0) <= 1)}
+                                            onCheckedChange={(v) => handleToggleProvider(p.id, v === true)}
+                                        />
+                                        {p.label}
+                                    </label>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
@@ -368,14 +345,12 @@ export default function AdminTools() {
                                 key={p.id}
                                 name={p.id}
                                 label={p.label}
-                                enabled={config?.enabledProviders?.includes(p.id) ?? false}
                                 isRunning={status?.providers.find((sp) => sp.name === p.id)?.isRunning ?? false}
                                 lastRun={status?.providers.find((sp) => sp.name === p.id)?.lastRun ?? null}
-                                runState={runStates[p.id] ?? "idle"}
+                                runState={scraperState[p.id] ?? "idle"}
                                 stopping={stopping[p.id] ?? false}
                                 onRun={handleRunProvider}
                                 onStop={handleStopProvider}
-                                onToggleEnabled={handleToggleProvider}
                             />
                         ))}
                     </div>

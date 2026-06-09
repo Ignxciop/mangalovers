@@ -1,7 +1,9 @@
 import { Server } from "socket.io";
 import { socketAuthMiddleware } from "./authMiddleware.js";
-import { registerNotificationNamespace } from "./notificationHandler.js";
 import { registerPresenceOnConnect } from "./presenceHandler.js";
+import { registerNotificationNamespace } from "./notificationHandler.js";
+import { registerAdminNamespace } from "./adminHandler.js";
+import { setAdminEmitterIO } from "./adminEmitter.js";
 import logger from "../config/logger.js";
 
 let io;
@@ -25,6 +27,8 @@ export function initSocket(server) {
 
   io.use(socketAuthMiddleware);
 
+  setAdminEmitterIO(io);
+
   io.on("connection", (socket) => {
     logger.info(
       { socketId: socket.id, userId: socket.data.userId },
@@ -33,6 +37,10 @@ export function initSocket(server) {
 
     if (socket.data.userId) {
       socket.join(`user:${socket.data.userId}`);
+    }
+
+    if (socket.data.role === "ADMIN") {
+      socket.join("admin");
     }
 
     registerPresenceOnConnect(io, socket);
@@ -46,6 +54,7 @@ export function initSocket(server) {
   });
 
   registerNotificationNamespace(io);
+  registerAdminNamespace(io);
 
   logger.info("Socket.IO inicializado");
   return io;
