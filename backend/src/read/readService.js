@@ -326,7 +326,9 @@ export async function getUserReadingStats(userId) {
   }
 
   // Construir mapas cluster-aware: max chapter number, reads y lastRead
-  // de TODOS los miembros del cluster, no solo de la serie individual
+  // de TODOS los miembros del cluster, no solo de la serie individual.
+  // readCount se calcula con números de capítulo ÚNICOS para no duplicar
+  // cuando el mismo capítulo existe en múltiples providers del cluster.
   const clusterLastAvail = new Map();
   const clusterReadCount = new Map();
   const clusterLastRead = new Map();
@@ -337,25 +339,29 @@ export async function getUserReadingStats(userId) {
     const ids = clusterMembership.get(sid) ?? [sid];
 
     let maxNum = 0;
-    let totalReads = 0;
+    const uniqueNumbers = new Set();
     let maxLastRead = null;
     for (const id of ids) {
       const n = lastAvailableMap.get(id) ?? 0;
       if (n > maxNum) maxNum = n;
-      totalReads += readCountMap.get(id) ?? 0;
-      const lr = lastReadMap.get(id);
-      if (lr != null && (maxLastRead == null || lr > maxLastRead)) maxLastRead = lr;
+      // Recolectar números de capítulo únicos para este cluster
+      for (const r of readDetails) {
+        if (r.chapter.seriesId === id && r.chapter.number != null) {
+          uniqueNumbers.add(r.chapter.number);
+          if (maxLastRead == null || r.chapter.number > maxLastRead) maxLastRead = r.chapter.number;
+        }
+      }
     }
 
     clusterLastAvail.set(sid, maxNum > 0 ? maxNum : null);
-    clusterReadCount.set(sid, totalReads);
-    clusterLastRead.set(sid, maxLastRead ?? lastReadMap.get(sid) ?? null);
+    clusterReadCount.set(sid, uniqueNumbers.size);
+    clusterLastRead.set(sid, maxLastRead);
     // También poblar claves para los otros miembros del cluster
     for (const id of ids) {
       if (!clusterLastAvail.has(id)) {
         clusterLastAvail.set(id, maxNum > 0 ? maxNum : null);
-        clusterReadCount.set(id, totalReads);
-        clusterLastRead.set(id, maxLastRead ?? lastReadMap.get(id) ?? null);
+        clusterReadCount.set(id, uniqueNumbers.size);
+        clusterLastRead.set(id, maxLastRead);
       }
     }
   }
