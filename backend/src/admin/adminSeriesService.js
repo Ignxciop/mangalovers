@@ -2,6 +2,7 @@ import { prisma } from "../config/prisma.js";
 import logger from "../config/logger.js";
 import { mergeSeries } from "../manga/scrapers/duplicateSeries.js";
 import { createNotification } from "../notifications/notificationService.js";
+import { updateSeriesMetadata } from "../manga/scrapers/updateSeriesMetadata.js";
 
 export class AdminSeriesService {
   static async listSeries({ page = 1, limit = 20, search, provider }) {
@@ -275,6 +276,12 @@ export class AdminSeriesService {
           data: { primarySeriesId, fallbackSeriesId, slug: primary.slug },
         }).catch((err) => logger.warn({ err }, "Error creando notificación de vinculación"));
       }
+    }
+
+    try {
+      await updateSeriesMetadata(primarySeriesId);
+    } catch (metaErr) {
+      logger.warn({ primarySeriesId, err: metaErr.message }, "Error actualizando metadata tras vincular");
     }
 
     logger.info(
