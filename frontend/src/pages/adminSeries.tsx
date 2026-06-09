@@ -92,8 +92,17 @@ function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
                     onClick={() => setOpen(true)}
                 >
                     <Check className={cn("size-4 shrink-0", isBrand ? "text-brand" : "text-amber-500")} />
-                    <span className="flex-1 truncate font-medium">{selectedSeries.name}</span>
-                    <span className="text-xs opacity-60 shrink-0">#{selectedSeries.id}</span>
+                                    <span className="flex-1 truncate font-medium">{selectedSeries.name}</span>
+                                    <div className="flex gap-0.5 shrink-0">
+                                        {selectedSeries.providerSeries.map((ps) => (
+                                            <span key={ps.slug} className={cn(
+                                                "text-[10px] px-1.5 py-0 rounded font-medium",
+                                                PROVIDER_COLORS[ps.provider.name] ?? "bg-muted/50 text-muted-foreground",
+                                            )}>
+                                                {ps.provider.name}
+                                            </span>
+                                        ))}
+                                    </div>
                     <button
                         onClick={(e) => { e.stopPropagation(); onChange(null); }}
                         className="hover:opacity-70 shrink-0"
@@ -135,7 +144,16 @@ function SearchableSelect({ value, onChange, placeholder, excludeId, label }: {
                                 onClick={() => { setSelectedSeries(s); onChange(s.id); setOpen(false); setQuery(""); }}
                             >
                                 <span className="flex-1 truncate">{s.name}</span>
-                                <span className="text-xs text-muted-foreground shrink-0">#{s.id}</span>
+                                <div className="flex gap-0.5 shrink-0">
+                                    {s.providerSeries.map((ps) => (
+                                        <span key={ps.slug} className={cn(
+                                            "text-[10px] px-1.5 py-0 rounded font-medium",
+                                            PROVIDER_COLORS[ps.provider.name] ?? "bg-muted/50 text-muted-foreground",
+                                        )}>
+                                            {ps.provider.name}
+                                        </span>
+                                    ))}
+                                </div>
                                 {value === s.id && <Check className="size-3.5 text-brand shrink-0" />}
                             </button>
                         ))
