@@ -71,7 +71,7 @@ export async function getReadChapterIds(userId, seriesId) {
 
   const reads = await prisma.userChapterRead.findMany({
     where: { userId, chapter: { seriesId: { in: searchIds } } },
-    select: { chapterId: true, chapter: { select: { number: true } } },
+    select: { chapterId: true, chapter: { select: { number: true, seriesId: true } } },
   });
 
   const explicitIds = reads.map((r) => r.chapterId);
@@ -82,7 +82,7 @@ export async function getReadChapterIds(userId, seriesId) {
   // Obtener todos los capítulos del cluster para propagar lecturas
   const allChapters = await prisma.chapter.findMany({
     where: { seriesId: { in: searchIds } },
-    select: { id: true, name: true, number: true },
+    select: { id: true, name: true, number: true, seriesId: true },
   });
 
   const result = new Set(explicitIds);
@@ -101,17 +101,21 @@ export async function getReadChapterIds(userId, seriesId) {
     }
   }
 
-  // 2. Propagación por número: si el usuario avanzó hasta cierto número,
-  //    marcar como leídos los capítulos con número ≤ al máximo leído
-  let maxReadNumber = 0;
+  // 2. Propagación por número: por cada serie del cluster, si el usuario
+  //    avanzó hasta cierto número en ESA serie, marcar capítulos ≤ a ese
+  //    máximo en la MISMA serie. Esto evita que desmarcar en una serie
+  //    sea anulado por registros de otra serie del cluster.
+  const maxBySeries = new Map();
   for (const r of reads) {
-    if (r.chapter.number && r.chapter.number > maxReadNumber) {
-      maxReadNumber = r.chapter.number;
+    const sid = r.chapter.seriesId;
+    if (r.chapter.number && r.chapter.number > (maxBySeries.get(sid) ?? 0)) {
+      maxBySeries.set(sid, r.chapter.number);
     }
   }
-  if (maxReadNumber > 0) {
+  if (maxBySeries.size > 0) {
     for (const ch of allChapters) {
-      if (ch.number && ch.number <= maxReadNumber) {
+      const max = maxBySeries.get(ch.seriesId) ?? 0;
+      if (ch.number && ch.number <= max) {
         result.add(ch.id);
       }
     }
@@ -182,10 +186,17 @@ export async function unmarkChaptersFrom(userId, chapterId) {
 
   if (!target) throw new NotFoundError("Chapter not found");
 
+  // Desmarcar en todos los miembros del cluster para evitar que la
+  // propagación por número en getReadChapterIds re-active los capítulos
+  const cluster = await resolveSeriesCluster(target.seriesId);
+  const seriesIds = cluster ? cluster.allIds : [target.seriesId];
+
   const chapters = await prisma.chapter.findMany({
-    where: { seriesId: target.seriesId, number: { gte: target.number } },
+    where: { seriesId: { in: seriesIds }, number: { gte: target.number } },
     select: { id: true },
   });
+
+  if (chapters.length === 0) return { updated: 0 };
 
   await prisma.userChapterRead.deleteMany({
     where: { userId, chapterId: { in: chapters.map((c) => c.id) } },
