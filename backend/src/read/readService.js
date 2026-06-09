@@ -276,11 +276,26 @@ export async function getUserReadingStats(userId) {
 
   const favSeriesIds = favorites.map((f) => f.seriesId);
 
+  // Resolver clusters para TODOS los favoritos de una vez y obtener
+  // todos los IDs del cluster para consultar chapter groupBy
+  const allClusterIds = new Set(favSeriesIds);
+  const clusterMembership = new Map(); // seriesId → allIds del cluster
+  for (const fav of favorites) {
+    const sid = fav.seriesId;
+    if (clusterMembership.has(sid)) continue;
+    const cluster = await resolveSeriesCluster(sid);
+    const ids = cluster ? cluster.allIds : [sid];
+    clusterMembership.set(sid, ids);
+    for (const id of ids) allClusterIds.add(id);
+  }
+
+  const allClusterIdArray = [...allClusterIds];
+
   const [lastChapterGroup, readDetails] = await Promise.all([
-    favSeriesIds.length > 0
+    allClusterIdArray.length > 0
       ? prisma.chapter.groupBy({
           by: ["seriesId"],
-          where: { seriesId: { in: favSeriesIds }, number: { not: null } },
+          where: { seriesId: { in: allClusterIdArray }, number: { not: null } },
           _max: { number: true },
         })
       : [],
@@ -310,7 +325,8 @@ export async function getUserReadingStats(userId) {
     readCountMap.set(sid, (readCountMap.get(sid) ?? 0) + 1);
   }
 
-  // Resolver clusters para todos los favoritos y construir mapas cluster-aware
+  // Construir mapas cluster-aware: max chapter number, reads y lastRead
+  // de TODOS los miembros del cluster, no solo de la serie individual
   const clusterLastAvail = new Map();
   const clusterReadCount = new Map();
   const clusterLastRead = new Map();
@@ -318,8 +334,7 @@ export async function getUserReadingStats(userId) {
     const sid = fav.seriesId;
     if (clusterLastAvail.has(sid)) continue;
 
-    const cluster = await resolveSeriesCluster(sid);
-    const ids = cluster ? cluster.allIds : [sid];
+    const ids = clusterMembership.get(sid) ?? [sid];
 
     let maxNum = 0;
     let totalReads = 0;
@@ -334,9 +349,8 @@ export async function getUserReadingStats(userId) {
 
     clusterLastAvail.set(sid, maxNum > 0 ? maxNum : null);
     clusterReadCount.set(sid, totalReads);
-    // El último capítulo leído es el máximo entre todos los miembros del cluster
     clusterLastRead.set(sid, maxLastRead ?? lastReadMap.get(sid) ?? null);
-    // También claves para los otros miembros del cluster para búsquedas posteriores
+    // También poblar claves para los otros miembros del cluster
     for (const id of ids) {
       if (!clusterLastAvail.has(id)) {
         clusterLastAvail.set(id, maxNum > 0 ? maxNum : null);
