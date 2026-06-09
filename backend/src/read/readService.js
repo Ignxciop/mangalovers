@@ -343,7 +343,7 @@ export async function getUserReadingStats(userId) {
       const lastRead = lastReadMap.get(fav.seriesId) ?? null;
       const lastAvail = lastAvailableMap.get(fav.seriesId) ?? null;
       const readCountForSeries = readCountMap.get(fav.seriesId) ?? 0;
-      const totalChapters = fav.series.chapterCount;
+      const totalChapters = lastAvail ?? fav.series.chapterCount;
       const chaptersLeft = totalChapters > 0 ? Math.max(0, totalChapters - readCountForSeries) : null;
 
       return {
