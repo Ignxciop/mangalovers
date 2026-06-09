@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import { socketAuthMiddleware } from "./authMiddleware.js";
 import { registerNotificationNamespace } from "./notificationHandler.js";
+import { registerPresenceOnConnect } from "./presenceHandler.js";
 import logger from "../config/logger.js";
 
 let io;
@@ -33,6 +34,8 @@ export function initSocket(server) {
     if (socket.data.userId) {
       socket.join(`user:${socket.data.userId}`);
     }
+
+    registerPresenceOnConnect(io, socket);
 
     socket.on("disconnect", (reason) => {
       logger.info(

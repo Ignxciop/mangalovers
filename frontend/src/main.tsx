@@ -7,6 +7,7 @@ import { registerServiceWorker } from "./lib/registerServiceWorker";
 import { useAuthStore } from "@/store/authStore";
 import { connectSocket, disconnectSocket } from "@/api/socket";
 import { useSocketNotifications } from "@/hooks/useSocketNotifications";
+import { usePresence } from "@/hooks/usePresence";
 
 void registerServiceWorker();
 
@@ -24,6 +25,7 @@ function SocketManager({ children }: { children: React.ReactNode }) {
     }, [isAuthenticated, accessToken]);
 
     useSocketNotifications();
+    usePresence();
 
     return <>{children}</>;
 }
