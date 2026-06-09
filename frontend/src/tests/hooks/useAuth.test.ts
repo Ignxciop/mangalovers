@@ -197,7 +197,9 @@ describe("useAuth", () => {
             const { result } = renderHook(() => useAuth());
 
             await act(async () => {
-                await result.current.register(payload);
+                try {
+                    await result.current.register(payload);
+                } catch { /* expected throw */ }
             });
 
             expect(result.current.error).toBe("Email ya registrado");

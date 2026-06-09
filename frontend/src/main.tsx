@@ -11,7 +11,7 @@ import { usePresence } from "@/hooks/usePresence";
 
 void registerServiceWorker();
 
-function SocketManager({ children }: { children: React.ReactNode }) {
+export function SocketManager({ children }: { children: React.ReactNode }) {
     const accessToken = useAuthStore((s) => s.accessToken);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
