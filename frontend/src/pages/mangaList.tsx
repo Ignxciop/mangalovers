@@ -137,6 +137,7 @@ export default function MangaList() {
     const sort = searchParams.get("sort") ?? "updated";
     const order = searchParams.get("order") ?? "desc";
     const genres = searchParams.get("genres") ?? "";
+    const read = searchParams.get("read") ?? "";
     const selectedGenres = genres.split(",").filter(Boolean);
     const provider = "";
     const backUrl = useMemo(
@@ -168,6 +169,15 @@ export default function MangaList() {
         setSearchParams((prev) => {
             if (value) prev.set("status", value);
             else prev.delete("status");
+            prev.set("page", "1");
+            return prev;
+        });
+    }
+
+    function setRead(value: string) {
+        setSearchParams((prev) => {
+            if (value) prev.set("read", value);
+            else prev.delete("read");
             prev.set("page", "1");
             return prev;
         });
@@ -213,6 +223,7 @@ export default function MangaList() {
         sort,
         order,
         genres,
+        read,
     });
 
     const mangas = data?.data ?? [];
@@ -230,6 +241,7 @@ export default function MangaList() {
         status,
         type,
         genres,
+        read,
         sort !== "updated" ? sort : "",
     ].filter(Boolean).length;
 
@@ -281,6 +293,7 @@ export default function MangaList() {
                                 prev.delete("status");
                                 prev.delete("type");
                                 prev.delete("genres");
+                                prev.delete("read");
                                 prev.delete("sort");
                                 prev.set("page", "1");
                                 return prev;
@@ -343,6 +356,30 @@ export default function MangaList() {
                                         {label}
                                     </Badge>
                                 ))}
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-5 border-b border-border">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                Progreso
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                <Badge
+                                    variant={read === "true" ? "default" : "outline"}
+                                    className="cursor-pointer px-3 py-1 text-xs"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => setRead(read === "true" ? "" : "true")}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setRead(read === "true" ? "" : "true");
+                                        }
+                                    }}
+                                >
+                                    <Eye className="h-3 w-3 mr-1.5" />
+                                    Leídos
+                                </Badge>
                             </div>
                         </div>
 

@@ -18,7 +18,7 @@ function isValidImageUrl(url) {
 export async function getAllManga(query, userId = null) {
   const {
     page = 1, limit = 24, search, provider,
-    status, sort = "updated", order = "desc", genres, type,
+    status, sort = "updated", order = "desc", genres, type, read,
   } = query;
 
   const skip = (page - 1) * limit;
@@ -34,6 +34,10 @@ export async function getAllManga(query, userId = null) {
   if (status) where.status = status;
   if (provider) where.providerSeries = { some: { provider: { name: provider } } };
   if (type) where.type = type;
+
+  if (read === "true" && userId) {
+    where.chapters = { some: { reads: { some: { userId } } } };
+  }
 
   if (genres) {
     const genreList = genres.split(",").map((g) => g.trim()).filter(Boolean);
