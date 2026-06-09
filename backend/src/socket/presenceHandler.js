@@ -65,7 +65,10 @@ export async function registerPresenceOnConnect(io, socket) {
       if (entry.sockets.size === 0) {
         onlineUsers.delete(userId);
         friends.forEach((friendId) => {
-          io.to(`user:${friendId}`).emit("friend:offline", { userId });
+          io.to(`user:${friendId}`).emit("friend:offline", {
+            userId,
+            displayName: entry.displayName,
+          });
         });
       }
     }
