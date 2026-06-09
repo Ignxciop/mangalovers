@@ -34,16 +34,25 @@ export async function updateSeriesMetadata(seriesId) {
         select: { publishedAt: true },
     });
 
-    const chapterCount = await prisma.chapter.count({
+    // Contar capítulos por serie individualmente (no cluster-wide)
+    // para evitar que chapterCount sume capítulos de otros providers
+    const counts = await prisma.chapter.groupBy({
+        by: ["seriesId"],
         where: { seriesId: { in: clusterIds } },
+        _count: { id: true },
     });
+    const countMap = new Map(counts.map((c) => [c.seriesId, c._count.id]));
 
-    await prisma.series.updateMany({
-        where: { id: { in: clusterIds } },
-        data: {
-            lastChaptersCheck: new Date(),
-            lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
-            chapterCount,
-        },
-    });
+    await prisma.$transaction(
+        clusterIds.map((id) =>
+            prisma.series.update({
+                where: { id },
+                data: {
+                    lastChaptersCheck: new Date(),
+                    lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
+                    chapterCount: countMap.get(id) ?? 0,
+                },
+            }),
+        ),
+    );
 }

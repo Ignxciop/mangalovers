@@ -30,21 +30,29 @@ async function refreshAll() {
             select: { publishedAt: true },
         });
 
-        const chapterCount = await prisma.chapter.count({
+        const counts = await prisma.chapter.groupBy({
+            by: ["seriesId"],
             where: { seriesId: { in: clusterIds } },
+            _count: { id: true },
         });
+        const countMap = new Map(counts.map((c) => [c.seriesId, c._count.id]));
 
-        await prisma.series.updateMany({
-            where: { id: { in: clusterIds } },
-            data: {
-                lastChaptersCheck: new Date(),
-                lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
-                chapterCount,
-            },
-        });
+        await prisma.$transaction(
+            clusterIds.map((sid) =>
+                prisma.series.update({
+                    where: { id: sid },
+                    data: {
+                        lastChaptersCheck: new Date(),
+                        lastChapterPublishedAt: latestChapter?.publishedAt ?? null,
+                        chapterCount: countMap.get(sid) ?? 0,
+                    },
+                }),
+            ),
+        );
 
+        const totalChapters = [...countMap.values()].reduce((a, b) => a + b, 0);
         logger.info(
-            { primaryId: id, clusterSize: clusterIds.length, chapterCount, lastPublish: latestChapter?.publishedAt },
+            { primaryId: id, clusterSize: clusterIds.length, totalChapters, lastPublish: latestChapter?.publishedAt },
             "Cluster actualizado",
         );
     }
