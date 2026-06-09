@@ -49,6 +49,8 @@ import { useAuthStore } from "@/store/authStore";
 import { api } from "@/api/axios";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { isInAppEnabled, setInAppEnabled } from "@/lib/inAppNotifications";
+import { getSocket } from "@/api/socket";
+import { Switch } from "@/components/ui/switch";
 import { getActivityFeed } from "@/api/friends";
 import type { FriendActivity } from "@/api/friends";
 import { timeAgo } from "@/lib/date";
@@ -815,6 +817,59 @@ export function InAppNotificationSection() {
     );
 }
 
+function OnlineVisibilitySection() {
+    const { user } = useAuth();
+    const setAuth = useAuthStore((s) => s.setAuth);
+    const accessToken = useAuthStore((s) => s.accessToken);
+    const [hideOnline, setHideOnline] = useState(user?.hideOnline ?? false);
+    const [loading, setLoading] = useState(false);
+
+    async function handleToggle(value: boolean) {
+        setHideOnline(value);
+        setLoading(true);
+        try {
+            const { data } = await api.patch("/auth/profile", { hideOnline: value });
+            setAuth(accessToken!, data.data.user);
+            const socket = getSocket();
+            socket?.emit("presence:toggle-visibility", { hideOnline: value });
+        } catch {
+            setHideOnline(!value);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <SectionCard
+            accent="purple"
+            icon={hideOnline ? EyeOff : Eye}
+            title="Estado en línea"
+            description="Controla si apareces conectado para tus amigos"
+        >
+            <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                        <span className={`size-2.5 rounded-full ${hideOnline ? "bg-muted-foreground/30" : "bg-emerald-500 shadow-[0_0_6px] shadow-emerald-500/50"}`} />
+                        <span className="text-sm font-medium">
+                            {hideOnline ? "Invisible" : "Visible"}
+                        </span>
+                    </div>
+                    <Switch
+                        checked={!hideOnline}
+                        onCheckedChange={(checked) => handleToggle(!checked)}
+                        disabled={loading}
+                    />
+                </div>
+                <p className="text-xs text-muted-foreground/70 leading-relaxed">
+                    {hideOnline
+                        ? "No aparecerás como conectado para tus amigos. Tus amigos no recibirán notificaciones cuando te conectes o desconectes."
+                        : "Aparecerás como conectado para tus amigos cuando estés en línea."}
+                </p>
+            </div>
+        </SectionCard>
+    );
+}
+
 function PrivacySection() {
     const { user } = useAuth();
     const setAuth = useAuthStore((s) => s.setAuth);
@@ -918,6 +973,7 @@ export default function ProfilePage() {
                             <ProfileSection />
                             <AliasSection />
                             <InAppNotificationSection />
+                            <OnlineVisibilitySection />
                             <PrivacySection />
                             <PasswordSection />
                         </div>

@@ -32,10 +32,16 @@ async function getUserName(userId) {
   return user.alias || `${user.name} ${user.lastname}`;
 }
 
-export async function registerPresenceOnConnect(io, socket) {
-  const userId = socket.data.userId;
-  if (!userId) return;
+async function getUserHideOnline(userId) {
+  const { prisma } = await import("../config/prisma.js");
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { hideOnline: true },
+  });
+  return user?.hideOnline ?? false;
+}
 
+async function joinPresence(io, socket, userId) {
   if (!onlineUsers.has(userId)) {
     onlineUsers.set(userId, { sockets: new Set(), displayName: null });
   }
@@ -58,7 +64,49 @@ export async function registerPresenceOnConnect(io, socket) {
   const onlineFriendIds = friends.filter((fid) => onlineUsers.has(fid));
   socket.emit("presence:online_list", { userIds: onlineFriendIds });
 
+  return friends;
+}
+
+async function leavePresence(io, userId, friends) {
+  const entry = onlineUsers.get(userId);
+  if (!entry) return;
+  onlineUsers.delete(userId);
+  friends.forEach((friendId) => {
+    io.to(`user:${friendId}`).emit("friend:offline", {
+      userId,
+      displayName: entry.displayName,
+    });
+  });
+}
+
+export async function registerPresenceOnConnect(io, socket) {
+  const userId = socket.data.userId;
+  if (!userId) return;
+
+  socket.hideOnline = await getUserHideOnline(userId);
+
+  let friends = [];
+  if (!socket.hideOnline) {
+    friends = await joinPresence(io, socket, userId);
+  }
+
+  // Escuchar cambio de visibilidad online en vivo
+  socket.on("presence:toggle-visibility", async ({ hideOnline: newValue }) => {
+    if (typeof newValue !== "boolean") return;
+    socket.hideOnline = newValue;
+
+    if (newValue) {
+      // Ocultar: salir de presencia, avisar a amigos
+      const friendIds = await getFriendIds(userId);
+      await leavePresence(io, userId, friendIds);
+    } else {
+      // Mostrar: entrar a presencia
+      friends = await joinPresence(io, socket, userId);
+    }
+  });
+
   socket.on("disconnect", () => {
+    if (socket.hideOnline) return;
     const entry = onlineUsers.get(userId);
     if (entry) {
       entry.sockets.delete(socket.id);

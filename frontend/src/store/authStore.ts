@@ -14,6 +14,7 @@ interface User {
     status?: "ACTIVE" | "SUSPENDED" | "BANNED";
     suspendedUntil?: string | null;
     profileVisibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+    hideOnline?: boolean;
 }
 
 interface AuthState {
