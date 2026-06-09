@@ -30,6 +30,10 @@ export function initSocket(server) {
       "Cliente conectado",
     );
 
+    if (socket.data.userId) {
+      socket.join(`user:${socket.data.userId}`);
+    }
+
     socket.on("disconnect", (reason) => {
       logger.info(
         { socketId: socket.id, userId: socket.data.userId, reason },
