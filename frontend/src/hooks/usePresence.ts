@@ -1,4 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
+import { toast } from "sonner";
 import { getSocket, subscribeToSocket } from "@/api/socket";
 import { useFriendStore } from "@/store/friendStore";
 
@@ -15,12 +16,18 @@ export function usePresence() {
             setOnlineFriends(data.userIds);
         };
 
-        const handleOnline = (data: { userId: string }) => {
+        const handleOnline = (data: { userId: string; displayName?: string }) => {
             addOnlineFriend(data.userId);
+            toast(`${data.displayName ?? "Un amigo"} se ha conectado`, {
+                duration: 3000,
+            });
         };
 
-        const handleOffline = (data: { userId: string }) => {
+        const handleOffline = (data: { userId: string; displayName?: string }) => {
             removeOnlineFriend(data.userId);
+            toast(`${data.displayName ?? "Un amigo"} se ha desconectado`, {
+                duration: 3000,
+            });
         };
 
         socket.on("presence:online_list", handleOnlineList);

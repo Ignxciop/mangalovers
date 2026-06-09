@@ -22,20 +22,36 @@ async function getFriendIds(userId) {
   );
 }
 
+async function getUserName(userId) {
+  const { prisma } = await import("../config/prisma.js");
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true, lastname: true, alias: true },
+  });
+  if (!user) return userId;
+  return user.alias || `${user.name} ${user.lastname}`;
+}
+
 export async function registerPresenceOnConnect(io, socket) {
   const userId = socket.data.userId;
   if (!userId) return;
 
   if (!onlineUsers.has(userId)) {
-    onlineUsers.set(userId, new Set());
+    onlineUsers.set(userId, { sockets: new Set(), displayName: null });
   }
-  onlineUsers.get(userId).add(socket.id);
+  onlineUsers.get(userId).sockets.add(socket.id);
+
+  const userDisplayName = await getUserName(userId);
+  onlineUsers.get(userId).displayName = userDisplayName;
 
   const friends = await getFriendIds(userId);
 
   for (const friendId of friends) {
     if (onlineUsers.has(friendId)) {
-      io.to(`user:${friendId}`).emit("friend:online", { userId });
+      io.to(`user:${friendId}`).emit("friend:online", {
+        userId,
+        displayName: userDisplayName,
+      });
     }
   }
 
@@ -43,10 +59,10 @@ export async function registerPresenceOnConnect(io, socket) {
   socket.emit("presence:online_list", { userIds: onlineFriendIds });
 
   socket.on("disconnect", () => {
-    const sockets = onlineUsers.get(userId);
-    if (sockets) {
-      sockets.delete(socket.id);
-      if (sockets.size === 0) {
+    const entry = onlineUsers.get(userId);
+    if (entry) {
+      entry.sockets.delete(socket.id);
+      if (entry.sockets.size === 0) {
         onlineUsers.delete(userId);
         friends.forEach((friendId) => {
           io.to(`user:${friendId}`).emit("friend:offline", { userId });
