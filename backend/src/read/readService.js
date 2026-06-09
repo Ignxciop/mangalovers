@@ -310,18 +310,54 @@ export async function getUserReadingStats(userId) {
     readCountMap.set(sid, (readCountMap.get(sid) ?? 0) + 1);
   }
 
+  // Resolver clusters para todos los favoritos y construir mapas cluster-aware
+  const clusterLastAvail = new Map();
+  const clusterReadCount = new Map();
+  const clusterLastRead = new Map();
+  for (const fav of favorites) {
+    const sid = fav.seriesId;
+    if (clusterLastAvail.has(sid)) continue;
+
+    const cluster = await resolveSeriesCluster(sid);
+    const ids = cluster ? cluster.allIds : [sid];
+
+    let maxNum = 0;
+    let totalReads = 0;
+    let maxLastRead = null;
+    for (const id of ids) {
+      const n = lastAvailableMap.get(id) ?? 0;
+      if (n > maxNum) maxNum = n;
+      totalReads += readCountMap.get(id) ?? 0;
+      const lr = lastReadMap.get(id);
+      if (lr != null && (maxLastRead == null || lr > maxLastRead)) maxLastRead = lr;
+    }
+
+    clusterLastAvail.set(sid, maxNum > 0 ? maxNum : null);
+    clusterReadCount.set(sid, totalReads);
+    // El último capítulo leído es el máximo entre todos los miembros del cluster
+    clusterLastRead.set(sid, maxLastRead ?? lastReadMap.get(sid) ?? null);
+    // También claves para los otros miembros del cluster para búsquedas posteriores
+    for (const id of ids) {
+      if (!clusterLastAvail.has(id)) {
+        clusterLastAvail.set(id, maxNum > 0 ? maxNum : null);
+        clusterReadCount.set(id, totalReads);
+        clusterLastRead.set(id, maxLastRead ?? lastReadMap.get(id) ?? null);
+      }
+    }
+  }
+
   let completedSeries = 0;
   for (const fav of favorites) {
-    const lastRead = lastReadMap.get(fav.seriesId) ?? -1;
-    const lastAvail = lastAvailableMap.get(fav.seriesId) ?? 0;
+    const lastRead = clusterLastRead.get(fav.seriesId) ?? -1;
+    const lastAvail = clusterLastAvail.get(fav.seriesId) ?? 0;
     if (lastRead >= lastAvail && lastAvail > 0) completedSeries++;
   }
 
   let totalPercent = 0;
   let seriesWithProgress = 0;
   for (const fav of favorites) {
-    const lastRead = lastReadMap.get(fav.seriesId) ?? 0;
-    const lastAvail = lastAvailableMap.get(fav.seriesId) ?? 0;
+    const lastRead = clusterLastRead.get(fav.seriesId) ?? 0;
+    const lastAvail = clusterLastAvail.get(fav.seriesId) ?? 0;
     if (lastAvail > 0) {
       totalPercent += Math.min((lastRead / lastAvail) * 100, 100);
       seriesWithProgress++;
@@ -332,7 +368,7 @@ export async function getUserReadingStats(userId) {
   const fallbackCoverMap = await batchResolveFallbackCovers(favSeriesIds);
 
   const continueReading = favorites
-    .filter((fav) => lastReadMap.has(fav.seriesId))
+    .filter((fav) => (clusterReadCount.get(fav.seriesId) ?? 0) > 0)
     .sort((a, b) => {
       const dateA = lastReadDateMap.get(a.seriesId) ?? new Date(0);
       const dateB = lastReadDateMap.get(b.seriesId) ?? new Date(0);
@@ -340,9 +376,9 @@ export async function getUserReadingStats(userId) {
     })
     .slice(0, 6)
     .map((fav) => {
-      const lastRead = lastReadMap.get(fav.seriesId) ?? null;
-      const lastAvail = lastAvailableMap.get(fav.seriesId) ?? null;
-      const readCountForSeries = readCountMap.get(fav.seriesId) ?? 0;
+      const lastRead = clusterLastRead.get(fav.seriesId) ?? null;
+      const lastAvail = clusterLastAvail.get(fav.seriesId) ?? null;
+      const readCountForSeries = clusterReadCount.get(fav.seriesId) ?? 0;
       const totalChapters = lastAvail ?? fav.series.chapterCount;
       const chaptersLeft = totalChapters > 0 ? Math.max(0, totalChapters - readCountForSeries) : null;
 
@@ -448,6 +484,23 @@ export async function getFullStats(userId) {
     chapterMaxGroup.map((g) => [g.seriesId, g._max.number]),
   );
 
+  // Resolver clusters para todos los IDs relevantes
+  const allUniqueIds = [...new Set(allSeriesIds)];
+  const clusterMaxMap = new Map();
+  for (const sid of allUniqueIds) {
+    if (clusterMaxMap.has(sid)) continue;
+    const cluster = await resolveSeriesCluster(sid);
+    const ids = cluster ? cluster.allIds : [sid];
+    let maxNum = 0;
+    for (const id of ids) {
+      const n = lastChapterNumberMap.get(id) ?? 0;
+      if (n > maxNum) maxNum = n;
+    }
+    for (const id of ids) {
+      clusterMaxMap.set(id, maxNum > 0 ? maxNum : null);
+    }
+  }
+
   const totalChaptersRead = reads.length;
   const totalPagesEstimated = totalChaptersRead * 20;
   const estimatedHours = Math.round((totalChaptersRead * 7) / 60);
@@ -457,7 +510,7 @@ export async function getFullStats(userId) {
 
   let completedSeries = 0;
   for (const fav of favorites) {
-    const lastAvail = lastChapterNumberMap.get(fav.seriesId);
+    const lastAvail = clusterMaxMap.get(fav.seriesId);
     if (!lastAvail) continue;
     const lastRead = lastReadMap.get(fav.seriesId) ?? -1;
     if (lastRead >= lastAvail) completedSeries++;
