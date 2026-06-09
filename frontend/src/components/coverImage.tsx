@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { BookOpen, RefreshCw } from "lucide-react";
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 1;
 const RETRY_DELAY = 1500;
+const TIMEOUT_MS = 5000;
+const MIN_IMAGE_SIZE = 100;
 
 interface CoverImageProps {
     src: string | null | undefined;
@@ -36,6 +38,19 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
         const img = new Image();
         img.onload = () => {
             if (loadedRef.current) return;
+            if (img.naturalWidth < MIN_IMAGE_SIZE || img.naturalHeight < MIN_IMAGE_SIZE) {
+                if (retryCountRef.current < MAX_RETRIES) {
+                    retryCountRef.current++;
+                    const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
+                    timerRef.current = setTimeout(() => loadRef.current?.(url), delay);
+                } else if (fallbackSrc && url !== fallbackSrc) {
+                    retryCountRef.current = 0;
+                    setUseFallback(true);
+                } else {
+                    setStatus("error");
+                }
+                return;
+            }
             setStatus("loaded");
             loadedRef.current = true;
             if (imgRef.current) imgRef.current.src = url;
@@ -68,31 +83,45 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
         retryCountRef.current = 0;
         loadedRef.current = false;
 
+        let observer: IntersectionObserver | null = null;
+
+        const load = () => startLoad(currentUrl);
+
         if (priority) {
-            queueMicrotask(() => startLoad(currentUrl));
-            return;
+            queueMicrotask(load);
+        } else {
+            const el = divRef.current;
+            if (!el) return;
+
+            observer = new IntersectionObserver(
+                ([entry]) => {
+                    if (entry.isIntersecting) {
+                        load();
+                        observer?.disconnect();
+                    }
+                },
+                { rootMargin: "200px" },
+            );
+
+            observer.observe(el);
         }
 
-        const el = divRef.current;
-        if (!el) return;
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    startLoad(currentUrl);
-                    observer.disconnect();
-                }
-            },
-            { rootMargin: "200px" },
-        );
-
-        observer.observe(el);
+        const timeoutId = setTimeout(() => {
+            if (loadedRef.current) return;
+            if (fallbackSrc && !useFallback) {
+                retryCountRef.current = 0;
+                setUseFallback(true);
+            } else {
+                setStatus("error");
+            }
+        }, TIMEOUT_MS);
 
         return () => {
-            observer.disconnect();
+            clearTimeout(timeoutId);
+            observer?.disconnect();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [src, useFallback]);
+    }, [src, useFallback, fallbackSrc, priority]);
 
     function handleRetry() {
         if (!src && !fallbackSrc) return;
@@ -133,7 +162,11 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
                 className={`w-full h-full object-cover ${
                     status === "loaded" ? "opacity-100" : "opacity-0"
                 } transition-opacity duration-300`}
-                onLoad={() => {
+                onLoad={(e) => {
+                    const img = e.currentTarget;
+                    if (img.naturalWidth < MIN_IMAGE_SIZE || img.naturalHeight < MIN_IMAGE_SIZE) {
+                        return;
+                    }
                     if (loadedRef.current) return;
                     setStatus("loaded");
                     loadedRef.current = true;

@@ -1,9 +1,30 @@
 import { prisma } from "../config/prisma.js";
 
 export async function createNotification({ userId, type, title, body, data }) {
-    return prisma.notification.create({
+    const notification = await prisma.notification.create({
         data: { userId, type, title, body, data: data ?? undefined },
     });
+
+    try {
+        const { getIO } = await import("../socket/index.js");
+        const io = getIO();
+        io.to(`user:${userId}`).emit("notification:new", {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            body: notification.body,
+            data: notification.data,
+            createdAt: notification.createdAt,
+        });
+        const count = await prisma.notification.count({
+            where: { userId, read: false },
+        });
+        io.to(`user:${userId}`).emit("unread:count", { count });
+    } catch {
+        // Socket.IO no disponible — la notificación ya está en DB
+    }
+
+    return notification;
 }
 
 export async function getNotifications(userId, page = 1, limit = 20) {

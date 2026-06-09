@@ -48,6 +48,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/api/axios";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { isInAppEnabled, setInAppEnabled } from "@/lib/inAppNotifications";
 import { getActivityFeed } from "@/api/friends";
 import type { FriendActivity } from "@/api/friends";
 import { timeAgo } from "@/lib/date";
@@ -778,6 +779,42 @@ function ActivitySection() {
     );
 }
 
+export function InAppNotificationSection() {
+    const [enabled, setEnabled] = useState(() => isInAppEnabled());
+
+    function handleToggle(value: boolean) {
+        setEnabled(value);
+        setInAppEnabled(value);
+    }
+
+    return (
+        <SectionCard accent="cyan" icon={enabled ? Bell : BellOff} title="Notificaciones en la app" description="Recibe avisos visuales de solicitudes, respuestas y más">
+            <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                        <span className={`size-2.5 rounded-full ${enabled ? "bg-emerald-500 shadow-[0_0_6px] shadow-emerald-500/50" : "bg-muted-foreground/30"}`} />
+                        <span className="text-sm font-medium">{enabled ? "Activadas" : "Desactivadas"}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">Este dispositivo</span>
+                </div>
+                <div className="flex justify-end">
+                    {enabled ? (
+                        <Button variant="outline" size="sm" onClick={() => handleToggle(false)}>
+                            <BellOff className="h-4 w-4 mr-2" />
+                            Desactivar
+                        </Button>
+                    ) : (
+                        <Button size="sm" onClick={() => handleToggle(true)}>
+                            <Bell className="h-4 w-4 mr-2" />
+                            Activar notificaciones
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </SectionCard>
+    );
+}
+
 function PrivacySection() {
     const { user } = useAuth();
     const setAuth = useAuthStore((s) => s.setAuth);
@@ -880,6 +917,7 @@ export default function ProfilePage() {
                         <div className="lg:col-span-7 space-y-6">
                             <ProfileSection />
                             <AliasSection />
+                            <InAppNotificationSection />
                             <PrivacySection />
                             <PasswordSection />
                         </div>

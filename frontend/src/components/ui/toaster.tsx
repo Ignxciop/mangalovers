@@ -15,30 +15,30 @@ function Toaster({ ...props }: ToasterProps) {
             position="top-right"
             closeButton
             gap={10}
-            offset={{ right: 20, top: 20 }}
+            offset={{ right: 24, top: 24 }}
             toastOptions={{
-                duration: 3500,
+                duration: 4000,
                 classNames: {
                     toast:
-                        "group toast group-[.toaster]:bg-card group-[.toaster]:text-card-foreground group-[.toaster]:border group-[.toaster]:border-border group-[.toaster]:shadow-lg group-[.toaster]:rounded-lg group-[.toaster]:px-4 group-[.toaster]:py-3 group-[.toaster]:gap-2",
+                        "!bg-card/80 !backdrop-blur-xl !text-foreground !border-l-[3px] !border-l-brand-cyan !shadow-[-4px_0_15px_-5px_var(--brand-cyan),0_8px_32px_-12px_rgba(0,0,0,0.5)] !rounded-xl !px-4 !py-3.5 !gap-3 !border-0 !border-t !border-r !border-b !border-border/40 !animate-fade-in-up",
                     title:
-                        "group-[.toast]:text-sm group-[.toast]:font-semibold group-[.toast]:text-foreground",
+                        "!text-sm !font-semibold !text-foreground !tracking-tight",
                     description:
-                        "group-[.toast]:text-xs group-[.toast]:text-muted-foreground",
+                        "!text-xs !text-muted-foreground !leading-relaxed !mt-0.5",
                     actionButton:
-                        "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground group-[.toast]:rounded-md group-[.toast]:px-3 group-[.toast]:py-1 group-[.toast]:text-xs group-[.toast]:font-medium group-[.toast]:transition-colors group-[.toast]:hover:bg-primary/90",
+                        "!bg-gradient-to-r !from-brand !to-brand-cyan !text-white !rounded-lg !px-3 !py-1.5 !text-xs !font-medium !transition-all hover:!scale-[1.02] active:!scale-[0.98] !shadow-[0_0_12px_-4px_var(--brand-cyan)]",
                     cancelButton:
-                        "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground group-[.toast]:rounded-md group-[.toast]:px-3 group-[.toast]:py-1 group-[.toast]:text-xs group-[.toast]:font-medium group-[.toast]:transition-colors group-[.toast]:hover:bg-accent group-[.toast]:hover:text-accent-foreground",
+                        "!bg-muted/50 !text-muted-foreground !rounded-lg !px-3 !py-1.5 !text-xs !font-medium !transition-all hover:!bg-accent hover:!text-accent-foreground",
                     closeButton:
-                        "group-[.toast]:absolute group-[.toast]:right-2 group-[.toast]:top-2 group-[.toast]:size-5 group-[.toast]:rounded-full group-[.toast]:bg-muted group-[.toast]:text-muted-foreground group-[.toast]:border group-[.toast]:border-border group-[.toast]:flex group-[.toast]:items-center group-[.toast]:justify-center group-[.toast]:transition-colors group-[.toast]:hover:bg-accent group-[.toast]:hover:text-accent-foreground group-[.toast]:[&>svg]:size-3",
-                    icon: "group-[.toast]:m-0",
+                        "!absolute !right-2.5 !top-2.5 !size-5 !rounded-full !bg-muted/40 !text-muted-foreground/60 !flex !items-center !justify-center !transition-all !opacity-0 hover:!opacity-100 hover:!bg-accent/80 hover:!text-accent-foreground [&>svg]:!size-3",
+                    icon: "!m-0",
                 },
             }}
             icons={{
-                success: <CircleCheck className="size-4 text-brand-green" />,
-                error: <CircleX className="size-4 text-destructive" />,
-                warning: <TriangleAlert className="size-4 text-brand-amber" />,
-                info: <Info className="size-4 text-brand" />,
+                success: <CircleCheck className="size-5 text-white" />,
+                error: <CircleX className="size-5 text-white" />,
+                warning: <TriangleAlert className="size-5 text-white" />,
+                info: <Info className="size-5 text-white" />,
             }}
             {...props}
         />

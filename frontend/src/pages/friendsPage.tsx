@@ -470,6 +470,9 @@ function SearchSection() {
 function FriendsList() {
     const [friends, setFriends] = useState<Friend[]>([]);
     const [loading, setLoading] = useState(true);
+    const onlineUserIds = useFriendStore((s) => s.onlineUserIds);
+
+    const isOnline = (userId: string) => onlineUserIds.includes(userId);
 
     const fetch = async () => {
         try {
@@ -533,12 +536,22 @@ function FriendsList() {
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                         {friend.alias ? (
                             <Link to={`/usuario/${friend.alias}`} className="flex items-center gap-3 min-w-0 flex-1">
-                                <FriendAvatar name={friend.name} avatarUrl={friend.avatarUrl} />
+                                <div className="relative shrink-0">
+                                    <FriendAvatar name={friend.name} avatarUrl={friend.avatarUrl} />
+                                    {isOnline(friend.id) && (
+                                        <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-500 border-[2px] border-background shadow-[0_0_6px_-1px] shadow-emerald-400" />
+                                    )}
+                                </div>
                                 <UserInfo name={friend.name} lastname={friend.lastname} alias={friend.alias} />
                             </Link>
                         ) : (
                             <>
-                                <FriendAvatar name={friend.name} avatarUrl={friend.avatarUrl} />
+                                <div className="relative shrink-0">
+                                    <FriendAvatar name={friend.name} avatarUrl={friend.avatarUrl} />
+                                    {isOnline(friend.id) && (
+                                        <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-emerald-500 border-[2px] border-background shadow-[0_0_6px_-1px] shadow-emerald-400" />
+                                    )}
+                                </div>
                                 <UserInfo name={friend.name} lastname={friend.lastname} alias={friend.alias} />
                             </>
                         )}

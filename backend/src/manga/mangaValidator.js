@@ -10,6 +10,7 @@ export const listMangaValidator = [
   query("order").optional().isIn(["asc", "desc"]),
   query("genres").optional().trim(),
   query("type").optional().trim(),
+  query("read").optional().isIn(["", "true", "false"]),
 ];
 
 export const seriesSlugValidator = [

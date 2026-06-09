@@ -6,6 +6,7 @@ import { scrapePages as olympusScrapePages } from "./olympus/pages_scraper.js";
 import { scrapePages as manhwawebScrapePages } from "./manhwaweb/pages_scraper.js";
 import { scrapePages as leermangaespScrapePages } from "./leermangaesp/pages_scraper.js";
 import { getAbortSignal, abortScraper, resetAbortSignal } from "./scraperAbort.js";
+import { emitAdminEvent } from "../../socket/adminEmitter.js";
 import logger from "../../config/logger.js";
 
 const PROVIDER_RUNNERS = {
@@ -50,6 +51,8 @@ async function trackRun(provider, fn, triggeredBy = "cron") {
     data: { provider, status: "running", triggeredBy },
   });
 
+  emitAdminEvent("scraper:started", { provider, triggeredBy, runId: run.id });
+
   try {
     const before = await snapshotCounts();
     await fn();
@@ -68,6 +71,13 @@ async function trackRun(provider, fn, triggeredBy = "cron") {
       },
     });
 
+    emitAdminEvent("scraper:completed", {
+      provider,
+      runId: run.id,
+      status: aborted ? "cancelled" : "success",
+      chaptersAdded: Math.max(0, after.chapters - before.chapters),
+    });
+
     logger.info({ provider, id: run.id, status: aborted ? "cancelled" : "success" }, "ScraperRun finalizado");
   } catch (error) {
     await prisma.scraperRun.update({
@@ -78,6 +88,12 @@ async function trackRun(provider, fn, triggeredBy = "cron") {
         errorMessage: error.message.slice(0, 500),
         errors: 1,
       },
+    });
+
+    emitAdminEvent("scraper:error", {
+      provider,
+      runId: run.id,
+      error: error.message,
     });
 
     logger.error({ provider, id: run.id, err: error.message }, "ScraperRun falló");

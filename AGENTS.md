@@ -53,6 +53,10 @@ Load ALL skills from ALL applicable groups.
 | 6 | Lint: `pnpm lint` = `eslint .` (backend + frontend) |
 | 7 | No `text-[10px]` or `text-[11px]` in admin pages — use `text-xs` minimum |
 | 8 | Admin pages layout: `min-h-screen bg-background flex flex-col overflow-x-hidden` (root), `container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0` (`<main>`) |
+| 9 | Scrapers: incremental — never iterate all chapters/series. Use `MAX_CONSECUTIVE_EXISTING = 10` to stop iteration when existing chapters are found. |
+| 10 | Image fallback transparente: `chapterImage.tsx` usa IntersectionObserver + `loading="lazy"` nativo. `chapterReader.tsx` usa `fallbackPages` por defecto cuando existe. `coverImage.tsx` con `MAX_RETRIES=1`, `TIMEOUT_MS=5000`, `MIN_IMAGE_SIZE=100`. Sin banners ni botones de cambio de proveedor visibles al usuario. |
+| 11 | Backend: Validators en archivos separados (`*.validation.js`), usan `express-validator` con `body()`, `param()`, `query()`. NO validación en controllers. |
+| 12 | Series cluster: `resolveSeriesCluster()` busca recursivamente todos los miembros. `getAllManga`/`getLatestManga` expanden cluster IDs. `normalizeFavoriteCluster` mapea al primario. |
 
 ---
 

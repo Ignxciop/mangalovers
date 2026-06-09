@@ -4,7 +4,9 @@ import { RefreshCw, AlertCircle } from "lucide-react";
 
 const MAX_RETRIES = 1;
 const RETRY_DELAY = 1500;
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 8000;
+const MIN_IMAGE_SIZE = 100;
+const IO_ROOT_MARGIN = "400px";
 
 interface ChapterImageProps {
     src: string;
@@ -14,31 +16,58 @@ interface ChapterImageProps {
 }
 
 function ChapterImageInner({ src, alt, onLoad, onAllRetriesFailed }: ChapterImageProps) {
+    const [inView, setInView] = useState(false);
     const [loaded, setLoaded] = useState(false);
     const [errored, setErrored] = useState(false);
-    const [currentSrc, setCurrentSrc] = useState(src);
+    const [currentSrc, setCurrentSrc] = useState<string | null>(null);
     const retryRef = useRef(0);
     const settledRef = useRef(false);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    const handleLoad = useCallback(() => {
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setInView(true);
+                    setCurrentSrc(src);
+                    observer.disconnect();
+                }
+            },
+            { rootMargin: IO_ROOT_MARGIN },
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [src]);
+
+    const handleLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+        const img = e.currentTarget;
+        if (img.naturalWidth < MIN_IMAGE_SIZE || img.naturalHeight < MIN_IMAGE_SIZE) {
+            if (settledRef.current) return;
+            settledRef.current = true;
+            setErrored(true);
+            onAllRetriesFailed?.();
+            return;
+        }
         if (settledRef.current) return;
         settledRef.current = true;
         setLoaded(true);
         setErrored(false);
         onLoad?.();
-    }, [onLoad]);
+    }, [onLoad, onAllRetriesFailed]);
 
     const doRetry = useCallback(() => {
         retryRef.current++;
         settledRef.current = false;
         setErrored(false);
         setLoaded(false);
-        const busted = currentSrc.includes("?")
-            ? currentSrc + "&_retry=" + retryRef.current
-            : currentSrc + "?_retry=" + retryRef.current;
+        const busted = (currentSrc ?? src).includes("?")
+            ? (currentSrc ?? src) + "&_retry=" + retryRef.current
+            : (currentSrc ?? src) + "?_retry=" + retryRef.current;
         setCurrentSrc(busted);
-    }, [currentSrc]);
+    }, [currentSrc, src]);
 
     const handleError = useCallback(() => {
         if (settledRef.current) return;
@@ -53,7 +82,7 @@ function ChapterImageInner({ src, alt, onLoad, onAllRetriesFailed }: ChapterImag
     }, [doRetry, onAllRetriesFailed]);
 
     useEffect(() => {
-        if (loaded || errored) return;
+        if (!currentSrc || loaded || errored) return;
         const timeoutId = setTimeout(() => {
             if (!settledRef.current) {
                 handleError();
@@ -72,7 +101,7 @@ function ChapterImageInner({ src, alt, onLoad, onAllRetriesFailed }: ChapterImag
 
     if (errored) {
         return (
-            <div className="w-full aspect-[3/4] flex flex-col items-center justify-center gap-3 bg-accent/20 rounded-none">
+            <div ref={containerRef} className="w-full aspect-[3/4] flex flex-col items-center justify-center gap-3 bg-accent/20 rounded-none">
                 <AlertCircle className="h-6 w-6 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">
                     Error al cargar
@@ -88,15 +117,22 @@ function ChapterImageInner({ src, alt, onLoad, onAllRetriesFailed }: ChapterImag
         );
     }
 
+    if (!inView) {
+        return (
+            <div ref={containerRef} className="w-full">
+                <Skeleton className="w-full aspect-[3/4] rounded-none" />
+            </div>
+        );
+    }
+
     return (
-        <div className="w-full relative">
+        <div ref={containerRef} className="w-full relative">
             {!loaded && (
                 <Skeleton className="w-full aspect-[3/4] rounded-none" />
             )}
             <img
-                src={currentSrc}
+                src={currentSrc!}
                 alt={alt}
-                loading="lazy"
                 className="w-full select-none block"
                 style={{ visibility: loaded ? "visible" : "hidden" }}
                 onLoad={handleLoad}

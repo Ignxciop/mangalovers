@@ -1,5 +1,6 @@
 import { config } from "./src/config/env.js";
 import express from "express";
+import http from "node:http";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -12,6 +13,7 @@ import authRoutes from "./src/auth/authRoutes.js";
 import mangaRoutes from "./src/manga/mangaRoutes.js";
 import favoriteRoutes from "./src/favorite/favoriteRoutes.js";
 import readRoutes from "./src/read/readRoutes.js";
+import { initSocket } from "./src/socket/index.js";
 import { initScraperCron } from "./src/jobs/scraperCron.js";
 import { initCleanupCron } from "./src/jobs/cleanupCron.js";
 import { seedProviders } from "./src/scripts/seed.js";
@@ -32,6 +34,7 @@ import { ActivityLogService } from "./src/activityLog/activityLogService.js";
 import { prisma } from "./src/config/prisma.js";
 
 const app = express();
+const server = http.createServer(app);
 const PORT = config.PORT;
 
 app.set("trust proxy", 1);
@@ -200,7 +203,9 @@ async function startServer() {
         logger.warn({ err: e.message }, "Tabla user_activities NO accesible - revisar migraciones");
     }
 
-    app.listen(PORT, () => {
+    initSocket(server);
+
+    server.listen(PORT, () => {
         logger.info({ port: PORT }, "Servidor corriendo");
     });
 
