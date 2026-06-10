@@ -274,19 +274,54 @@ export async function getUserReadingStats(userId) {
     return buildEmptyStats(totalChaptersRead);
   }
 
-  const favSeriesIds = favorites.map((f) => f.seriesId);
-
-  // Resolver clusters para TODOS los favoritos de una vez y obtener
-  // todos los IDs del cluster para consultar chapter groupBy
-  const allClusterIds = new Set(favSeriesIds);
-  const clusterMembership = new Map(); // seriesId → allIds del cluster
+  // Normalizar clusters: si varios favoritos pertenecen al mismo cluster,
+  // solo mantener el primario para evitar duplicados en continueReading.
+  const clusterResults = new Map();
+  const allClusterIds = new Set();
   for (const fav of favorites) {
     const sid = fav.seriesId;
-    if (clusterMembership.has(sid)) continue;
+    if (clusterResults.has(sid)) continue;
     const cluster = await resolveSeriesCluster(sid);
-    const ids = cluster ? cluster.allIds : [sid];
-    clusterMembership.set(sid, ids);
-    for (const id of ids) allClusterIds.add(id);
+    clusterResults.set(sid, cluster);
+    if (cluster) {
+      for (const id of cluster.allIds) allClusterIds.add(id);
+      // También indexar por primary y todos los miembros para búsqueda rápida
+      clusterResults.set(cluster.primary.id, cluster);
+      for (const id of cluster.allIds) {
+        if (!clusterResults.has(id)) clusterResults.set(id, cluster);
+      }
+    } else {
+      allClusterIds.add(sid);
+    }
+  }
+
+  const normalizedFavorites = [];
+  const seenClusters = new Set();
+  for (const fav of favorites) {
+    const cluster = clusterResults.get(fav.seriesId);
+    const primaryId = cluster?.primary?.id ?? fav.seriesId;
+    if (seenClusters.has(primaryId)) continue;
+    seenClusters.add(primaryId);
+    if (fav.seriesId === primaryId) {
+      normalizedFavorites.push(fav);
+    } else {
+      normalizedFavorites.push({
+        ...fav,
+        seriesId: primaryId,
+        series: { ...fav.series, id: cluster.primary.id, slug: cluster.primary.slug, name: cluster.primary.name },
+      });
+    }
+  }
+
+  const favSeriesIds = normalizedFavorites.map((f) => f.seriesId);
+
+  // Construir clusterMembership: seriesId → allIds del cluster
+  const clusterMembership = new Map();
+  for (const fav of normalizedFavorites) {
+    const sid = fav.seriesId;
+    if (clusterMembership.has(sid)) continue;
+    const cluster = clusterResults.get(sid);
+    clusterMembership.set(sid, cluster ? cluster.allIds : [sid]);
   }
 
   const allClusterIdArray = [...allClusterIds];
@@ -332,7 +367,7 @@ export async function getUserReadingStats(userId) {
   const clusterLastAvail = new Map();
   const clusterReadCount = new Map();
   const clusterLastRead = new Map();
-  for (const fav of favorites) {
+  for (const fav of normalizedFavorites) {
     const sid = fav.seriesId;
     if (clusterLastAvail.has(sid)) continue;
 
@@ -367,7 +402,7 @@ export async function getUserReadingStats(userId) {
   }
 
   let completedSeries = 0;
-  for (const fav of favorites) {
+  for (const fav of normalizedFavorites) {
     const lastRead = clusterLastRead.get(fav.seriesId) ?? -1;
     const lastAvail = clusterLastAvail.get(fav.seriesId) ?? 0;
     if (lastRead >= lastAvail && lastAvail > 0) completedSeries++;
@@ -375,7 +410,7 @@ export async function getUserReadingStats(userId) {
 
   let totalPercent = 0;
   let seriesWithProgress = 0;
-  for (const fav of favorites) {
+  for (const fav of normalizedFavorites) {
     const lastRead = clusterLastRead.get(fav.seriesId) ?? 0;
     const lastAvail = clusterLastAvail.get(fav.seriesId) ?? 0;
     if (lastAvail > 0) {
@@ -387,7 +422,7 @@ export async function getUserReadingStats(userId) {
 
   const fallbackCoverMap = await batchResolveFallbackCovers(favSeriesIds);
 
-  const continueReading = favorites
+  const continueReading = normalizedFavorites
     .filter((fav) => (clusterReadCount.get(fav.seriesId) ?? 0) > 0)
     .sort((a, b) => {
       const dateA = lastReadDateMap.get(a.seriesId) ?? new Date(0);
@@ -422,7 +457,7 @@ export async function getUserReadingStats(userId) {
 
   return {
     totalChaptersRead,
-    totalSeries: favorites.length,
+    totalSeries: normalizedFavorites.length,
     completedSeries,
     completionPercent,
     estimatedHours: Math.round((totalChaptersRead * 7) / 60),
