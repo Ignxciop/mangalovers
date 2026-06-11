@@ -119,57 +119,20 @@ describe("AdminSeriesService.createRelation", () => {
     await expect(AdminSeriesService.createRelation(1, 2)).rejects.toThrow("La relación ya existe");
   });
 
-  it("crea relacion y migra favoritos/lecturas/progreso del fallback al primary", async () => {
-    const tx = {
-      seriesRelation: { create: vi.fn().mockResolvedValue({ id: 1 }) },
-      userFavorite: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
-      userChapterRead: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
-      userChapterProgress: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
-      chapter: { findMany: vi.fn() },
-    };
+  it("crea relacion sin migrar datos (cluster maneja dinámicamente)", async () => {
+    mockCreate.mockResolvedValue({ id: 1 });
+    mockUpdate.mockResolvedValue(undefined);
 
     mockFindUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 1, name: "Primary" });
-
-    tx.userFavorite.findMany.mockResolvedValue([
-      { userId: "u1", status: "Siguiendo" },
-    ]);
-    tx.chapter.findMany.mockResolvedValue([
-      { id: 10, name: "1" },
-      { id: 11, name: "2" },
-    ]);
-    tx.chapter.findMany.mockResolvedValueOnce([
-      { id: 10, name: "1" },
-      { id: 11, name: "2" },
-    ]);
-    tx.chapter.findMany.mockResolvedValueOnce([
-      { id: 100, name: "1" },
-      { id: 101, name: "2" },
-    ]);
-    tx.userChapterRead.findMany.mockResolvedValue([
-      { userId: "u1", chapterId: 10 },
-    ]);
-    tx.userChapterProgress.findMany.mockResolvedValue([
-      { userId: "u1", chapterId: 10, pageNumber: 5, percentage: 50 },
-    ]);
-
-    prisma.$transaction.mockImplementation(async (cb) => cb(tx));
-
-    mockFindUnique.mockReset();
-    mockFindUnique
-      .mockResolvedValueOnce(null)  // existing check
-      .mockResolvedValueOnce({ id: 1, name: "Primary" });  // series info
+      .mockResolvedValueOnce(null)        // existing relation check
+      .mockResolvedValueOnce(null);        // primary has no cover (null)
 
     const result = await AdminSeriesService.createRelation(1, 2);
 
-    expect(result).toBeDefined();
-    expect(tx.userFavorite.upsert).toHaveBeenCalled();
-    expect(tx.userChapterRead.upsert).toHaveBeenCalled();
-    expect(tx.userChapterProgress.upsert).toHaveBeenCalled();
-    expect(tx.userFavorite.deleteMany).not.toHaveBeenCalled();
-    expect(tx.userChapterRead.deleteMany).not.toHaveBeenCalled();
-    expect(tx.userChapterProgress.deleteMany).not.toHaveBeenCalled();
+    expect(result).toEqual({ id: 1 });
+    expect(mockCreate).toHaveBeenCalledWith({
+      data: { primarySeriesId: 1, fallbackSeriesId: 2 },
+    });
   });
 
   it("no migra lecturas si los nombres de capitulos no coinciden", async () => {
