@@ -159,6 +159,7 @@ describe("GET /api/reads/stats", () => {
         const series = await createSeries();
         const ch1 = await createChapter(series.id, { name: "1" });
         const ch2 = await createChapter(series.id, { name: "2" });
+        const ch3 = await createChapter(series.id, { name: "3" });
 
         await prisma.userFavorite.create({
             data: { userId: user.id, seriesId: series.id, status: "Siguiendo" },
@@ -179,6 +180,7 @@ describe("GET /api/reads/stats", () => {
         expect(res.body.totalSeries).toBe(1);
         expect(res.body.continueReading).toHaveLength(1);
         expect(res.body.continueReading[0].id).toBe(series.id);
+        expect(res.body.continueReading[0].chaptersLeft).toBe(1);
     });
 });
 
