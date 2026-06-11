@@ -101,21 +101,19 @@ export async function getReadChapterIds(userId, seriesId) {
     }
   }
 
-  // 2. Propagación por número: por cada serie del cluster, si el usuario
-  //    avanzó hasta cierto número en ESA serie, marcar capítulos ≤ a ese
-  //    máximo en la MISMA serie. Esto evita que desmarcar en una serie
-  //    sea anulado por registros de otra serie del cluster.
-  const maxBySeries = new Map();
+  // 2. Propagación por número en TODO el cluster: si el usuario avanzó hasta
+  //    cierto número en CUALQUIER miembro del cluster, marcar capítulos ≤ a
+  //    ese máximo en TODOS los miembros. Esto es correcto porque
+  //    unmarkChaptersFrom borra lecturas en todos los miembros del cluster.
+  let globalMaxRead = 0;
   for (const r of reads) {
-    const sid = r.chapter.seriesId;
-    if (r.chapter.number && r.chapter.number > (maxBySeries.get(sid) ?? 0)) {
-      maxBySeries.set(sid, r.chapter.number);
+    if (r.chapter.number && r.chapter.number > globalMaxRead) {
+      globalMaxRead = r.chapter.number;
     }
   }
-  if (maxBySeries.size > 0) {
+  if (globalMaxRead > 0) {
     for (const ch of allChapters) {
-      const max = maxBySeries.get(ch.seriesId) ?? 0;
-      if (ch.number && ch.number <= max) {
+      if (ch.number && ch.number <= globalMaxRead) {
         result.add(ch.id);
       }
     }
@@ -141,10 +139,13 @@ export async function markChaptersUntil(userId, chapterId) {
 
   if (!target) throw new NotFoundError("Chapter not found");
 
+  const cluster = await resolveSeriesCluster(target.seriesId);
+  const seriesIds = cluster ? cluster.allIds : [target.seriesId];
+
   const [chapters, series] = await Promise.all([
     prisma.chapter.findMany({
-      where: { seriesId: target.seriesId, number: { lte: target.number } },
-      select: { id: true, name: true },
+      where: { seriesId: { in: seriesIds }, number: { lte: target.number, not: null } },
+      select: { id: true, name: true, seriesId: true },
       orderBy: { number: "asc" },
     }),
     prisma.series.findUnique({
@@ -156,7 +157,7 @@ export async function markChaptersUntil(userId, chapterId) {
   if (chapters.length === 0) return { updated: 0, seriesId: target.seriesId, seriesName: series?.name, newChapters: [] };
 
   const existing = await prisma.userChapterRead.findMany({
-    where: { userId, chapter: { seriesId: target.seriesId } },
+    where: { userId, chapter: { seriesId: { in: seriesIds } } },
     select: { chapterId: true },
   });
 
@@ -274,19 +275,54 @@ export async function getUserReadingStats(userId) {
     return buildEmptyStats(totalChaptersRead);
   }
 
-  const favSeriesIds = favorites.map((f) => f.seriesId);
-
-  // Resolver clusters para TODOS los favoritos de una vez y obtener
-  // todos los IDs del cluster para consultar chapter groupBy
-  const allClusterIds = new Set(favSeriesIds);
-  const clusterMembership = new Map(); // seriesId → allIds del cluster
+  // Normalizar clusters: si varios favoritos pertenecen al mismo cluster,
+  // solo mantener el primario para evitar duplicados en continueReading.
+  const clusterResults = new Map();
+  const allClusterIds = new Set();
   for (const fav of favorites) {
     const sid = fav.seriesId;
-    if (clusterMembership.has(sid)) continue;
+    if (clusterResults.has(sid)) continue;
     const cluster = await resolveSeriesCluster(sid);
-    const ids = cluster ? cluster.allIds : [sid];
-    clusterMembership.set(sid, ids);
-    for (const id of ids) allClusterIds.add(id);
+    clusterResults.set(sid, cluster);
+    if (cluster) {
+      for (const id of cluster.allIds) allClusterIds.add(id);
+      // También indexar por primary y todos los miembros para búsqueda rápida
+      clusterResults.set(cluster.primary.id, cluster);
+      for (const id of cluster.allIds) {
+        if (!clusterResults.has(id)) clusterResults.set(id, cluster);
+      }
+    } else {
+      allClusterIds.add(sid);
+    }
+  }
+
+  const normalizedFavorites = [];
+  const seenClusters = new Set();
+  for (const fav of favorites) {
+    const cluster = clusterResults.get(fav.seriesId);
+    const primaryId = cluster?.primary?.id ?? fav.seriesId;
+    if (seenClusters.has(primaryId)) continue;
+    seenClusters.add(primaryId);
+    if (fav.seriesId === primaryId) {
+      normalizedFavorites.push(fav);
+    } else {
+      normalizedFavorites.push({
+        ...fav,
+        seriesId: primaryId,
+        series: { ...fav.series, id: cluster.primary.id, slug: cluster.primary.slug, name: cluster.primary.name, cover: cluster.primary.cover },
+      });
+    }
+  }
+
+  const favSeriesIds = normalizedFavorites.map((f) => f.seriesId);
+
+  // Construir clusterMembership: seriesId → allIds del cluster
+  const clusterMembership = new Map();
+  for (const fav of normalizedFavorites) {
+    const sid = fav.seriesId;
+    if (clusterMembership.has(sid)) continue;
+    const cluster = clusterResults.get(sid);
+    clusterMembership.set(sid, cluster ? cluster.allIds : [sid]);
   }
 
   const allClusterIdArray = [...allClusterIds];
@@ -342,7 +378,7 @@ export async function getUserReadingStats(userId) {
   const clusterChapterCount = new Map();
   const clusterReadCount = new Map();
   const clusterLastRead = new Map();
-  for (const fav of favorites) {
+  for (const fav of normalizedFavorites) {
     const sid = fav.seriesId;
     if (clusterLastAvail.has(sid)) continue;
 
@@ -358,14 +394,14 @@ export async function getUserReadingStats(userId) {
       if (n > maxNum) maxNum = n;
       for (const r of readDetails) {
         if (r.chapter.seriesId === id && r.chapter.number != null) {
-          uniqueReadNumbers.add(r.chapter.number);
+          if (Number.isInteger(r.chapter.number)) uniqueReadNumbers.add(r.chapter.number);
           if (maxLastRead == null || r.chapter.number > maxLastRead) maxLastRead = r.chapter.number;
         }
       }
     }
     // Recolectar números únicos de TODOS los capítulos del cluster
     for (const ch of allChapterNumbers) {
-      if (idSet.has(ch.seriesId)) totalNumbers.add(ch.number);
+      if (idSet.has(ch.seriesId) && Number.isInteger(ch.number)) totalNumbers.add(ch.number);
     }
 
     clusterLastAvail.set(sid, maxNum > 0 ? maxNum : null);
@@ -384,7 +420,7 @@ export async function getUserReadingStats(userId) {
   }
 
   let completedSeries = 0;
-  for (const fav of favorites) {
+  for (const fav of normalizedFavorites) {
     const lastRead = clusterLastRead.get(fav.seriesId) ?? -1;
     const lastAvail = clusterLastAvail.get(fav.seriesId) ?? 0;
     if (lastRead >= lastAvail && lastAvail > 0) completedSeries++;
@@ -392,7 +428,7 @@ export async function getUserReadingStats(userId) {
 
   let totalPercent = 0;
   let seriesWithProgress = 0;
-  for (const fav of favorites) {
+  for (const fav of normalizedFavorites) {
     const lastRead = clusterLastRead.get(fav.seriesId) ?? 0;
     const lastAvail = clusterLastAvail.get(fav.seriesId) ?? 0;
     if (lastAvail > 0) {
@@ -404,8 +440,15 @@ export async function getUserReadingStats(userId) {
 
   const fallbackCoverMap = await batchResolveFallbackCovers(favSeriesIds);
 
-  const continueReading = favorites
-    .filter((fav) => (clusterReadCount.get(fav.seriesId) ?? 0) > 0)
+  const continueReading = normalizedFavorites
+    .filter((fav) => {
+      const readCount = clusterReadCount.get(fav.seriesId) ?? 0;
+      if (readCount <= 0) return false;
+      const lastAvail = clusterLastAvail.get(fav.seriesId) ?? null;
+      const totalCh = clusterChapterCount.get(fav.seriesId) ?? lastAvail ?? fav.series.chapterCount;
+      const chaptersLeft = totalCh != null && totalCh > 0 ? Math.max(0, totalCh - readCount) : null;
+      return chaptersLeft !== null && chaptersLeft > 0;
+    })
     .sort((a, b) => {
       const dateA = lastReadDateMap.get(a.seriesId) ?? new Date(0);
       const dateB = lastReadDateMap.get(b.seriesId) ?? new Date(0);
@@ -439,7 +482,7 @@ export async function getUserReadingStats(userId) {
 
   return {
     totalChaptersRead,
-    totalSeries: favorites.length,
+    totalSeries: normalizedFavorites.length,
     completedSeries,
     completionPercent,
     estimatedHours: Math.round((totalChaptersRead * 7) / 60),

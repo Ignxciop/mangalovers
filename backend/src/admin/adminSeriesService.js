@@ -1,7 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import logger from "../config/logger.js";
 import { mergeSeries } from "../manga/scrapers/duplicateSeries.js";
-import { createNotification } from "../notifications/notificationService.js";
 import { updateSeriesMetadata } from "../manga/scrapers/updateSeriesMetadata.js";
 
 export class AdminSeriesService {
@@ -141,141 +140,30 @@ export class AdminSeriesService {
       throw error;
     }
 
-    const relation = await prisma.$transaction(async (tx) => {
-      const rel = await tx.seriesRelation.create({
-        data: { primarySeriesId, fallbackSeriesId },
-      });
-
-      const affectedUserIds = new Set();
-
-      // Migrar favoritos del fallback al primary
-      const fallbackFavs = await tx.userFavorite.findMany({
-        where: { seriesId: fallbackSeriesId },
-        select: { userId: true, status: true },
-      });
-
-      for (const fav of fallbackFavs) {
-        affectedUserIds.add(fav.userId);
-        await tx.userFavorite.upsert({
-          where: {
-            userId_seriesId: { userId: fav.userId, seriesId: primarySeriesId },
-          },
-          create: { userId: fav.userId, seriesId: primarySeriesId, status: fav.status },
-          update: { status: fav.status },
-        });
-      }
-
-      // NO eliminar datos originales del fallback para preservarlos al desvincular
-
-      // Mapa de capítulos del fallback → nombre
-      const fallbackChapters = await tx.chapter.findMany({
-        where: { seriesId: fallbackSeriesId },
-        select: { id: true, name: true },
-      });
-
-      const fallbackChapterNames = new Map(
-        fallbackChapters.map((c) => [c.name, c.id]),
-      );
-      const names = [...fallbackChapterNames.keys()];
-
-      // Batch: buscar capítulos del primary que coincidan por nombre
-      const primaryChapters = names.length > 0
-        ? await tx.chapter.findMany({
-            where: { seriesId: primarySeriesId, name: { in: names } },
-            select: { id: true, name: true },
-          })
-        : [];
-
-      const nameToPrimaryChapter = new Map(
-        primaryChapters.map((c) => [c.name, c.id]),
-      );
-
-      // Migrar lecturas
-      const readsToMigrate = await tx.userChapterRead.findMany({
-        where: { chapter: { seriesId: fallbackSeriesId } },
-        select: { userId: true, chapterId: true },
-      });
-
-      for (const read of readsToMigrate) {
-        affectedUserIds.add(read.userId);
-
-        const fallbackCh = fallbackChapters.find(
-          (c) => c.id === read.chapterId,
-        );
-        if (!fallbackCh) continue;
-
-        const primaryChapterId = nameToPrimaryChapter.get(fallbackCh.name);
-        if (!primaryChapterId) continue;
-
-        await tx.userChapterRead.upsert({
-          where: {
-            userId_chapterId: {
-              userId: read.userId,
-              chapterId: primaryChapterId,
-            },
-          },
-          create: { userId: read.userId, chapterId: primaryChapterId },
-          update: {},
-        });
-      }
-
-      // NO eliminar lecturas originales del fallback
-
-      // Migrar progreso
-      const progressToMigrate = await tx.userChapterProgress.findMany({
-        where: { chapter: { seriesId: fallbackSeriesId } },
-        select: {
-          userId: true, chapterId: true, pageNumber: true, percentage: true,
-        },
-      });
-
-      for (const prog of progressToMigrate) {
-        const fallbackCh = fallbackChapters.find(
-          (c) => c.id === prog.chapterId,
-        );
-        if (!fallbackCh) continue;
-
-        const primaryChapterId = nameToPrimaryChapter.get(fallbackCh.name);
-        if (!primaryChapterId) continue;
-
-        await tx.userChapterProgress.upsert({
-          where: {
-            userId_chapterId: {
-              userId: prog.userId,
-              chapterId: primaryChapterId,
-            },
-          },
-          create: {
-            userId: prog.userId,
-            chapterId: primaryChapterId,
-            pageNumber: prog.pageNumber,
-            percentage: prog.percentage,
-          },
-          update: {},
-        });
-      }
-
-      // NO eliminar progreso original del fallback
-
-      return { rel, userIds: [...affectedUserIds] };
+    const rel = await prisma.seriesRelation.create({
+      data: { primarySeriesId, fallbackSeriesId },
     });
 
-    // Notificar a los usuarios afectados
-    if (relation.userIds.length > 0) {
+    // Copiar cover del fallback al primary si el primary no tiene cover
+    try {
       const primary = await prisma.series.findUnique({
         where: { id: primarySeriesId },
-        select: { name: true, slug: true },
+        select: { cover: true },
       });
-
-      for (const userId of relation.userIds) {
-        createNotification({
-          userId,
-          type: "SERIES_RELATION",
-          title: "Serie vinculada",
-          body: `"${primary.name}" ahora agrupa contenido de múltiples fuentes`,
-          data: { primarySeriesId, fallbackSeriesId, slug: primary.slug },
-        }).catch((err) => logger.warn({ err }, "Error creando notificación de vinculación"));
+      if (!primary.cover) {
+        const fallback = await prisma.series.findUnique({
+          where: { id: fallbackSeriesId },
+          select: { cover: true },
+        });
+        if (fallback.cover) {
+          await prisma.series.update({
+            where: { id: primarySeriesId },
+            data: { cover: fallback.cover },
+          });
+        }
       }
+    } catch (coverErr) {
+      logger.warn({ primarySeriesId, fallbackSeriesId, err: coverErr.message }, "Error copiando cover en vinculación");
     }
 
     try {
@@ -289,7 +177,7 @@ export class AdminSeriesService {
       "SeriesRelation creada desde admin",
     );
 
-    return relation.rel;
+    return rel;
   }
 
   static async deleteRelation(id) {
@@ -303,7 +191,14 @@ export class AdminSeriesService {
       throw error;
     }
 
+    const { primarySeriesId } = relation;
     await prisma.seriesRelation.delete({ where: { id } });
+
+    try {
+      await updateSeriesMetadata(primarySeriesId);
+    } catch (metaErr) {
+      logger.warn({ primarySeriesId, err: metaErr.message }, "Error actualizando metadata tras desvincular");
+    }
 
     logger.info({ relationId: id }, "SeriesRelation eliminada desde admin");
   }

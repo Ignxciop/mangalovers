@@ -402,6 +402,7 @@ export default function Home() {
                                 stats && (
                                     <ContinueReadingSection
                                         items={stats.continueReading}
+                                        allUpToDate={stats.totalSeries > 0 && stats.continueReading.length === 0}
                                     />
                                 )
                             )}

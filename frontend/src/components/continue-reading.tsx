@@ -112,8 +112,10 @@ const ContinueItem = memo(function ContinueItem({
 
 export function ContinueReadingSection({
     items,
+    allUpToDate = false,
 }: {
     items: ContinueReadingItem[];
+    allUpToDate?: boolean;
 }) {
     const navigate = useNavigate();
     const isMobile = useSmBreakpoint();
@@ -133,17 +135,31 @@ export function ContinueReadingSection({
                     </h2>
                 </div>
                 <div className="flex flex-col items-center justify-center py-10 gap-3 rounded-xl border border-dashed border-border text-center">
-                    <BookMarked className="h-8 w-8 text-muted-foreground/30" />
-                    <p className="text-sm text-muted-foreground">
-                        Aún no has empezado a leer ninguna serie
-                    </p>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate("/mangas")}
-                    >
-                        Explorar catálogo
-                    </Button>
+                    {allUpToDate ? (
+                        <>
+                            <PlayCircle className="h-8 w-8 text-emerald-500/40" />
+                            <p className="text-sm text-emerald-500/80 font-medium">
+                                ¡Todas las series están al día!
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Vuelve cuando haya nuevos capítulos
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <BookMarked className="h-8 w-8 text-muted-foreground/30" />
+                            <p className="text-sm text-muted-foreground">
+                                Aún no has empezado a leer ninguna serie
+                            </p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate("/mangas")}
+                            >
+                                Explorar catálogo
+                            </Button>
+                        </>
+                    )}
                 </div>
             </section>
         );
