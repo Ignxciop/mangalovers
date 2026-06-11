@@ -57,16 +57,21 @@ Load ALL skills from ALL applicable groups.
 | 10 | Image fallback transparente: `chapterImage.tsx` usa IntersectionObserver + `loading="lazy"` nativo. `chapterReader.tsx` usa `fallbackPages` por defecto cuando existe. `coverImage.tsx` con `MAX_RETRIES=1`, `TIMEOUT_MS=5000`, `MIN_IMAGE_SIZE=100`. Sin banners ni botones de cambio de proveedor visibles al usuario. |
 | 11 | Backend: Validators en archivos separados (`*.validation.js`), usan `express-validator` con `body()`, `param()`, `query()`. NO validación en controllers. |
 | 12 | Series cluster: `resolveSeriesCluster()` busca recursivamente todos los miembros. `getAllManga`/`getLatestManga` expanden cluster IDs. `normalizeFavoriteCluster` mapea al primario. |
+| 13 | **SIN PERMISO DIRECTO DEL USUARIO, ESTÁ PROHIBIDO:** crear commits, crear ramas, hacer push, hacer pull, hacer merge, rebase, stash, cherry-pick, checkout a otra rama, ni ninguna operación que modifique el historial de git o cambie de rama. |
+| 14 | **SIN PERMISO DIRECTO DEL USUARIO, ESTÁ PROHIBIDO:** editar archivos de configuración, dependencias (`package.json`, `pnpm-lock.yaml`), archivos sensibles (`.env*`, secretos), ni borrar archivos. |
+| 15 | Cualquier cambio que involucre git (commits, branches, push, checkout) debe ser explícitamente autorizado por el usuario en el mismo mensaje. "Sigue", "adelante", "ok" o asentir no constituye permiso. |
 
 ---
 
 ## [GIT RULES]
 
 ```
-Branch per change. Never on main.
-feat/ | fix/ | refactor/ | ci/
-Create from main → PR to staging → CI → Promote to main → Delete branch
-Commit in Spanish, informal.
+SIN PERMISO EXPLÍCITO DEL USUARIO, NO SE REALIZA NINGUNA OPERACIÓN DE GIT.
+Cuando el usuario autorice:
+  - Branch per change. Never on main.
+  - feat/ | fix/ | refactor/ | ci/
+  - Create from main → PR to staging → CI → Promote to main → Delete branch
+  - Commit in Spanish, informal.
 ```
 
 Details: `/docs/workflows/git-workflow.md`

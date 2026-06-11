@@ -59,6 +59,7 @@ model User {
   alias             String?   @unique
   aliasChanged      Boolean   @default(false)
   profileVisibility ProfileVisibility @default(PUBLIC)
+  hideOnline        Boolean           @default(false)
   lastLoginAt       DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt

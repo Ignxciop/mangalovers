@@ -50,6 +50,7 @@ export const updateProfileValidator = [
   body("lastname").optional().trim().isLength({ min: 2, max: 100 }),
   body("email").optional().isEmail().normalizeEmail(),
   body("profileVisibility").optional().isIn(["PUBLIC", "FRIENDS", "PRIVATE"]).withMessage("Visibilidad inválida"),
+  body("hideOnline").optional().isBoolean().withMessage("hideOnline debe ser booleano"),
 ];
 
 export const updatePasswordValidator = [
