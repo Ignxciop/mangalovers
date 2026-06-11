@@ -101,21 +101,19 @@ export async function getReadChapterIds(userId, seriesId) {
     }
   }
 
-  // 2. Propagación por número: por cada serie del cluster, si el usuario
-  //    avanzó hasta cierto número en ESA serie, marcar capítulos ≤ a ese
-  //    máximo en la MISMA serie. Esto evita que desmarcar en una serie
-  //    sea anulado por registros de otra serie del cluster.
-  const maxBySeries = new Map();
+  // 2. Propagación por número en TODO el cluster: si el usuario avanzó hasta
+  //    cierto número en CUALQUIER miembro del cluster, marcar capítulos ≤ a
+  //    ese máximo en TODOS los miembros. Esto es correcto porque
+  //    unmarkChaptersFrom borra lecturas en todos los miembros del cluster.
+  let globalMaxRead = 0;
   for (const r of reads) {
-    const sid = r.chapter.seriesId;
-    if (r.chapter.number && r.chapter.number > (maxBySeries.get(sid) ?? 0)) {
-      maxBySeries.set(sid, r.chapter.number);
+    if (r.chapter.number && r.chapter.number > globalMaxRead) {
+      globalMaxRead = r.chapter.number;
     }
   }
-  if (maxBySeries.size > 0) {
+  if (globalMaxRead > 0) {
     for (const ch of allChapters) {
-      const max = maxBySeries.get(ch.seriesId) ?? 0;
-      if (ch.number && ch.number <= max) {
+      if (ch.number && ch.number <= globalMaxRead) {
         result.add(ch.id);
       }
     }
@@ -141,10 +139,13 @@ export async function markChaptersUntil(userId, chapterId) {
 
   if (!target) throw new NotFoundError("Chapter not found");
 
+  const cluster = await resolveSeriesCluster(target.seriesId);
+  const seriesIds = cluster ? cluster.allIds : [target.seriesId];
+
   const [chapters, series] = await Promise.all([
     prisma.chapter.findMany({
-      where: { seriesId: target.seriesId, number: { lte: target.number } },
-      select: { id: true, name: true },
+      where: { seriesId: { in: seriesIds }, number: { lte: target.number, not: null } },
+      select: { id: true, name: true, seriesId: true },
       orderBy: { number: "asc" },
     }),
     prisma.series.findUnique({
@@ -156,7 +157,7 @@ export async function markChaptersUntil(userId, chapterId) {
   if (chapters.length === 0) return { updated: 0, seriesId: target.seriesId, seriesName: series?.name, newChapters: [] };
 
   const existing = await prisma.userChapterRead.findMany({
-    where: { userId, chapter: { seriesId: target.seriesId } },
+    where: { userId, chapter: { seriesId: { in: seriesIds } } },
     select: { chapterId: true },
   });
 
@@ -308,7 +309,7 @@ export async function getUserReadingStats(userId) {
       normalizedFavorites.push({
         ...fav,
         seriesId: primaryId,
-        series: { ...fav.series, id: cluster.primary.id, slug: cluster.primary.slug, name: cluster.primary.name },
+        series: { ...fav.series, id: cluster.primary.id, slug: cluster.primary.slug, name: cluster.primary.name, cover: cluster.primary.cover },
       });
     }
   }
@@ -326,7 +327,7 @@ export async function getUserReadingStats(userId) {
 
   const allClusterIdArray = [...allClusterIds];
 
-  const [lastChapterGroup, readDetails] = await Promise.all([
+  const [lastChapterGroup, readDetails, allClusterChapters] = await Promise.all([
     allClusterIdArray.length > 0
       ? prisma.chapter.groupBy({
           by: ["seriesId"],
@@ -342,6 +343,12 @@ export async function getUserReadingStats(userId) {
       },
       orderBy: { chapter: { number: "desc" } },
     }),
+    allClusterIdArray.length > 0
+      ? prisma.chapter.findMany({
+          where: { seriesId: { in: allClusterIdArray }, number: { not: null } },
+          select: { number: true, seriesId: true },
+        })
+      : [],
   ]);
 
   const lastAvailableMap = new Map(
@@ -382,7 +389,7 @@ export async function getUserReadingStats(userId) {
       // Recolectar números de capítulo únicos para este cluster
       for (const r of readDetails) {
         if (r.chapter.seriesId === id && r.chapter.number != null) {
-          uniqueNumbers.add(r.chapter.number);
+          if (Number.isInteger(r.chapter.number)) uniqueNumbers.add(r.chapter.number);
           if (maxLastRead == null || r.chapter.number > maxLastRead) maxLastRead = r.chapter.number;
         }
       }
@@ -397,6 +404,26 @@ export async function getUserReadingStats(userId) {
         clusterLastAvail.set(id, maxNum > 0 ? maxNum : null);
         clusterReadCount.set(id, uniqueNumbers.size);
         clusterLastRead.set(id, maxLastRead);
+      }
+    }
+  }
+
+  // Contar capítulos únicos con número por cluster para chaptersLeft
+  const clusterTotalCount = new Map();
+  for (const fav of normalizedFavorites) {
+    const sid = fav.seriesId;
+    if (clusterTotalCount.has(sid)) continue;
+    const ids = clusterMembership.get(sid) ?? [sid];
+    const uniqueNums = new Set();
+    for (const ch of allClusterChapters) {
+      if (ids.includes(ch.seriesId) && Number.isInteger(ch.number)) {
+        uniqueNums.add(ch.number);
+      }
+    }
+    clusterTotalCount.set(sid, uniqueNums.size);
+    for (const id of ids) {
+      if (!clusterTotalCount.has(id)) {
+        clusterTotalCount.set(id, uniqueNums.size);
       }
     }
   }
@@ -423,7 +450,14 @@ export async function getUserReadingStats(userId) {
   const fallbackCoverMap = await batchResolveFallbackCovers(favSeriesIds);
 
   const continueReading = normalizedFavorites
-    .filter((fav) => (clusterReadCount.get(fav.seriesId) ?? 0) > 0)
+    .filter((fav) => {
+      const readCount = clusterReadCount.get(fav.seriesId) ?? 0;
+      if (readCount <= 0) return false;
+      const lastAvail = clusterLastAvail.get(fav.seriesId) ?? null;
+      const totalCh = clusterTotalCount.get(fav.seriesId) ?? lastAvail ?? fav.series.chapterCount;
+      const chaptersLeft = totalCh > 0 ? Math.max(0, totalCh - readCount) : null;
+      return chaptersLeft !== null && chaptersLeft > 0;
+    })
     .sort((a, b) => {
       const dateA = lastReadDateMap.get(a.seriesId) ?? new Date(0);
       const dateB = lastReadDateMap.get(b.seriesId) ?? new Date(0);
@@ -434,7 +468,7 @@ export async function getUserReadingStats(userId) {
       const lastRead = clusterLastRead.get(fav.seriesId) ?? null;
       const lastAvail = clusterLastAvail.get(fav.seriesId) ?? null;
       const readCountForSeries = clusterReadCount.get(fav.seriesId) ?? 0;
-      const totalChapters = lastAvail ?? fav.series.chapterCount;
+      const totalChapters = clusterTotalCount.get(fav.seriesId) ?? lastAvail ?? fav.series.chapterCount;
       const chaptersLeft = totalChapters > 0 ? Math.max(0, totalChapters - readCountForSeries) : null;
 
       return {

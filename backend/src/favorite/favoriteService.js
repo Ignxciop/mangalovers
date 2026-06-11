@@ -21,7 +21,7 @@ async function normalizeFavoriteCluster(favorites) {
   for (let i = 0; i < ids.length; i++) {
     const p = clusters[i]?.primary;
     seriesToPrimary.set(ids[i], p?.id ?? ids[i]);
-    if (p) primaryInfo.set(ids[i], { id: p.id, slug: p.slug, name: p.name });
+    if (p) primaryInfo.set(ids[i], { id: p.id, slug: p.slug, name: p.name, cover: p.cover });
   }
 
   const seen = new Set();
@@ -37,7 +37,7 @@ async function normalizeFavoriteCluster(favorites) {
       result.push({
         ...fav,
         seriesId: primaryId,
-        series: info ? { ...fav.series, id: info.id, slug: info.slug, name: info.name } : fav.series,
+        series: info ? { ...fav.series, id: info.id, slug: info.slug, name: info.name, cover: info.cover } : fav.series,
       });
     }
   }
