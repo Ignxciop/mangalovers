@@ -136,6 +136,8 @@ function MissingPagesSection({ loadData }: { loadData: () => void }) {
     const [data, setData] = useState<MissingPagesData | null>(null);
     const [loading, setLoading] = useState(true);
     const [refilling, setRefilling] = useState<string | null>(null);
+    const [refillingBroken, setRefillingBroken] = useState<string | null>(null);
+    const [brokenThresholds, setBrokenThresholds] = useState<Record<string, number>>({});
 
     function fetch() {
         getMissingPages()
@@ -160,7 +162,32 @@ function MissingPagesSection({ loadData }: { loadData: () => void }) {
         setRefilling(null);
     }
 
-    if (loading) return null;
+    async function handleRefillBroken(provider: string) {
+        setRefillingBroken(provider);
+        const threshold = brokenThresholds[provider] ?? 10;
+        try {
+            await refillMissingPages(provider, threshold);
+            await fetch();
+            loadData();
+        } catch { /* ignore */ }
+        setRefillingBroken(null);
+    }
+
+    function setThreshold(provider: string, val: number) {
+        setBrokenThresholds((prev) => ({ ...prev, [provider]: Math.max(2, Math.min(1440, val)) }));
+    }
+
+    if (loading) {
+        return (
+            <div className="border border-border rounded-lg p-4 mt-6">
+                <div className="flex items-center gap-2 mb-3">
+                    <ImageIcon className="size-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Capítulos sin páginas</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Cargando...</p>
+            </div>
+        );
+    }
 
     const total = data?.total ?? 0;
 
@@ -202,6 +229,47 @@ function MissingPagesSection({ loadData }: { loadData: () => void }) {
                     ))}
                 </div>
             )}
+
+            <div className="border-t border-border pt-4 mt-4">
+                <span className="text-sm font-medium">Capítulos con páginas rotas</span>
+                <p className="text-xs text-muted-foreground mt-1 mb-3">
+                    Re-scrapea capítulos que tienen menos páginas del límite indicado
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {ALL_PROVIDERS.map((p) => {
+                        const threshold = brokenThresholds[p.id] ?? 10;
+                        const busy = refillingBroken === p.id;
+                        return (
+                            <div key={p.id} className="flex items-center justify-between border border-border/60 rounded-md px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium capitalize">{p.label}</span>
+                                    <input
+                                        type="number"
+                                        min={2}
+                                        max={1440}
+                                        value={threshold}
+                                        onChange={(e) => setThreshold(p.id, Number(e.target.value))}
+                                        className="w-14 h-6 text-center border border-border rounded bg-background text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                    />
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={busy}
+                                    onClick={() => handleRefillBroken(p.id)}
+                                >
+                                    {busy ? (
+                                        <RefreshCw className="size-3.5 animate-spin mr-1" />
+                                    ) : (
+                                        <RefreshCw className="size-3.5 mr-1" />
+                                    )}
+                                    Re-scrapear &lt;
+                                </Button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 }
@@ -212,6 +280,17 @@ export default function AdminTools() {
     const [status, setStatus] = useState<ScraperStatusData | null>(null);
     const [loading, setLoading] = useState(true);
     const [stopping, setStopping] = useState<Record<string, boolean>>({});
+    const [localInterval, setLocalInterval] = useState(60);
+
+    async function handleSaveInterval() {
+        if (!config) return;
+        const val = Math.max(1, Math.min(1440, localInterval));
+        setLocalInterval(val);
+        try {
+            const res = await updateScraperConfig({ intervalMinutes: val });
+            setConfig(res.data);
+        } catch { /* ignore */ }
+    }
 
     const loadData = useCallback(() => {
         Promise.all([
@@ -220,6 +299,7 @@ export default function AdminTools() {
         ])
             .then(([c, s]) => {
                 setConfig(c.data);
+                setLocalInterval(c.data.intervalMinutes);
                 setStatus(s.data);
                 setStopping((prev) => {
                     const next = { ...prev };
@@ -302,9 +382,20 @@ export default function AdminTools() {
                         />
                     </div>
                     {config && (
-                        <p className="text-xs text-muted-foreground mb-3">
-                            Intervalo: cada {config.intervalMinutes} minuto{config.intervalMinutes !== 1 ? "s" : ""}
-                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                            <span>Intervalo: cada</span>
+                            <input
+                                type="number"
+                                min={1}
+                                max={1440}
+                                value={localInterval}
+                                onChange={(e) => setLocalInterval(Number(e.target.value))}
+                                onBlur={handleSaveInterval}
+                                onKeyDown={(e) => e.key === "Enter" && handleSaveInterval()}
+                                className="w-16 h-7 px-1 text-center border border-border rounded-md bg-background text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
+                            <span>minuto{localInterval !== 1 ? "s" : ""}</span>
+                        </div>
                     )}
                     <div className="border-t border-border pt-3">
                         <p className="text-xs font-medium text-muted-foreground mb-3">

@@ -8,9 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
     Users, BookOpen, FileText, Lightbulb, Activity, UserPlus,
-    CheckCircle2, AlertCircle, Clock, ArrowRight, Wrench,
+    CheckCircle2, AlertCircle, Clock, ArrowRight,
 } from "lucide-react";
-import { fixEmptyChapters } from "@/api/admin";
 
 const STATUS_LABELS: Record<string, string> = {
     OPEN: "Abiertas",
@@ -166,23 +165,6 @@ export default function AdminDashboard() {
         { label: "Métricas", path: "/admin/metricas", icon: FileText, accent: "primary" as const },
     ];
 
-    const [toolState, setToolState] = useState<"idle" | "running" | "done" | "error">("idle");
-    const [toolResult, setToolResult] = useState<string | null>(null);
-
-    const handleFixEmptyChapters = async () => {
-        if (!window.confirm("¿Resetear capítulos sin páginas para que el scraper los reprocese?")) return;
-        setToolState("running");
-        setToolResult(null);
-        try {
-            const res = await fixEmptyChapters();
-            setToolState("done");
-            setToolResult(res.data.message);
-        } catch {
-            setToolState("error");
-            setToolResult("Error al ejecutar la herramienta");
-        }
-    };
-
     return (
         <div className="min-h-screen bg-background flex flex-col">
             <SEO title="Panel de Administración" />
@@ -259,36 +241,6 @@ export default function AdminDashboard() {
                             ))}
                         </div>
 
-                        <MiniSection title="Herramientas">
-                            <div className="flex items-center justify-between gap-4">
-                                <div className="min-w-0">
-                                    <p className="text-sm font-medium">Resetear capítulos sin páginas</p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                        Marca los capítulos sin páginas como pendientes de scrapeo
-                                    </p>
-                                    {toolResult && (
-                                        <p className={cn(
-                                            "text-xs mt-2",
-                                            toolState === "error" ? "text-rose-500" : "text-emerald-500",
-                                        )}>
-                                            {toolResult}
-                                        </p>
-                                    )}
-                                </div>
-                                <button
-                                    onClick={handleFixEmptyChapters}
-                                    disabled={toolState === "running"}
-                                    className={cn(
-                                        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shrink-0 transition-colors",
-                                        "border border-border hover:bg-muted/50",
-                                        toolState === "running" && "opacity-50 pointer-events-none",
-                                    )}
-                                >
-                                    <Wrench className={cn("size-4", toolState === "running" && "animate-spin")} />
-                                    {toolState === "running" ? "Ejecutando..." : "Ejecutar"}
-                                </button>
-                            </div>
-                        </MiniSection>
                     </div>
                 )}
             </main>
