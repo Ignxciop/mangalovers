@@ -98,32 +98,64 @@ export class ScraperAdminService {
     return { providers: result, total };
   }
 
-  static async refillMissingPages(provider) {
+  static async refillMissingPages(provider, maxPages = null) {
     const dbProvider = await prisma.provider.findUnique({ where: { name: provider } });
     if (!dbProvider) throw Object.assign(new Error(`Provider ${provider} no encontrado`), { statusCode: 404 });
 
-    const chapters = await prisma.chapter.findMany({
+    const allIds = [];
+
+    // 1. Capítulos con 0 páginas (comportamiento original)
+    const zeroPageChapters = await prisma.chapter.findMany({
       where: {
         pages: { none: {} },
         providerChapters: { some: { providerId: dbProvider.id } },
       },
       select: { id: true },
     });
+    allIds.push(...zeroPageChapters.map((c) => c.id));
 
-    if (chapters.length === 0) {
-      return { reset: 0, message: "No hay capítulos sin páginas para este provider" };
+    // 2. Capítulos con páginas rotas (pocas páginas, si se especificó maxPages)
+    if (maxPages && maxPages > 1) {
+      const raw = await prisma.$queryRaw`
+        SELECT c.id
+        FROM "Chapter" c
+        INNER JOIN "ProviderChapter" pc ON pc."chapterId" = c.id
+        LEFT JOIN "Page" p ON p."chapterId" = c.id
+        WHERE pc."providerId" = ${dbProvider.id}
+          AND c."pagesScraped" = true
+        GROUP BY c.id
+        HAVING COUNT(p.id) > 0 AND COUNT(p.id) < ${maxPages}
+      `;
+      const brokenIds = raw.map((r) => Number(r.id));
+      if (brokenIds.length > 0) {
+        const CHUNK = 10000;
+        for (let i = 0; i < brokenIds.length; i += CHUNK) {
+          await prisma.page.deleteMany({
+            where: { chapterId: { in: brokenIds.slice(i, i + CHUNK) } },
+          });
+        }
+        allIds.push(...brokenIds);
+      }
     }
 
-    const ids = chapters.map((c) => c.id);
-    await prisma.chapter.updateMany({
-      where: { id: { in: ids } },
-      data: { pagesScraped: false },
-    });
+    if (allIds.length === 0) {
+      return { reset: 0, message: "No hay capítulos por re-scrapear para este provider" };
+    }
 
-    logger.info({ provider, count: ids.length }, "Capítulos reseteados, iniciando scrape de páginas");
+    // Deduplicar y resetear
+    const uniqueIds = [...new Set(allIds)];
+    const CHUNK = 10000;
+    for (let i = 0; i < uniqueIds.length; i += CHUNK) {
+      await prisma.chapter.updateMany({
+        where: { id: { in: uniqueIds.slice(i, i + CHUNK) } },
+        data: { pagesScraped: false },
+      });
+    }
+
+    logger.info({ provider, count: uniqueIds.length }, "Capítulos reseteados, iniciando scrape de páginas");
 
     await runPagesOnly(provider, "manual-refill");
 
-    return { reset: ids.length };
+    return { reset: uniqueIds.length };
   }
 }

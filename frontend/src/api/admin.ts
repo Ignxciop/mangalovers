@@ -153,8 +153,11 @@ export async function getMissingPages() {
     return data;
 }
 
-export async function refillMissingPages(provider: string) {
-    const { data } = await api.post<{ success: boolean; data: { reset: number; message?: string } }>(`/admin/scraper/refill-pages/${provider}`);
+export async function refillMissingPages(provider: string, maxPages?: number) {
+    const params = maxPages ? { maxPages: String(maxPages) } : undefined;
+    const { data } = await api.post<{ success: boolean; data: { reset: number; message?: string } }>(
+        `/admin/scraper/refill-pages/${provider}`, undefined, { params }
+    );
     return data;
 }
 

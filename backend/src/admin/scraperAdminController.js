@@ -61,7 +61,8 @@ export async function handleGetMissingPages(req, res, next) {
 export async function handleRefillMissingPages(req, res, next) {
   try {
     const { provider } = req.params;
-    const result = await ScraperAdminService.refillMissingPages(provider);
+    const maxPages = req.query.maxPages ? parseInt(req.query.maxPages, 10) : null;
+    const result = await ScraperAdminService.refillMissingPages(provider, maxPages);
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);
