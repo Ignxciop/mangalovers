@@ -148,8 +148,6 @@ function MissingPagesSection({ loadData }: { loadData: () => void }) {
 
     useEffect(() => {
         fetch();
-        const id = setInterval(fetch, 15000);
-        return () => clearInterval(id);
     }, []);
 
     async function handleRefill(provider: string) {
