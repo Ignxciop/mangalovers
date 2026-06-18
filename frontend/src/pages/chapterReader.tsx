@@ -495,8 +495,9 @@ export default function ChapterReader() {
 
     const activePages = useMemo(() => {
         if (!chapter) return [];
+        if (chapter.pages?.length) return chapter.pages;
         if (chapter.fallbackPages?.length) return chapter.fallbackPages;
-        return chapter.pages ?? [];
+        return [];
     }, [chapter]);
 
     useEffect(() => {
