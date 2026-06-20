@@ -6,7 +6,7 @@ const MAX_RETRIES = 1;
 const RETRY_DELAY = 1500;
 const TIMEOUT_MS = 8000;
 const MIN_IMAGE_SIZE = 100;
-const IO_ROOT_MARGIN = "400px";
+const IO_ROOT_MARGIN = "2500px";
 
 interface ChapterImageProps {
     src: string;
