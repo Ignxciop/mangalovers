@@ -3,6 +3,7 @@ import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
 import { getAbortSignal } from "../scraperAbort.js";
+import { notifyNewChapter } from "../../../notifications/pushService.js";
 
 const limit = pLimit(3);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -45,6 +46,28 @@ async function processChapter(providerChapter, providerId) {
             where: { id: providerChapter.chapterId },
             data: { pagesScraped: true },
         });
+
+        const config = await prisma.scraperConfig.findFirst();
+        const freshnessMs = (config?.intervalMinutes ?? 60) * 60 * 1000 * 2;
+        const chapterAge = Date.now() - new Date(providerChapter.chapter.createdAt).getTime();
+        if (chapterAge < freshnessMs) {
+            const [series, ps] = await Promise.all([
+                prisma.series.findUnique({
+                    where: { id: providerChapter.chapter.seriesId },
+                    select: { name: true },
+                }),
+                prisma.providerSeries.findFirst({
+                    where: { providerId, seriesId: providerChapter.chapter.seriesId },
+                    select: { slug: true },
+                }),
+            ]);
+            await notifyNewChapter({
+                seriesId: providerChapter.chapter.seriesId,
+                seriesName: series?.name ?? providerChapter.externalId,
+                chapterName: providerChapter.chapter.name,
+                slug: ps?.slug ?? providerChapter.externalId,
+            });
+        }
 
         logger.debug({ externalId: providerChapter.externalId, pageCount: pages.length }, "Páginas manhwaweb scrapeadas");
         await sleep(200);

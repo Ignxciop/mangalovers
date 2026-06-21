@@ -2,7 +2,6 @@ import axios from "axios";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
-import { notifyNewChapter } from "../../../notifications/pushService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
 import { getAbortSignal } from "../scraperAbort.js";
 import { promoteStatusIfInactive } from "../resolveStatus.js";
@@ -134,21 +133,6 @@ async function processSeries(providerSeries, providerId) {
 
         await updateSeriesMetadata(seriesId);
         await promoteStatusIfInactive(seriesId, !!latestCreatedChapter);
-
-        // NOTIFICAR SOLO UNA VEZ Y AL FINAL
-        if (latestCreatedChapter) {
-            const series = await prisma.series.findUnique({
-                where: { id: seriesId },
-                select: { name: true },
-            });
-
-            await notifyNewChapter({
-                seriesId,
-                seriesName: series?.name ?? slug,
-                chapterName: latestCreatedChapter.name,
-                slug,
-            });
-        }
     } catch (error) {
         logger.error({ slug, err: error.message }, "Error procesando serie olympus");
     }
