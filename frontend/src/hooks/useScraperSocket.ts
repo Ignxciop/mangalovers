@@ -55,14 +55,21 @@ export function useScraperSocket() {
       notifyScraperListeners();
     };
 
+    const handleStopped = (data: ScraperEvent) => {
+      scraperState = { ...scraperState, [data.provider]: "idle" };
+      notifyScraperListeners();
+    };
+
     socket.on("scraper:started", handleStarted);
     socket.on("scraper:completed", handleCompleted);
     socket.on("scraper:error", handleError);
+    socket.on("scraper:stopped", handleStopped);
 
     return () => {
       socket.off("scraper:started", handleStarted);
       socket.off("scraper:completed", handleCompleted);
       socket.off("scraper:error", handleError);
+      socket.off("scraper:stopped", handleStopped);
     };
   }, [socket]);
 

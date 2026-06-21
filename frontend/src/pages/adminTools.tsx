@@ -350,9 +350,6 @@ export default function AdminTools() {
         try {
             await api.post(`/admin/scraper/stop/${provider}`);
         } catch { /* ignore */ }
-        setTimeout(() => {
-            setStopping((prev) => ({ ...prev, [provider]: false }));
-        }, 1000);
     }
 
     return (
