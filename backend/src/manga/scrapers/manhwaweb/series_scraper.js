@@ -3,6 +3,7 @@ import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
 import { syncGenres } from "../syncGenres.js";
+import { getAbortSignal } from "../scraperAbort.js";
 import { MANUAL_ALIASES } from "../manualAliases.js";
 import {
     syncManualAliases,
@@ -167,8 +168,13 @@ async function scrapeByTipo(tipo, providerId) {
     let page = 0;
     let hasNext = true;
     let total = 0;
+    const signal = getAbortSignal("manhwaweb");
 
     while (hasNext) {
+        if (signal.aborted) {
+            logger.info({ tipo }, "Series scraper manhwaweb detenido manualmente");
+            return;
+        }
         logger.debug({ tipo, page }, "Página manhwaweb");
         const pageData = await fetchPage(page, tipo);
 

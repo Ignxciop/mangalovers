@@ -5,6 +5,7 @@ import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
 import { notifyNewChapter } from "../../../notifications/pushService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
+import { getAbortSignal } from "../scraperAbort.js";
 import { promoteStatusIfInactive } from "../resolveStatus.js";
 import { normalizeChapterNumber } from "../normalizeChapter.js";
 
@@ -71,6 +72,8 @@ async function processSeries(providerSeries, providerId) {
     const originalSlug = providerSeries.url;
     const externalId = providerSeries.externalId;
     const seriesId = providerSeries.seriesId;
+
+    if (getAbortSignal("leermangaesp").aborted) return;
 
     logger.info({ originalSlug }, "Revisando capítulos leermangaesp");
 
@@ -209,6 +212,8 @@ export async function scrapeChapters() {
             url: true,
         },
     });
+
+    if (getAbortSignal("leermangaesp").aborted) return;
 
     await Promise.all(
         providerSeriesList.map((ps) =>

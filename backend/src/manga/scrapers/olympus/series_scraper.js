@@ -3,6 +3,7 @@ import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
 import { syncGenres } from "../syncGenres.js";
+import { getAbortSignal } from "../scraperAbort.js";
 
 const limit = pLimit(1);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -176,6 +177,8 @@ export async function scrapeSeries() {
         throw new Error("Provider olympus no existe");
     }
 
+    const signal = getAbortSignal("olympus");
+
     const firstPage = await fetchPage(1);
     const lastPage = firstPage.lastPage;
 
@@ -184,6 +187,10 @@ export async function scrapeSeries() {
     );
 
     for (let page = 2; page <= lastPage; page++) {
+        if (signal.aborted) {
+            logger.info("Series scraper olympus detenido manualmente");
+            return;
+        }
         const pageData = await fetchPage(page);
 
         await Promise.all(
