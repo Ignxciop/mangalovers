@@ -165,3 +165,10 @@ export async function fixEmptyChapters() {
     const { data } = await api.post<{ success: boolean; data: { count: number; message: string } }>("/admin/tools/fix-empty-chapters");
     return data;
 }
+
+export async function refillSingleChapter(chapterId: number) {
+    const { data } = await api.post<{ success: boolean; data: { success: boolean; pagesCount: number; provider: string; message?: string } }>(
+        "/admin/scraper/refill-chapter", { chapterId }
+    );
+    return data;
+}

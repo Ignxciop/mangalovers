@@ -51,3 +51,17 @@ export function providerParamValidator(req, res, next) {
 
   next();
 }
+
+export function refillChapterValidator(req, res, next) {
+  const raw = req.body.chapterId;
+  const parsed = Number(raw);
+
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    const err = new Error("chapterId debe ser un entero positivo");
+    err.statusCode = 400;
+    return next(err);
+  }
+
+  req.body.chapterId = parsed;
+  next();
+}
