@@ -4,6 +4,7 @@ import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
 import { notifyNewChapter } from "../../../notifications/pushService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
+import { getAbortSignal } from "../scraperAbort.js";
 import { promoteStatusIfInactive } from "../resolveStatus.js";
 
 const limit = pLimit(2);
@@ -30,6 +31,8 @@ async function fetchSeriesWithChapters(externalId, retries = 3) {
 async function processSeries(providerSeries, providerId) {
     const externalId = providerSeries.externalId;
     const seriesId = providerSeries.seriesId;
+
+    if (getAbortSignal("manhwaweb").aborted) return;
 
     logger.info({ externalId }, "Revisando capítulos manhwaweb");
 
@@ -159,6 +162,8 @@ export async function scrapeChapters() {
             seriesId: true,
         },
     });
+
+    if (getAbortSignal("manhwaweb").aborted) return;
 
     await Promise.all(
         providerSeriesList.map((ps) =>

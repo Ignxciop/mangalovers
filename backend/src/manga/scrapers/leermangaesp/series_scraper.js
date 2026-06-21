@@ -4,6 +4,7 @@ import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
 import { syncGenres } from "../syncGenres.js";
+import { getAbortSignal } from "../scraperAbort.js";
 import { MANUAL_ALIASES } from "../manualAliases.js";
 import {
     syncManualAliases,
@@ -231,6 +232,8 @@ async function processSeries(seriesData, providerId, tipo) {
 async function scrapeByTipo(tipo, providerId) {
     logger.info({ tipo }, "Scrapeando tipo leermangaesp");
 
+    const signal = getAbortSignal("leermangaesp");
+
     const firstPage = await fetchPage(1, tipo);
     const totalPages = firstPage.totalPages;
 
@@ -239,6 +242,10 @@ async function scrapeByTipo(tipo, providerId) {
     );
 
     for (let page = 2; page <= totalPages; page++) {
+        if (signal.aborted) {
+            logger.info({ tipo }, "Series scraper leermangaesp detenido manualmente");
+            return;
+        }
         const pageData = await fetchPage(page, tipo);
         await Promise.all(
             pageData.series.map((s) => limit(() => processSeries(s, providerId, tipo))),

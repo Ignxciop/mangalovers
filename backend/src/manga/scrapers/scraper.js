@@ -35,6 +35,7 @@ export function stopScraper(provider) {
     throw Object.assign(new Error(`No hay scraper de ${provider} en ejecución`), { statusCode: 409 });
   }
   abortScraper(provider);
+  emitAdminEvent("scraper:stopped", { provider });
 }
 
 async function snapshotCounts() {

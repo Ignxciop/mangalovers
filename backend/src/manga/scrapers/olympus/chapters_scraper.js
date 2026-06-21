@@ -4,6 +4,7 @@ import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
 import { notifyNewChapter } from "../../../notifications/pushService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
+import { getAbortSignal } from "../scraperAbort.js";
 import { promoteStatusIfInactive } from "../resolveStatus.js";
 
 const limit = pLimit(4);
@@ -13,7 +14,7 @@ async function fetchChapters(slug, page, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             const { data } = await axios.get(
-                `https://dashboard.olympusxyz.com/api/series/${slug}/chapters`,
+                `https://panel.olympusxyz.com/api/series/${slug}/chapters`,
                 {
                     params: { page, direction: "desc", type: "comic" },
                     timeout: 30000,
@@ -31,6 +32,8 @@ async function fetchChapters(slug, page, retries = 3) {
 async function processSeries(providerSeries, providerId) {
     const slug = providerSeries.slug;
     const seriesId = providerSeries.seriesId;
+
+    if (getAbortSignal("olympus").aborted) return;
 
     logger.info({ slug }, "Revisando capítulos olympus");
 
@@ -178,6 +181,8 @@ export async function scrapeChapters() {
             seriesId: true,
         },
     });
+
+    if (getAbortSignal("olympus").aborted) return;
 
     await Promise.all(
         providerSeriesList.map((ps) =>
