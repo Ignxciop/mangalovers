@@ -68,3 +68,13 @@ export async function handleRefillMissingPages(req, res, next) {
     next(error);
   }
 }
+
+export async function handleRefillSingleChapter(req, res, next) {
+  try {
+    const { chapterId } = req.body;
+    const result = await ScraperAdminService.refillSingleChapter(chapterId);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}

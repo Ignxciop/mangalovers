@@ -3,7 +3,6 @@ import * as cheerio from "cheerio";
 import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
-import { notifyNewChapter } from "../../../notifications/pushService.js";
 import { updateSeriesMetadata } from "../updateSeriesMetadata.js";
 import { getAbortSignal } from "../scraperAbort.js";
 import { promoteStatusIfInactive } from "../resolveStatus.js";
@@ -165,20 +164,6 @@ async function processSeries(providerSeries, providerId) {
 
         await updateSeriesMetadata(seriesId);
         await promoteStatusIfInactive(seriesId, !!latestCreatedChapter);
-
-        if (latestCreatedChapter) {
-            const series = await prisma.series.findUnique({
-                where: { id: seriesId },
-                select: { name: true, slug: true },
-            });
-
-            await notifyNewChapter({
-                seriesId,
-                seriesName: series?.name ?? originalSlug,
-                chapterName: latestCreatedChapter.name,
-                slug: series?.slug ?? originalSlug,
-            });
-        }
     } catch (error) {
         logger.error({ originalSlug, err: error.message }, "Error capítulos leermangaesp");
     }

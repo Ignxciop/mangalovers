@@ -1,53 +1,35 @@
+import { body, param } from "express-validator";
+
 const VALID_PROVIDERS = ["olympus", "manhwaweb", "leermangaesp"];
 
-export function updateConfigValidator(req, res, next) {
-  const { autoEnabled, intervalMinutes, enabledProviders } = req.body;
-
-  const errors = [];
-
-  if (autoEnabled !== undefined && typeof autoEnabled !== "boolean") {
-    errors.push("autoEnabled debe ser un booleano");
-  }
-
-  if (intervalMinutes !== undefined) {
-    if (!Number.isInteger(intervalMinutes) || intervalMinutes < 1 || intervalMinutes > 1440) {
-      errors.push("intervalMinutes debe ser un entero entre 1 y 1440");
+export const updateConfigValidator = [
+  body("autoEnabled")
+    .optional()
+    .isBoolean().withMessage("autoEnabled debe ser un booleano"),
+  body("intervalMinutes")
+    .optional()
+    .isInt({ min: 1, max: 1440 }).withMessage("intervalMinutes debe ser un entero entre 1 y 1440"),
+  body("enabledProviders")
+    .optional()
+    .isArray({ min: 1 }).withMessage("enabledProviders debe ser un arreglo con al menos un proveedor"),
+  body("enabledProviders.*")
+    .optional()
+    .isIn(VALID_PROVIDERS).withMessage(`Proveedor inválido. Válidos: ${VALID_PROVIDERS.join(", ")}`),
+  body().custom((_, { req }) => {
+    if (req.body.autoEnabled === undefined && req.body.intervalMinutes === undefined && req.body.enabledProviders === undefined) {
+      throw new Error("Debe proporcionar al menos un campo a actualizar");
     }
-  }
+    return true;
+  }),
+];
 
-  if (enabledProviders !== undefined) {
-    if (!Array.isArray(enabledProviders) || enabledProviders.length === 0) {
-      errors.push("enabledProviders debe ser un arreglo con al menos un proveedor");
-    } else {
-      for (const p of enabledProviders) {
-        if (!VALID_PROVIDERS.includes(p)) {
-          errors.push(`Proveedor inválido: ${p}. Válidos: ${VALID_PROVIDERS.join(", ")}`);
-        }
-      }
-    }
-  }
+export const providerParamValidator = [
+  param("provider")
+    .isIn(VALID_PROVIDERS).withMessage(`Proveedor inválido. Válidos: ${VALID_PROVIDERS.join(", ")}`),
+];
 
-  if (autoEnabled === undefined && intervalMinutes === undefined && enabledProviders === undefined) {
-    errors.push("Debe proporcionar al menos un campo a actualizar");
-  }
-
-  if (errors.length > 0) {
-    const err = new Error(errors.join(". "));
-    err.statusCode = 400;
-    return next(err);
-  }
-
-  next();
-}
-
-export function providerParamValidator(req, res, next) {
-  const { provider } = req.params;
-
-  if (!provider || !VALID_PROVIDERS.includes(provider)) {
-    const err = new Error(`Proveedor inválido. Válidos: ${VALID_PROVIDERS.join(", ")}`);
-    err.statusCode = 400;
-    return next(err);
-  }
-
-  next();
-}
+export const refillChapterValidator = [
+  body("chapterId")
+    .toInt()
+    .isInt({ min: 1 }).withMessage("chapterId debe ser un entero positivo"),
+];

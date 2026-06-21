@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { getScraperConfig, updateScraperConfig, getScraperStatus, getMissingPages, refillMissingPages } from "@/api/admin";
+import { getScraperConfig, updateScraperConfig, getScraperStatus, getMissingPages, refillMissingPages, refillSingleChapter } from "@/api/admin";
 import type { MissingPagesData } from "@/api/admin";
 import { api } from "@/api/axios";
 import type { ScraperConfig, ScraperStatusData } from "@/types/admin";
@@ -272,6 +272,68 @@ function MissingPagesSection({ loadData }: { loadData: () => void }) {
     );
 }
 
+function RefillSingleChapterSection() {
+    const [chapterId, setChapterId] = useState("");
+    const [result, setResult] = useState<{ success: boolean; pagesCount: number; provider: string; message?: string } | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    async function handleRefill() {
+        const id = Number(chapterId);
+        if (!Number.isInteger(id) || id < 1) return;
+        setLoading(true);
+        setResult(null);
+        try {
+            const res = await refillSingleChapter(id);
+            setResult(res.data);
+        } catch {
+            setResult({ success: false, pagesCount: 0, provider: "", message: "Error al re-scrapear el capítulo" });
+        }
+        setLoading(false);
+    }
+
+    return (
+        <div className="border border-border rounded-lg p-4 mt-6">
+            <div className="flex items-center gap-2 mb-3">
+                <Square className="size-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Re-scrapear capítulo específico</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+                Ingresa el ID del capítulo (visible en la URL del lector: <code className="text-[10px] bg-muted px-1 rounded">/manga/slug/capitulo/{"{id}"}</code>)
+            </p>
+            <div className="flex items-center gap-2">
+                <input
+                    type="number"
+                    min={1}
+                    placeholder="ID del capítulo"
+                    value={chapterId}
+                    onChange={(e) => setChapterId(e.target.value)}
+                    className="w-32 h-9 px-2 border border-border rounded-md bg-background text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={loading || !chapterId}
+                    onClick={handleRefill}
+                >
+                    {loading ? (
+                        <RefreshCw className="size-3.5 animate-spin mr-1" />
+                    ) : (
+                        <RefreshCw className="size-3.5 mr-1" />
+                    )}
+                    Re-scrapear
+                </Button>
+            </div>
+            {result && (
+                <div className={`mt-3 text-xs ${result.success ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {result.success
+                        ? `✓ ${result.pagesCount} páginas obtenidas de ${result.provider}`
+                        : `✗ ${result.message ?? "Error"}`}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function AdminTools() {
     const scraperState = useScraperSocket();
     const [config, setConfig] = useState<ScraperConfig | null>(null);
@@ -443,6 +505,8 @@ export default function AdminTools() {
                 )}
 
                 <MissingPagesSection loadData={loadData} />
+
+                <RefillSingleChapterSection />
             </main>
         </div>
     );

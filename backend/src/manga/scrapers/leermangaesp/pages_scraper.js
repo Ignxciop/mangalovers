@@ -4,6 +4,7 @@ import pLimit from "p-limit";
 import { prisma } from "../../../config/prisma.js";
 import logger from "../../../config/logger.js";
 import { getAbortSignal } from "../scraperAbort.js";
+import { notifyNewChapter } from "../../../notifications/pushService.js";
 
 const limit = pLimit(3);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -112,6 +113,22 @@ async function processChapter(providerChapter, providerId) {
             where: { id: providerChapter.chapterId },
             data: { pagesScraped: true },
         });
+
+        const config = await prisma.scraperConfig.findFirst();
+        const freshnessMs = (config?.intervalMinutes ?? 60) * 60 * 1000 * 2;
+        const chapterAge = Date.now() - new Date(providerChapter.chapter.createdAt).getTime();
+        if (chapterAge < freshnessMs) {
+            const series = await prisma.series.findUnique({
+                where: { id: providerChapter.chapter.seriesId },
+                select: { name: true, slug: true },
+            });
+            await notifyNewChapter({
+                seriesId: providerChapter.chapter.seriesId,
+                seriesName: series?.name ?? originalSlug,
+                chapterName: providerChapter.chapter.name,
+                slug: series?.slug ?? originalSlug,
+            });
+        }
 
         logger.debug(
             { chapterId: providerChapter.chapterId, pageCount: pages.length },

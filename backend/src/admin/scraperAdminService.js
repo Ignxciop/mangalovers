@@ -1,3 +1,5 @@
+import axios from "axios";
+import * as cheerio from "cheerio";
 import { prisma } from "../config/prisma.js";
 import { runAllScrapers, runSingleProvider, runPagesOnly, isRunning, stopScraper } from "../manga/scrapers/scraper.js";
 import logger from "../config/logger.js";
@@ -96,6 +98,106 @@ export class ScraperAdminService {
 
     const total = result.reduce((acc, r) => acc + r.count, 0);
     return { providers: result, total };
+  }
+
+  static async refillSingleChapter(chapterId) {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: chapterId },
+      include: {
+        providerChapters: {
+          include: { provider: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!chapter) {
+      throw Object.assign(new Error(`Capítulo ${chapterId} no encontrado`), { statusCode: 404 });
+    }
+
+    if (chapter.providerChapters.length === 0) {
+      throw Object.assign(new Error(`Capítulo ${chapterId} no tiene ProviderChapter asociado`), { statusCode: 400 });
+    }
+
+    const pc = chapter.providerChapters[0];
+    const providerName = pc.provider.name;
+
+    // Eliminar páginas existentes
+    await prisma.page.deleteMany({ where: { chapterId } });
+
+    let pages = [];
+
+    if (providerName === "olympus") {
+      const ps = await prisma.providerSeries.findFirst({
+        where: { providerId: pc.providerId, seriesId: chapter.seriesId },
+        select: { slug: true },
+      });
+      if (!ps?.slug) {
+        throw Object.assign(new Error(`ProviderSeries slug no encontrado`), { statusCode: 400 });
+      }
+      const { data } = await axios.get(
+        `https://olympusbiblioteca.com/api/capitulo/${ps.slug}/${pc.externalId}`,
+        { params: { type: "comic" }, timeout: 30000 },
+      );
+      pages = data.chapter?.pages ?? [];
+    } else if (providerName === "manhwaweb") {
+      const { data } = await axios.get(
+        `https://manhwawebbackend-production.up.railway.app/chapters/see/${pc.externalId}`,
+        { timeout: 30000 },
+      );
+      pages = (data.chapter?.img ?? []).filter((url) => url?.trim());
+    } else if (providerName === "leermangaesp") {
+      const ps = await prisma.providerSeries.findFirst({
+        where: { providerId: pc.providerId, seriesId: chapter.seriesId },
+        select: { url: true },
+      });
+      if (!ps?.url) {
+        throw Object.assign(new Error(`ProviderSeries url no encontrado`), { statusCode: 400 });
+      }
+      const originalSlug = ps.url;
+      const chapterNumber = pc.externalId.split("-").slice(1).join("-").replace(/\.0+$/, "");
+      const { data: html } = await axios.get(
+        `https://leermangaesp.net/leer-m/${originalSlug}/${chapterNumber}/`,
+        { timeout: 30000 },
+      );
+      const $ = cheerio.load(html);
+      $("img.manga-image").each((_, el) => {
+        const src = $(el).attr("src");
+        if (src) pages.push(src);
+      });
+      if (pages.length === 0) {
+        const scriptMatch = html.match(/paginasRutas\s*=\s*\[([^\]]+)\]/);
+        if (scriptMatch) {
+          const urls = scriptMatch[1].match(/"([^"]+)"/g);
+          if (urls) {
+            pages = urls.map((u) => {
+              const path = u.replace(/"/g, "");
+              return path.startsWith("http") ? path : `https://leermangaesp.net${path}`;
+            });
+          }
+        }
+      }
+    } else {
+      throw Object.assign(new Error(`Provider ${providerName} no soportado`), { statusCode: 400 });
+    }
+
+    if (pages.length === 0) {
+      logger.warn({ chapterId, provider: providerName }, "No se encontraron páginas para el capítulo");
+      return { success: false, message: "No se encontraron páginas. El capítulo queda sin páginas.", pagesCount: 0 };
+    }
+
+    await prisma.page.createMany({
+      data: pages.map((url) => ({ url, chapterId })),
+      skipDuplicates: true,
+    });
+
+    await prisma.chapter.update({
+      where: { id: chapterId },
+      data: { pagesScraped: true },
+    });
+
+    logger.info({ chapterId, provider: providerName, pageCount: pages.length }, "Capítulo re-scrapeado manualmente");
+    return { success: true, pagesCount: pages.length, provider: providerName };
   }
 
   static async refillMissingPages(provider, maxPages = null) {
