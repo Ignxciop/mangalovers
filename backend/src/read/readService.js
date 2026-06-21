@@ -175,7 +175,7 @@ export async function markChaptersUntil(userId, chapterId) {
     updated: chapters.length,
     seriesId: target.seriesId,
     seriesName: series?.name,
-    newChapters: toCreate.map((c) => ({ id: c.id, name: c.name })),
+    newChapters: toCreate.filter((c) => c.seriesId === target.seriesId).map((c) => ({ id: c.id, name: c.name })),
   };
 }
 
