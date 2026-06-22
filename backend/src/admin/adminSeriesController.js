@@ -90,3 +90,36 @@ export async function deleteAlias(req, res, next) {
     next(error);
   }
 }
+
+export async function handleGetChapters(req, res, next) {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const order = req.query.order === "desc" ? "desc" : "asc";
+    const result = await AdminSeriesService.getChapters(parseInt(id), page, limit, order);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleBulkDeleteChapters(req, res, next) {
+  try {
+    const { ids } = req.body;
+    const result = await AdminSeriesService.bulkDeleteChapters(ids);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleToggleProviderSeries(req, res, next) {
+  try {
+    const { seriesId, psId } = req.params;
+    const result = await AdminSeriesService.toggleProviderSeries(parseInt(seriesId), parseInt(psId));
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}

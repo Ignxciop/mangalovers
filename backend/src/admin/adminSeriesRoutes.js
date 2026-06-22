@@ -11,6 +11,9 @@ import {
   relationIdParamValidator,
   aliasBodyValidator,
   deleteAliasValidator,
+  chaptersQueryValidator,
+  bulkDeleteChaptersValidator,
+  toggleProviderSeriesValidator,
 } from "./adminSeriesValidator.js";
 import {
   listSeries,
@@ -21,6 +24,9 @@ import {
   toggleVisibility,
   addAlias,
   deleteAlias,
+  handleGetChapters,
+  handleBulkDeleteChapters,
+  handleToggleProviderSeries,
 } from "./adminSeriesController.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 
@@ -57,5 +63,9 @@ router.delete("/series/relation/:id", authenticate, authorize("ADMIN"), relation
 router.patch("/series/:id/visibility", authenticate, authorize("ADMIN"), seriesIdParamValidator, validate, toggleVisibility);
 router.post("/series/:id/alias", authenticate, authorize("ADMIN"), aliasBodyValidator, validate, addAlias);
 router.delete("/series/:id/alias/:aliasId", authenticate, authorize("ADMIN"), deleteAliasValidator, validate, deleteAlias);
+
+router.get("/series/:id/chapters", authenticate, authorize("ADMIN"), chaptersQueryValidator, validate, handleGetChapters);
+router.post("/chapters/bulk-delete", authenticate, authorize("ADMIN"), bulkDeleteChaptersValidator, validate, handleBulkDeleteChapters);
+router.patch("/series/:seriesId/provider-series/:psId/toggle", authenticate, authorize("ADMIN"), toggleProviderSeriesValidator, validate, handleToggleProviderSeries);
 
 export default router;

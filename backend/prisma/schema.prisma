@@ -257,6 +257,7 @@ model ProviderSeries {
   externalId  String
   slug        String
   url         String?
+  enabled     Boolean @default(true)
 
   summary     String?
   status      String?
