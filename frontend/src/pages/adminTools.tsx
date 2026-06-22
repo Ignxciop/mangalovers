@@ -378,7 +378,7 @@ export default function AdminTools() {
 
     useEffect(() => {
         loadData();
-    }, [loadData, scraperState]);
+    }, [loadData]);
 
     async function handleToggleAuto(enabled: boolean) {
         if (!config) return;
