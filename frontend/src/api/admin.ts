@@ -6,6 +6,7 @@ import type {
     ContentMetricsResponse, SystemMetricsResponse,
     UserStatusHistoryResponse,
     AdminSeriesListResponse, AdminSeriesDetailResponse,
+    AdminChaptersResponse, AdminBulkDeleteResponse, AdminToggleProviderResponse,
     ScraperConfigResponse, ScraperStatusResponse, ScraperRunResponse,
 } from "@/types/admin";
 
@@ -170,5 +171,20 @@ export async function refillSingleChapter(chapterId: number) {
     const { data } = await api.post<{ success: boolean; data: { success: boolean; pagesCount: number; provider: string; message?: string } }>(
         "/admin/scraper/refill-chapter", { chapterId }
     );
+    return data;
+}
+
+export async function getSeriesChapters(id: number, page = 1, limit = 20, order: "asc" | "desc" = "desc") {
+    const { data } = await api.get<AdminChaptersResponse>(`/admin/series/${id}/chapters`, { params: { page, limit, order } });
+    return data;
+}
+
+export async function bulkDeleteChapters(ids: number[]) {
+    const { data } = await api.post<AdminBulkDeleteResponse>("/admin/chapters/bulk-delete", { ids });
+    return data;
+}
+
+export async function toggleProviderSeries(seriesId: number, psId: number) {
+    const { data } = await api.patch<AdminToggleProviderResponse>(`/admin/series/${seriesId}/provider-series/${psId}/toggle`);
     return data;
 }

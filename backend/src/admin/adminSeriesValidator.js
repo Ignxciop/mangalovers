@@ -34,3 +34,20 @@ export const deleteAliasValidator = [
   param("id").isInt({ min: 1 }).toInt(),
   param("aliasId").isInt({ min: 1 }).toInt(),
 ];
+
+export const chaptersQueryValidator = [
+  param("id").isInt({ min: 1 }).toInt(),
+  query("page").optional().isInt({ min: 1 }).toInt(),
+  query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
+  query("order").optional().isIn(["asc", "desc"]),
+];
+
+export const bulkDeleteChaptersValidator = [
+  body("ids").isArray({ min: 1 }).withMessage("ids debe ser un arreglo con al menos un ID"),
+  body("ids.*").isInt({ min: 1 }).withMessage("Cada ID debe ser un entero positivo"),
+];
+
+export const toggleProviderSeriesValidator = [
+  param("seriesId").isInt({ min: 1 }).toInt(),
+  param("psId").isInt({ min: 1 }).toInt(),
+];

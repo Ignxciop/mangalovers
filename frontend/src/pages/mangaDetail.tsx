@@ -324,11 +324,7 @@ export default function MangaDetail() {
     const { pull, refreshing } = usePullToRefresh(refetchSeries);
 
     useEffect(() => {
-        if (!series) return;
-        document.title = series.name;
-        return () => {
-            document.title = "Mangalovers";
-        };
+        document.title = series?.name ?? "Mangalovers";
     }, [series]);
 
     if (loading) return <MangaDetailSkeleton />;

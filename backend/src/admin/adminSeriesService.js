@@ -3,6 +3,8 @@ import logger from "../config/logger.js";
 import { mergeSeries } from "../manga/scrapers/duplicateSeries.js";
 import { updateSeriesMetadata } from "../manga/scrapers/updateSeriesMetadata.js";
 
+const CHAPTERS_PER_PAGE = 20;
+
 export class AdminSeriesService {
   static async listSeries({ page = 1, limit = 20, search, provider }) {
     const where = {};
@@ -263,5 +265,111 @@ export class AdminSeriesService {
     }
 
     await prisma.seriesAlias.delete({ where: { id } });
+  }
+
+  static async getChapters(seriesId, page = 1, limit = CHAPTERS_PER_PAGE, order = "asc") {
+    const series = await prisma.series.findUnique({ where: { id: seriesId }, select: { id: true } });
+    if (!series) {
+      const error = new Error("Serie no encontrada");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const where = { seriesId };
+    const [total, chapters] = await Promise.all([
+      prisma.chapter.count({ where }),
+      prisma.chapter.findMany({
+        where,
+        orderBy: { number: order },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          _count: { select: { pages: true } },
+          providerChapters: {
+            include: { provider: { select: { name: true } } },
+          },
+        },
+      }),
+    ]);
+
+    const mapped = chapters.map((ch) => ({
+      id: ch.id,
+      number: ch.number,
+      name: ch.name,
+      publishedAt: ch.publishedAt,
+      pagesScraped: ch.pagesScraped,
+      pagesCount: ch._count.pages,
+      providers: ch.providerChapters.map((pc) => pc.provider.name),
+      createdAt: ch.createdAt,
+    }));
+
+    return {
+      chapters: mapped,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  static async bulkDeleteChapters(ids) {
+    const chapters = await prisma.chapter.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, seriesId: true },
+    });
+
+    if (chapters.length !== ids.length) {
+      const found = new Set(chapters.map((c) => c.id));
+      const missing = ids.filter((id) => !found.has(id));
+      const error = new Error(`Capítulos no encontrados: ${missing.join(", ")}`);
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const seriesIds = [...new Set(chapters.map((c) => c.seriesId))];
+    if (seriesIds.length > 1) {
+      const error = new Error("Todos los capítulos deben pertenecer a la misma serie");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const seriesId = seriesIds[0];
+
+    await prisma.chapter.deleteMany({ where: { id: { in: ids } } });
+
+    await prisma.series.update({
+      where: { id: seriesId },
+      data: { lastChaptersCheck: null },
+    });
+
+    try {
+      await updateSeriesMetadata(seriesId);
+    } catch (metaErr) {
+      logger.warn({ seriesId, err: metaErr.message }, "Error actualizando metadata tras eliminar capítulos");
+    }
+
+    logger.info({ seriesId, count: ids.length }, "Capítulos eliminados desde admin");
+    return { deleted: ids.length };
+  }
+
+  static async toggleProviderSeries(seriesId, psId) {
+    const ps = await prisma.providerSeries.findUnique({
+      where: { id: psId },
+      select: { id: true, seriesId: true, enabled: true },
+    });
+
+    if (!ps || ps.seriesId !== seriesId) {
+      const error = new Error("ProviderSeries no encontrado para esta serie");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const updated = await prisma.providerSeries.update({
+      where: { id: psId },
+      data: { enabled: !ps.enabled },
+      select: { id: true, enabled: true },
+    });
+
+    logger.info({ seriesId, psId, enabled: updated.enabled }, "ProviderSeries toggled desde admin");
+    return updated;
   }
 }

@@ -1,13 +1,24 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAdminSeriesDetail, adminAddAlias, adminDeleteAlias, adminDeleteSeriesRelation, adminToggleSeriesVisibility } from "@/api/admin";
-import type { AdminSeriesDetail } from "@/types/admin";
+import {
+    getAdminSeriesDetail, adminAddAlias, adminDeleteAlias, adminDeleteSeriesRelation,
+    adminToggleSeriesVisibility, getSeriesChapters, bulkDeleteChapters, toggleProviderSeries,
+} from "@/api/admin";
+import type { AdminSeriesDetail, AdminChapter } from "@/types/admin";
 import { SEO } from "@/components/seo";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, ChevronLeft, Link2, X, Plus, Trash2, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
+import type { AxiosError } from "axios";
+import { useQueryCache } from "@/store/queryCache";
+import {
+    BookOpen, ChevronLeft, Link2, X, Plus, Trash2, Eye, EyeOff,
+    Loader2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminSeriesDetailPage() {
@@ -56,6 +67,108 @@ export default function AdminSeriesDetailPage() {
     };
 
     const [toggling, setToggling] = useState(false);
+    const invalidateSeriesCache = () => useQueryCache.getState().invalidate("series-detail");
+
+    const [chapters, setChapters] = useState<AdminChapter[]>([]);
+    const [chaptersLoading, setChaptersLoading] = useState(false);
+    const [chapterPage, setChapterPage] = useState(1);
+    const [chapterTotalPages, setChapterTotalPages] = useState(1);
+    const [chapterTotal, setChapterTotal] = useState(0);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [deleting, setDeleting] = useState(false);
+    const [togglingPs, setTogglingPs] = useState<Record<number, boolean>>({});
+    const chapterOrderRef = useRef<"asc" | "desc">("desc");
+    const [chapterOrder, setChapterOrder] = useState<"asc" | "desc">("desc");
+
+    const fetchChapters = useCallback(async (page = 1, order?: "asc" | "desc") => {
+        if (!id) return;
+        setChaptersLoading(true);
+        try {
+            const ord = order ?? chapterOrderRef.current;
+            const res = await getSeriesChapters(Number(id), page, 20, ord);
+            setChapters(res.chapters);
+            setChapterPage(res.page);
+            setChapterTotalPages(res.totalPages);
+            setChapterTotal(res.total);
+            setSelectedIds(new Set());
+        } catch (err) {
+            console.error("Error al cargar capítulos:", err);
+            setChapters([]);
+        } finally {
+            setChaptersLoading(false);
+        }
+    }, [id]);
+
+    useEffect(() => { fetchChapters(); }, [fetchChapters]);
+
+    const handleOrderToggle = () => {
+        const next = chapterOrder === "desc" ? "asc" : "desc";
+        chapterOrderRef.current = next;
+        setChapterOrder(next);
+        fetchChapters(1, next);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === chapters.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(chapters.map((c) => c.id)));
+        }
+    };
+
+    const toggleSelect = (chapterId: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(chapterId)) {
+                next.delete(chapterId);
+            } else {
+                next.add(chapterId);
+            }
+            return next;
+        });
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!window.confirm(`¿Eliminar ${selectedIds.size} capítulo(s) permanentemente?`)) return;
+        setDeleting(true);
+        try {
+            const res = await bulkDeleteChapters(Array.from(selectedIds));
+            toast.success(`${res.data.deleted} capítulo(s) eliminado(s)`);
+            invalidateSeriesCache();
+            fetchChapters(1);
+            fetch();
+        } catch (e) {
+            const err = e as AxiosError<{ message: string }>;
+            toast.error(err.response?.data?.message ?? "Error al eliminar capítulos");
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const handleToggleProvider = async (psId: number) => {
+        if (!series) return;
+        setTogglingPs((prev) => ({ ...prev, [psId]: true }));
+        try {
+            const res = await toggleProviderSeries(series.id, psId);
+            setSeries((prev) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    providerSeries: prev.providerSeries.map((ps) =>
+                        ps.id === psId ? { ...ps, enabled: res.data.enabled } : ps
+                    ),
+                };
+            });
+            invalidateSeriesCache();
+            toast.success(`Provider ${res.data.enabled ? "activado" : "desactivado"}`);
+        } catch (e) {
+            const err = e as AxiosError<{ message: string }>;
+            toast.error(err.response?.data?.message ?? "Error al cambiar estado del provider");
+        } finally {
+            setTogglingPs((prev) => ({ ...prev, [psId]: false }));
+        }
+    };
 
     const handleToggleVisibility = async () => {
         if (!series) return;
@@ -156,19 +269,33 @@ export default function AdminSeriesDetailPage() {
                             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Providers</h2>
                             <div className="space-y-2">
                                 {series.providerSeries.map((ps) => (
-                                    <div key={ps.slug} className="flex items-center gap-3 text-sm">
-                                        <span className={cn(
-                                            "text-xs px-2 py-0.5 rounded-full border font-medium inline-flex items-center gap-1",
-                                            ps.provider.name === "olympus"
-                                                ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30"
-                                                : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-                                        )}>
-                                            {ps.provider.name}
-                                            <span className="opacity-60">#{ps.provider.priority}</span>
-                                        </span>
-                                        <span className="font-mono text-xs text-muted-foreground">{ps.externalId}</span>
-                                        <span className="text-muted-foreground">→</span>
-                                        <span className="font-mono text-xs">{ps.slug}</span>
+                                    <div key={ps.id} className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <span className={cn(
+                                                "text-xs px-2 py-0.5 rounded-full border font-medium inline-flex items-center gap-1 shrink-0",
+                                                ps.provider.name === "olympus"
+                                                    ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30"
+                                                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+                                                !ps.enabled && "opacity-50",
+                                            )}>
+                                                {ps.provider.name}
+                                                <span className="opacity-60">#{ps.provider.priority}</span>
+                                            </span>
+                                            <span className="font-mono text-xs text-muted-foreground truncate">{ps.externalId}</span>
+                                            <span className="text-muted-foreground shrink-0">→</span>
+                                            <span className="font-mono text-xs truncate">{ps.slug}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                                            <span className="text-xs text-muted-foreground">
+                                                {ps.enabled ? "Activo" : "Inactivo"}
+                                            </span>
+                                            <Switch
+                                                checked={ps.enabled}
+                                                disabled={togglingPs[ps.id]}
+                                                onCheckedChange={() => handleToggleProvider(ps.id)}
+                                                aria-label={`Toggle ${ps.provider.name}`}
+                                            />
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -202,6 +329,126 @@ export default function AdminSeriesDetailPage() {
                                     <Plus className="size-4" /> Agregar
                                 </Button>
                             </div>
+                        </div>
+                        {/* Capítulos */}
+                        <div className="border border-border rounded-xl p-5 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Capítulos
+                                    <span className="ml-2 font-mono text-xs font-normal opacity-60">({chapterTotal})</span>
+                                </h2>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleOrderToggle}
+                                        className="text-xs text-muted-foreground"
+                                    >
+                                        {chapterOrder === "desc" ? "↓ Últimos" : "↑ Primeros"}
+                                    </Button>
+                                    {chapters.length > 0 && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={toggleSelectAll}
+                                        >
+                                            {selectedIds.size === chapters.length ? "Deseleccionar" : "Seleccionar"}
+                                        </Button>
+                                    )}
+                                    {selectedIds.size > 0 && (
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={handleBulkDelete}
+                                            disabled={deleting}
+                                        >
+                                            {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                                            {selectedIds.size}
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {chaptersLoading ? (
+                                <div className="space-y-2">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                        <Skeleton key={i} className="h-10 rounded-lg" />
+                                    ))}
+                                </div>
+                            ) : chapters.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">Sin capítulos registrados.</p>
+                            ) : (
+                                <div className="space-y-1">
+                                    {chapters.map((ch) => (
+                                        <div
+                                            key={ch.id}
+                                            className={cn(
+                                                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                                                selectedIds.has(ch.id) ? "bg-primary/10" : "hover:bg-muted/50",
+                                            )}
+                                        >
+                                            <Checkbox
+                                                checked={selectedIds.has(ch.id)}
+                                                onCheckedChange={() => toggleSelect(ch.id)}
+                                                aria-label={`Seleccionar capítulo ${ch.number ?? ch.name}`}
+                                            />
+                                            <span className="font-mono text-xs tabular-nums w-12 shrink-0 text-muted-foreground">
+                                                #{ch.number ?? "?"}
+                                            </span>
+                                            <span className="truncate flex-1 min-w-0">{ch.name || "—"}</span>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {ch.providers.map((p) => (
+                                                    <span
+                                                        key={p}
+                                                        className={cn(
+                                                            "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                                                            p === "olympus"
+                                                                ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
+                                                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                                                        )}
+                                                    >
+                                                        {p}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <span className={cn(
+                                                "text-xs font-mono tabular-nums w-10 text-right shrink-0",
+                                                ch.pagesScraped ? "text-green-600 dark:text-green-400" : "text-muted-foreground",
+                                            )}>
+                                                {ch.pagesCount}p
+                                            </span>
+                                            <span className="text-xs text-muted-foreground shrink-0 w-20 text-right">
+                                                {ch.publishedAt ? new Date(ch.publishedAt).toLocaleDateString() : "—"}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Paginación */}
+                            {chapterTotalPages > 1 && (
+                                <div className="flex items-center justify-center gap-2 pt-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={chapterPage <= 1}
+                                        onClick={() => fetchChapters(chapterPage - 1, chapterOrder)}
+                                    >
+                                        Anterior
+                                    </Button>
+                                    <span className="text-xs text-muted-foreground tabular-nums">
+                                        {chapterPage} / {chapterTotalPages}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={chapterPage >= chapterTotalPages}
+                                        onClick={() => fetchChapters(chapterPage + 1, chapterOrder)}
+                                    >
+                                        Siguiente
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </div>
 

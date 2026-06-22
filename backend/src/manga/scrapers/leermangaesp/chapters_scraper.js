@@ -179,6 +179,7 @@ export async function scrapeChapters() {
     const providerSeriesList = await prisma.providerSeries.findMany({
         where: {
             providerId: provider.id,
+            enabled: true,
             OR: [
                 { series: { lastChaptersCheck: null } },
                 {

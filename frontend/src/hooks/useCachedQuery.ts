@@ -15,6 +15,7 @@ export function useCachedQuery<T>(
 ): UseCachedQueryResult<T> {
   const get = useQueryCache((s) => s.get);
   const set = useQueryCache((s) => s.set);
+  const cacheVersion = useQueryCache((s) => s.cacheVersion);
   const enabled = options?.enabled ?? true;
 
   const [data, setData] = useState<T>(() => get<T>(cacheKey) ?? options?.initialData as T);
@@ -24,20 +25,19 @@ export function useCachedQuery<T>(
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
-  // Sync data/loading from cache when cacheKey changes (avoids stale data from a previous key)
+  // Sync data/loading from cache when cacheKey or cacheVersion changes
   useEffect(() => {
     const cached = get<T>(cacheKey);
     if (cached !== undefined) {
       setData(cached);
       setLoading(false);
     } else {
-      setData(options?.initialData as T);
       setLoading(true);
     }
     setError(null);
-  }, [cacheKey, get, options?.initialData]);
+  }, [cacheKey, get, options?.initialData, cacheVersion]);
 
-  // Fetch when cacheKey has no cached data
+  // Fetch when cacheKey has no cached data, or when cacheVersion changes (invalidation detected)
   useEffect(() => {
     if (!enabled) return;
     if (get<T>(cacheKey) !== undefined) return;
@@ -65,7 +65,7 @@ export function useCachedQuery<T>(
     load();
 
     return () => abort.abort();
-  }, [cacheKey, enabled, options?.ttl, get, set]);
+  }, [cacheKey, enabled, options?.ttl, get, set, cacheVersion]);
 
   const refetch = useCallback(async () => {
     setLoading(true);

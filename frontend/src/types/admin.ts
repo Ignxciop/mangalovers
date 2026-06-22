@@ -296,9 +296,22 @@ export interface ActivityLogResponse {
 }
 
 export interface AdminProviderRef {
+    id: number;
     provider: { name: string; priority: number };
     externalId: string;
     slug: string;
+    enabled: boolean;
+}
+
+export interface AdminChapter {
+    id: number;
+    number: number | null;
+    name: string;
+    publishedAt: string;
+    pagesScraped: boolean;
+    pagesCount: number;
+    providers: string[];
+    createdAt: string;
 }
 
 export interface AdminSeriesRelation {
@@ -337,6 +350,24 @@ export interface AdminSeriesDetail extends AdminSeriesItem {
 export interface AdminSeriesDetailResponse {
     success: boolean;
     data: AdminSeriesDetail;
+}
+
+export interface AdminChaptersResponse {
+    success: boolean;
+    chapters: AdminChapter[];
+    total: number;
+    page: number;
+    totalPages: number;
+}
+
+export interface AdminBulkDeleteResponse {
+    success: boolean;
+    data: { deleted: number };
+}
+
+export interface AdminToggleProviderResponse {
+    success: boolean;
+    data: { id: number; enabled: boolean };
 }
 
 export interface ScraperConfig {
