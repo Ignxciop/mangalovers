@@ -244,7 +244,7 @@ export async function getSeriesProgress(userId, seriesId) {
 }
 
 export async function getUserReadingStats(userId) {
-  const totalChaptersRead = await prisma.userChapterRead.count({ where: { userId } });
+  let totalChaptersRead = await prisma.userChapterRead.count({ where: { userId } });
 
   const favorites = await prisma.userFavorite.findMany({
     where: { userId },
@@ -408,6 +408,37 @@ export async function getUserReadingStats(userId) {
     }
   }
 
+  // Deduplicar total de lecturas por cluster (mismo número en distintos
+  // miembros del cluster no debe inflar el conteo)
+  const seriesToClusterKey = new Map();
+  for (const [sid, cluster] of clusterResults) {
+    const key = cluster ? [...cluster.allIds].sort((a, b) => a - b).join(",") : String(sid);
+    for (const id of (cluster ? cluster.allIds : [sid])) {
+      seriesToClusterKey.set(id, key);
+    }
+  }
+  const clusterNumbers = new Map();
+  for (const r of readDetails) {
+    if (r.chapter.number == null) continue;
+    const key = seriesToClusterKey.get(r.chapter.seriesId) ?? String(r.chapter.seriesId);
+    if (!clusterNumbers.has(key)) clusterNumbers.set(key, new Set());
+    clusterNumbers.get(key).add(r.chapter.number);
+  }
+  totalChaptersRead = [...clusterNumbers.values()].reduce((sum, s) => sum + s.size, 0);
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const thisMonthReads = readDetails.filter(r => new Date(r.createdAt) >= startOfMonth);
+  const clusterNumbersThisMonth = new Map();
+  for (const r of thisMonthReads) {
+    if (r.chapter.number == null) continue;
+    const key = seriesToClusterKey.get(r.chapter.seriesId) ?? String(r.chapter.seriesId);
+    if (!clusterNumbersThisMonth.has(key)) clusterNumbersThisMonth.set(key, new Set());
+    clusterNumbersThisMonth.get(key).add(r.chapter.number);
+  }
+  const chaptersThisMonth = [...clusterNumbersThisMonth.values()].reduce((sum, s) => sum + s.size, 0);
+
   let completedSeries = 0;
   for (const fav of normalizedFavorites) {
     const lastRead = clusterLastRead.get(fav.seriesId) ?? -1;
@@ -462,12 +493,6 @@ export async function getUserReadingStats(userId) {
 
   const readDays = getReadDaysSet(readDetails);
   const { currentStreak, bestStreak } = computeStreaks(readDays);
-
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const chaptersThisMonth = await prisma.userChapterRead.count({
-    where: { userId, createdAt: { gte: startOfMonth } },
-  });
 
   return {
     totalChaptersRead,
