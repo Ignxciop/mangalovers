@@ -87,6 +87,7 @@ export class SuggestionService {
           description: true,
           image: true,
           status: true,
+          adminResponse: true,
           createdAt: true,
           updatedAt: true,
           userId: true,
