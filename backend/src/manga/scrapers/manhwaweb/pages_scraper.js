@@ -10,7 +10,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const BASE_URL = "https://manhwawebbackend-production.up.railway.app";
 
-async function fetchPages(externalChapterId, retries = 3) {
+const REQUEST_TIMEOUT_MS = 45000;
+
+async function fetchPages(externalChapterId, retries = 2) {
     const tryFormats = [
         `${BASE_URL}/chapters/see/${externalChapterId}`,
         `${BASE_URL}/chapters/see/${externalChapterId}_01`,
@@ -20,7 +22,10 @@ async function fetchPages(externalChapterId, retries = 3) {
         const url = tryFormats[attempt];
         for (let i = 0; i < retries; i++) {
             try {
-                const { data } = await axios.get(url, { timeout: 30000 });
+                const { data } = await axios.get(url, {
+                    timeout: REQUEST_TIMEOUT_MS,
+                    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS + 5000),
+                });
                 return (data.chapter?.img ?? []).filter((url) => url?.trim());
             } catch (error) {
                 if (error.response?.status === 404 && attempt < tryFormats.length - 1) {

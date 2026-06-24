@@ -11,18 +11,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const BASE_URL = "https://manhwawebbackend-production.up.railway.app";
 
-async function fetchSeriesWithChapters(externalId, retries = 3) {
+const REQUEST_TIMEOUT_MS = 45000;
+
+async function fetchSeriesWithChapters(externalId, retries = 2) {
     for (let i = 0; i < retries; i++) {
         try {
             const { data } = await axios.get(
                 `${BASE_URL}/manhwa/see/${externalId}`,
-                { timeout: 30000 },
+                {
+                    timeout: REQUEST_TIMEOUT_MS,
+                    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS + 5000),
+                },
             );
             return data;
         } catch (error) {
             if (i === retries - 1) throw error;
             logger.warn({ externalId, attempt: i + 2 }, "Reintentando fetch manhwaweb");
-            await sleep(2000 * (i + 1));
+            await sleep(3000 * (i + 1));
         }
     }
 }
@@ -34,6 +39,7 @@ async function processSeries(providerSeries, providerId) {
     if (getAbortSignal("manhwaweb").aborted) return;
 
     logger.info({ externalId }, "Revisando capítulos manhwaweb");
+    logger.debug({ externalId }, "Fetching capítulos manhwaweb...");
 
     let latestCreatedChapter = null;
     const MAX_CONSECUTIVE_EXISTING = 10;
