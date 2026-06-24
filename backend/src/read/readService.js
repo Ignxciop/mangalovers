@@ -408,6 +408,21 @@ export async function getUserReadingStats(userId) {
     }
   }
 
+  // Resolver clusters para series leídas pero no favoritas
+  // para que la deduplicación cubra todos los clusters
+  const readSeriesSet = new Set(readDetails.map((r) => r.chapter.seriesId));
+  for (const sid of readSeriesSet) {
+    if (clusterResults.has(sid)) continue;
+    const cluster = await resolveSeriesCluster(sid);
+    clusterResults.set(sid, cluster);
+    if (cluster) {
+      clusterResults.set(cluster.primary.id, cluster);
+      for (const id of cluster.allIds) {
+        if (!clusterResults.has(id)) clusterResults.set(id, cluster);
+      }
+    }
+  }
+
   // Deduplicar total de lecturas por cluster (mismo número en distintos
   // miembros del cluster no debe inflar el conteo)
   const seriesToClusterKey = new Map();
