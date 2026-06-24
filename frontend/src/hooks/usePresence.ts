@@ -1,18 +1,12 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { getSocket, subscribeToSocket } from "@/api/socket";
 import { useFriendStore } from "@/store/friendStore";
-import { isInAppEnabled } from "@/lib/inAppNotifications";
 
-function showPresenceToast(displayName: string | undefined, kind: "online" | "offline") {
-    try {
-        if (!isInAppEnabled()) return;
-        const name = displayName ?? "Un amigo";
-        const message = kind === "online" ? `${name} se ha conectado` : `${name} se ha desconectado`;
-        toast(message, { duration: 3000 });
-    } catch {
-        // Sonner no disponible
-    }
+function toastPresence(displayName: string | undefined, userId: string, kind: "online" | "offline") {
+    const name = displayName ?? "Un amigo";
+    const message = kind === "online" ? `${name} se ha conectado` : `${name} se ha desconectado`;
+    toast(message, { id: `pres:${userId}:${kind}`, duration: 3000 });
 }
 
 export function usePresence() {
@@ -20,11 +14,6 @@ export function usePresence() {
     const setOnlineFriends = useFriendStore((s) => s.setOnlineFriends);
     const addOnlineFriend = useFriendStore((s) => s.addOnlineFriend);
     const removeOnlineFriend = useFriendStore((s) => s.removeOnlineFriend);
-    const showToastRef = useRef(showPresenceToast);
-
-    useEffect(() => {
-        showToastRef.current = showPresenceToast;
-    });
 
     useEffect(() => {
         if (!socket) return;
@@ -35,12 +24,12 @@ export function usePresence() {
 
         const handleOnline = (data: { userId: string; displayName?: string }) => {
             addOnlineFriend(data.userId);
-            showToastRef.current(data.displayName, "online");
+            toastPresence(data.displayName, data.userId, "online");
         };
 
         const handleOffline = (data: { userId: string; displayName?: string }) => {
             removeOnlineFriend(data.userId);
-            showToastRef.current(data.displayName, "offline");
+            toastPresence(data.displayName, data.userId, "offline");
         };
 
         socket.on("presence:online_list", handleOnlineList);
