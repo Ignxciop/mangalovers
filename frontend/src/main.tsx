@@ -14,10 +14,11 @@ void registerServiceWorker();
 export function SocketManager({ children }: { children: React.ReactNode }) {
     const accessToken = useAuthStore((s) => s.accessToken);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-    const [pageReady, setPageReady] = useState(!document.prerendering);
+    const hasPrerendering = "prerendering" in document && (document as unknown as { prerendering: boolean }).prerendering;
+    const [pageReady, setPageReady] = useState(!hasPrerendering);
 
     useEffect(() => {
-        if (!document.prerendering) return;
+        if (!hasPrerendering) return;
         const onActivate = () => setPageReady(true);
         document.addEventListener("prerenderingchange", onActivate);
         return () => document.removeEventListener("prerenderingchange", onActivate);
