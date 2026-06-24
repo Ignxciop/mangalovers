@@ -31,7 +31,7 @@ export async function getAllSuggestions(params?: {
     return data;
 }
 
-export async function updateSuggestionStatus(id: number, status: SuggestionStatus) {
-    const { data } = await api.patch(`/suggestions/${id}/status`, { status });
+export async function updateSuggestionStatus(id: number, status: SuggestionStatus, adminResponse?: string) {
+    const { data } = await api.patch(`/suggestions/${id}/status`, { status, adminResponse });
     return data;
 }

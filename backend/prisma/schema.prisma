@@ -88,9 +88,10 @@ model Suggestion {
   title       String
   description String
   image       String?
-  status      SuggestionStatus @default(OPEN)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  status        SuggestionStatus @default(OPEN)
+  adminResponse String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   reviewedById String?
   reviewedBy   User?            @relation("SuggestionReviewedBy", fields: [reviewedById], references: [id])

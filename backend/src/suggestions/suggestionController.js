@@ -50,9 +50,9 @@ export async function getAll(req, res, next) {
 export async function updateStatus(req, res, next) {
   try {
     const suggestionId = parseInt(req.params.id);
-    const { status } = req.body;
+    const { status, adminResponse } = req.body;
     const existing = await SuggestionService.getById(suggestionId);
-    const suggestion = await SuggestionService.updateStatus(suggestionId, status, req.user.userId);
+    const suggestion = await SuggestionService.updateStatus(suggestionId, status, req.user.userId, adminResponse);
     res.json({ success: true, message: "Estado actualizado", data: suggestion });
 
     ActivityLogService.logEvent(

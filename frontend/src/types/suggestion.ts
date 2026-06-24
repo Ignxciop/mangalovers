@@ -8,6 +8,7 @@ export interface Suggestion {
     description: string;
     image: string | null;
     status: SuggestionStatus;
+    adminResponse?: string | null;
     createdAt: string;
     updatedAt: string;
     userId?: string;
