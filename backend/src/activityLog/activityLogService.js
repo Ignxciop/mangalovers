@@ -73,6 +73,28 @@ export class ActivityLogService {
       if (filters.from) where.createdAt.gte = new Date(filters.from);
       if (filters.to) where.createdAt.lte = new Date(filters.to);
     }
+    if (filters.search) {
+      const terms = filters.search.trim().split(/\s+/).filter(Boolean);
+      if (terms.length === 1) {
+        where.user = {
+          OR: [
+            { name: { contains: terms[0], mode: "insensitive" } },
+            { lastname: { contains: terms[0], mode: "insensitive" } },
+            { email: { contains: terms[0], mode: "insensitive" } },
+          ],
+        };
+      } else {
+        where.AND = terms.map((term) => ({
+          user: {
+            OR: [
+              { name: { contains: term, mode: "insensitive" } },
+              { lastname: { contains: term, mode: "insensitive" } },
+              { email: { contains: term, mode: "insensitive" } },
+            ],
+          },
+        }));
+      }
+    }
 
     const [data, total] = await Promise.all([
       prisma.userActivity.findMany({
