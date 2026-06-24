@@ -21,9 +21,6 @@ export function initSocket(server) {
     },
     pingInterval: 25000,
     pingTimeout: 20000,
-    connectionStateRecovery: {
-      maxDisconnectionDuration: 2 * 60 * 1000,
-    },
   });
 
   io.use(socketAuthMiddleware);

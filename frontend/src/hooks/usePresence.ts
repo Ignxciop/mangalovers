@@ -28,8 +28,9 @@ export function usePresence() {
         };
 
         const handleOffline = (data: { userId: string; displayName?: string }) => {
+            const wasOnline = useFriendStore.getState().onlineUserIds.includes(data.userId);
             removeOnlineFriend(data.userId);
-            toastPresence(data.displayName, data.userId, "offline");
+            if (wasOnline) toastPresence(data.displayName, data.userId, "offline");
         };
 
         socket.on("presence:online_list", handleOnlineList);

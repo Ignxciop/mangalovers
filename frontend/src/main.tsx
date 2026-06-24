@@ -1,4 +1,4 @@
-import { StrictMode, useEffect } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
@@ -14,15 +14,23 @@ void registerServiceWorker();
 export function SocketManager({ children }: { children: React.ReactNode }) {
     const accessToken = useAuthStore((s) => s.accessToken);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    const [pageReady, setPageReady] = useState(!document.prerendering);
 
     useEffect(() => {
-        if (isAuthenticated && accessToken) {
+        if (!document.prerendering) return;
+        const onActivate = () => setPageReady(true);
+        document.addEventListener("prerenderingchange", onActivate);
+        return () => document.removeEventListener("prerenderingchange", onActivate);
+    }, []);
+
+    useEffect(() => {
+        if (isAuthenticated && accessToken && pageReady) {
             connectSocket(accessToken);
         } else {
             disconnectSocket();
         }
         return () => disconnectSocket();
-    }, [isAuthenticated, accessToken]);
+    }, [isAuthenticated, accessToken, pageReady]);
 
     useSocketNotifications();
     usePresence();
