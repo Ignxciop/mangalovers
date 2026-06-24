@@ -345,123 +345,124 @@ export default function AdminSuggestions() {
             </AdminHeader>
 
             <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0 overflow-x-hidden">
-                {loading ? (
-                    <div className="flex gap-5 flex-1 min-h-0">
-                        <div className="flex flex-col w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 gap-2">
-                            <Skeleton className="h-8 rounded-lg" />
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <Skeleton key={i} className="h-[68px] rounded-lg" />
-                            ))}
-                        </div>
-                        <div className="hidden lg:block flex-1 border-l border-border pl-5">
-                            <Skeleton className="h-[350px] rounded-xl" />
-                        </div>
-                    </div>
-                ) : suggestions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
-                        <div className="size-14 rounded-full bg-muted/30 flex items-center justify-center">
-                            <MessageSquare className="size-7 text-muted-foreground/30" />
-                        </div>
-                        <div className="space-y-1.5">
-                            <p className="text-base font-medium text-muted-foreground/70">
-                                {activeFiltersCount > 0 || searchQuery ? "Sin resultados" : "No hay sugerencias"}
-                            </p>
-                            <p className="text-sm text-muted-foreground/50">
-                                {activeFiltersCount > 0 || searchQuery ? "Prueba con otros filtros o búsqueda" : "Las sugerencias de los usuarios aparecerán aquí"}
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex gap-5 flex-1 min-h-0">
-                        <div className="flex flex-col w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 min-h-0">
-                            <div className="flex items-center gap-1 pb-2 shrink-0 border-b border-border mb-3 overflow-x-auto">
-                                {tabs.map((tab) => (
-                                    <button
-                                        key={tab.value}
-                                        onClick={() => updateFilter("status", tab.value)}
-                                        className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shrink-0",
-                                            statusFilter === tab.value
-                                                ? "bg-muted text-foreground shadow-sm"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-muted/40",
-                                        )}
-                                    >
-                                        {tab.label}
-                                        <span className="text-xs text-muted-foreground/50 ml-1">{tab.count}</span>
-                                    </button>
+                <div className="flex gap-5 flex-1 min-h-0">
+                    <div className="flex flex-col w-full lg:w-[360px] xl:w-[400px] lg:shrink-0 min-h-0">
+                        {loading ? (
+                            <div className="flex flex-col gap-2">
+                                <Skeleton className="h-8 rounded-lg" />
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <Skeleton key={i} className="h-[68px] rounded-lg" />
                                 ))}
                             </div>
-
-                            <div className="flex-1 overflow-y-auto space-y-px">
-                                {suggestions.map((s) => {
-                                    const isSelected = selectedId === s.id;
-                                    const resolved = isResolved(s.status);
-                                    return (
+                        ) : suggestions.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-24 gap-4 text-center flex-1">
+                                <div className="size-14 rounded-full bg-muted/30 flex items-center justify-center">
+                                    <MessageSquare className="size-7 text-muted-foreground/30" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <p className="text-base font-medium text-muted-foreground/70">
+                                        {activeFiltersCount > 0 || searchQuery ? "Sin resultados" : "No hay sugerencias"}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground/50">
+                                        {activeFiltersCount > 0 || searchQuery ? "Prueba con otros filtros o búsqueda" : "Las sugerencias de los usuarios aparecerán aquí"}
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-1 pb-2 shrink-0 border-b border-border mb-3 overflow-x-auto">
+                                    {tabs.map((tab) => (
                                         <button
-                                            key={s.id}
-                                            onClick={() => handleSelectSuggestion(s.id)}
+                                            key={tab.value}
+                                            onClick={() => updateFilter("status", tab.value)}
                                             className={cn(
-                                                "w-full text-left px-3 py-2.5 rounded-lg transition-all",
-                                                isSelected
-                                                    ? "bg-muted border border-border/50 shadow-sm"
-                                                    : "hover:bg-muted/40 border border-transparent",
-                                                resolved && !isSelected && "opacity-50",
+                                                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shrink-0",
+                                                statusFilter === tab.value
+                                                    ? "bg-muted text-foreground shadow-sm"
+                                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40",
                                             )}
                                         >
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                            <span className={cn("text-xs font-medium", STATUS_COLORS[s.status])}>
-                                                {STATUS_LABELS[s.status]}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground/50">
-                                                {TYPE_LABELS[s.type]}
-                                            </span>
-                                        </div>
-                                        <p className={cn(
-                                            "text-sm leading-snug truncate",
-                                            resolved ? "text-muted-foreground" : "text-foreground",
-                                        )}>
-                                            {s.title}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground/50">
-                                                <span>{s.user?.name ?? s.user?.email ?? "—"}</span>
-                                                <span>·</span>
-                                                <span>{timeAgo(s.createdAt)}</span>
-                                            </div>
+                                            {tab.label}
+                                            <span className="text-xs text-muted-foreground/50 ml-1">{tab.count}</span>
                                         </button>
-                                    );
-                                })}
-                            </div>
+                                    ))}
+                                </div>
 
-                            {meta.totalPages > 1 && (
-                                <div className="pt-3 shrink-0 border-t border-border mt-2">
-                                    <MangaPagination
-                                        page={meta.page}
-                                        totalPages={meta.totalPages}
-                                        setPage={(p) => updateFilter("page", String(p))}
-                                    />
+                                <div className="flex-1 overflow-y-auto space-y-px">
+                                    {suggestions.map((s) => {
+                                        const isSelected = selectedId === s.id;
+                                        const resolved = isResolved(s.status);
+                                        return (
+                                            <button
+                                                key={s.id}
+                                                onClick={() => handleSelectSuggestion(s.id)}
+                                                className={cn(
+                                                    "w-full text-left px-3 py-2.5 rounded-lg transition-all",
+                                                    isSelected
+                                                        ? "bg-muted border border-border/50 shadow-sm"
+                                                        : "hover:bg-muted/40 border border-transparent",
+                                                    resolved && !isSelected && "opacity-50",
+                                                )}
+                                            >
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className={cn("text-xs font-medium", STATUS_COLORS[s.status])}>
+                                                    {STATUS_LABELS[s.status]}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground/50">
+                                                    {TYPE_LABELS[s.type]}
+                                                </span>
+                                            </div>
+                                            <p className={cn(
+                                                "text-sm leading-snug truncate",
+                                                resolved ? "text-muted-foreground" : "text-foreground",
+                                            )}>
+                                                {s.title}
+                                            </p>
+                                            <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground/50">
+                                                    <span>{s.user?.name ?? s.user?.email ?? "—"}</span>
+                                                    <span>·</span>
+                                                    <span>{timeAgo(s.createdAt)}</span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-                            )}
-                        </div>
 
-                        <div className="hidden lg:flex flex-col flex-1 min-w-0 border-l border-border pl-5 min-h-0">
-                            {selected ? (
-                                <div className="flex-1 overflow-y-auto">
-                                    <DetailPanel
-                                        key={selected.id}
-                                        suggestion={selected}
-                                        onStatusChange={handleStatusChange}
-                                    />
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-center h-full min-h-[200px]">
-                                        <p className="text-sm text-muted-foreground/50">
-                                            Selecciona una sugerencia
-                                        </p>
-                                </div>
-                            )}
-                        </div>
+                                {meta.totalPages > 1 && (
+                                    <div className="pt-3 shrink-0 border-t border-border mt-2">
+                                        <MangaPagination
+                                            page={meta.page}
+                                            totalPages={meta.totalPages}
+                                            setPage={(p) => updateFilter("page", String(p))}
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
-                )}
+
+                    <div className="hidden lg:flex flex-col flex-1 min-w-0 border-l border-border pl-5 min-h-0">
+                        {selected ? (
+                            <div className="flex-1 overflow-y-auto">
+                                <DetailPanel
+                                    key={selected.id}
+                                    suggestion={selected}
+                                    onStatusChange={handleStatusChange}
+                                />
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-full min-h-[200px]">
+                                {loading ? (
+                                    <Skeleton className="h-[350px] w-full rounded-xl" />
+                                ) : (
+                                    <p className="text-sm text-muted-foreground/50">
+                                        Selecciona una sugerencia
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </main>
 
             <Sheet open={sheetOpen} onOpenChange={(open) => {
