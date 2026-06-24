@@ -122,6 +122,10 @@ export class FriendService {
       }).catch((err) => logger.warn({ err }, "Error creando notificación"));
     }
 
+    emitPendingCount(receiverId).catch((err) =>
+      logger.warn({ err }, "Error emitiendo pending_count"),
+    );
+
     return friend;
   }
 
@@ -162,6 +166,10 @@ export class FriendService {
       }).catch((err) => logger.warn({ err }, "Error creando notificación"));
     }
 
+    emitPendingCount(userId).catch((err) =>
+      logger.warn({ err }, "Error emitiendo pending_count"),
+    );
+
     return updated;
   }
 
@@ -169,6 +177,10 @@ export class FriendService {
     await prisma.friend.deleteMany({
       where: { id: requestId, receiverId: userId, status: "PENDING" },
     });
+
+    emitPendingCount(userId).catch((err) =>
+      logger.warn({ err }, "Error emitiendo pending_count"),
+    );
   }
 
   static async blockUser(currentUserId, targetUserId) {
@@ -503,4 +515,13 @@ export class FriendService {
 
     return { data, total };
   }
+}
+
+async function emitPendingCount(userId) {
+  const { getIO } = await import("../socket/index.js");
+  const io = getIO();
+  const count = await prisma.friend.count({
+    where: { receiverId: userId, status: "PENDING" },
+  });
+  io.to(`user:${userId}`).emit("friend:pending_count", { count });
 }

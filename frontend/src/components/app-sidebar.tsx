@@ -27,7 +27,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useFriendStore } from "@/store/friendStore";
 import { SuggestionForm } from "@/components/suggestion-form";
-import { memo, useState, useEffect } from "react";
+import { memo, useState } from "react";
 import {
     UserRound,
     EllipsisVertical,
@@ -50,8 +50,7 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { getReceivedRequestsCount } from "@/api/friends";
-import { getUnreadNotificationCount } from "@/api/notifications";
+
 import { SidebarMenuBadge } from "@/components/ui/sidebar";
 
 function NavItem({
@@ -397,43 +396,7 @@ export function AppSidebar() {
     const collapsed = !isMobile && state === "collapsed";
     const [showSuggestionForm, setShowSuggestionForm] = useState(false);
     const unreadNotifCount = useNotificationStore((s) => s.unreadCount);
-    const setUnreadNotifCount = useNotificationStore((s) => s.setUnreadCount);
     const pendingFriendCount = useFriendStore((s) => s.pendingCount);
-    const setPendingFriendCount = useFriendStore((s) => s.setPendingCount);
-
-    useEffect(() => {
-        if (!isAuthenticated) return;
-
-        const fetchCount = async () => {
-            try {
-                const count = await getReceivedRequestsCount();
-                setPendingFriendCount(count);
-            } catch {
-                // Silenciar error
-            }
-        };
-
-        fetchCount();
-        const interval = setInterval(fetchCount, 60000);
-        return () => clearInterval(interval);
-    }, [isAuthenticated, setPendingFriendCount]);
-
-    useEffect(() => {
-        if (!isAuthenticated) return;
-
-        const fetchCount = async () => {
-            try {
-                const count = await getUnreadNotificationCount();
-                setUnreadNotifCount(count);
-            } catch {
-                // Silenciar error
-            }
-        };
-
-        fetchCount();
-        const interval = setInterval(fetchCount, 60000);
-        return () => clearInterval(interval);
-    }, [isAuthenticated, setUnreadNotifCount]);
 
     return (
         <>

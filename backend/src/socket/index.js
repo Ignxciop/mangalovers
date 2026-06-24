@@ -4,6 +4,7 @@ import { registerPresenceOnConnect } from "./presenceHandler.js";
 import { registerNotificationNamespace } from "./notificationHandler.js";
 import { registerAdminNamespace } from "./adminHandler.js";
 import { setAdminEmitterIO } from "./adminEmitter.js";
+import { prisma } from "../config/prisma.js";
 import logger from "../config/logger.js";
 
 let io;
@@ -37,6 +38,20 @@ export function initSocket(server) {
 
     if (socket.data.userId) {
       socket.join(`user:${socket.data.userId}`);
+
+      Promise.all([
+        prisma.notification.count({
+          where: { userId: socket.data.userId, read: false },
+        }),
+        prisma.friend.count({
+          where: { receiverId: socket.data.userId, status: "PENDING" },
+        }),
+      ]).then(([unreadCount, pendingCount]) => {
+        socket.emit("unread:count", { count: unreadCount });
+        socket.emit("friend:pending_count", { count: pendingCount });
+      }).catch((err) => {
+        logger.error({ err }, "Error al emitir conteos iniciales al conectar socket");
+      });
     }
 
     if (socket.data.role === "ADMIN") {

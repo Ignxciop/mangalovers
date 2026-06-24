@@ -55,10 +55,23 @@ export async function markAsRead(userId, notificationId) {
     });
     if (!notification) return null;
 
-    return prisma.notification.update({
+    const updated = await prisma.notification.update({
         where: { id: notificationId },
         data: { read: true },
     });
+
+    try {
+        const { getIO } = await import("../socket/index.js");
+        const io = getIO();
+        const count = await prisma.notification.count({
+            where: { userId, read: false },
+        });
+        io.to(`user:${userId}`).emit("unread:count", { count });
+    } catch {
+        // Socket.IO no disponible
+    }
+
+    return updated;
 }
 
 export async function markAllAsRead(userId) {
@@ -66,4 +79,12 @@ export async function markAllAsRead(userId) {
         where: { userId, read: false },
         data: { read: true },
     });
+
+    try {
+        const { getIO } = await import("../socket/index.js");
+        const io = getIO();
+        io.to(`user:${userId}`).emit("unread:count", { count: 0 });
+    } catch {
+        // Socket.IO no disponible
+    }
 }
