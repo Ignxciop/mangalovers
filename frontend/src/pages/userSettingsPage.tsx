@@ -1,6 +1,7 @@
 import { SEO } from "@/components/seo";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -984,7 +985,11 @@ function SupportSection() {
 }
 
 export default function UserSettingsPage() {
-    const [tab, setTab] = useState("perfil");
+    const location = useLocation();
+    const [tab, setTab] = useState(() => {
+        const stateTab = (location.state as { tab?: string } | null)?.tab;
+        return stateTab === "soporte" ? "soporte" : "perfil";
+    });
 
     return (
         <>
