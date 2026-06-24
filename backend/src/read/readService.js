@@ -43,17 +43,6 @@ function getReadDaysSet(readRecords) {
   return [...new Set(readRecords.map((r) => new Date(r.createdAt).toISOString().split("T")[0]))].sort((a, b) => b.localeCompare(a));
 }
 
-function buildLastReadMap(readRecords) {
-  const map = new Map();
-  for (const r of readRecords) {
-    const sid = r.chapter.seriesId;
-    if (!map.has(sid)) {
-      map.set(sid, r.chapter.number);
-    }
-  }
-  return map;
-}
-
 // ─── Service functions ─────────────────────────────────────────
 
 export async function getReadChapterIds(userId, seriesId) {
@@ -568,6 +557,8 @@ export async function getFullStats(userId) {
   const allUniqueIds = [...new Set(allSeriesIds)];
   const clusterMaxMap = new Map();
   const seriesToClusterKey = new Map();
+  const seriesToPrimary = new Map();
+  const seriesPrimaryInfo = new Map();
   for (const sid of allUniqueIds) {
     if (clusterMaxMap.has(sid)) continue;
     const cluster = await resolveSeriesCluster(sid);
@@ -578,6 +569,10 @@ export async function getFullStats(userId) {
       const n = lastChapterNumberMap.get(id) ?? 0;
       if (n > maxNum) maxNum = n;
       seriesToClusterKey.set(id, clusterKey);
+      seriesToPrimary.set(id, cluster ? cluster.primary.id : id);
+    }
+    if (cluster) {
+      for (const id of ids) seriesPrimaryInfo.set(id, cluster.primary);
     }
     for (const id of ids) {
       clusterMaxMap.set(id, maxNum > 0 ? maxNum : null);
@@ -596,15 +591,26 @@ export async function getFullStats(userId) {
   const totalChaptersRead = [...clusterNumbers.values()].reduce((sum, s) => sum + s.size, 0);
   const totalPagesEstimated = totalChaptersRead * 20;
   const estimatedHours = Math.round((totalChaptersRead * 7) / 60);
-  const totalSeries = favorites.length;
+  const totalSeries = [...new Set(favorites.map((f) => seriesToPrimary.get(f.seriesId) ?? f.seriesId))].length;
 
-  const lastReadMap = buildLastReadMap(reads);
+  const lastReadMap = new Map();
+  for (const r of reads) {
+    if (r.chapter.number == null) continue;
+    const primaryId = seriesToPrimary.get(r.chapter.seriesId) ?? r.chapter.seriesId;
+    if (!lastReadMap.has(primaryId)) {
+      lastReadMap.set(primaryId, r.chapter.number);
+    }
+  }
 
+  const seenFavPrimaries = new Set();
   let completedSeries = 0;
   for (const fav of favorites) {
+    const primaryId = seriesToPrimary.get(fav.seriesId) ?? fav.seriesId;
+    if (seenFavPrimaries.has(primaryId)) continue;
+    seenFavPrimaries.add(primaryId);
     const lastAvail = clusterMaxMap.get(fav.seriesId);
     if (!lastAvail) continue;
-    const lastRead = lastReadMap.get(fav.seriesId) ?? -1;
+    const lastRead = lastReadMap.get(primaryId) ?? -1;
     if (lastRead >= lastAvail) completedSeries++;
   }
 
@@ -665,8 +671,9 @@ export async function getFullStats(userId) {
 
   const seriesReadCount = new Map();
   for (const r of reads) {
-    const sid = r.chapter.seriesId;
-    seriesReadCount.set(sid, (seriesReadCount.get(sid) ?? 0) + 1);
+    if (r.chapter.number == null) continue;
+    const primaryId = seriesToPrimary.get(r.chapter.seriesId) ?? r.chapter.seriesId;
+    seriesReadCount.set(primaryId, (seriesReadCount.get(primaryId) ?? 0) + 1);
   }
 
   const topSeriesIds = [...seriesReadCount.entries()]
@@ -676,7 +683,7 @@ export async function getFullStats(userId) {
   const topFallbackMap = await batchResolveFallbackCovers(topSeriesIds);
 
   const topSeries = topSeriesIds.map((id) => {
-    const info = seriesInfoMap.get(id);
+    const info = seriesPrimaryInfo.get(id) ?? seriesInfoMap.get(id);
     const chaptersRead = seriesReadCount.get(id) ?? 0;
     return {
       name: info?.name,
@@ -686,7 +693,7 @@ export async function getFullStats(userId) {
       chapterCount: info?.chapterCount,
       chaptersRead,
       lastReadChapterName: lastReadMap.get(id) != null ? String(lastReadMap.get(id)) : null,
-      lastAvailableChapterName: lastChapterNumberMap.get(id) != null ? String(lastChapterNumberMap.get(id)) : null,
+      lastAvailableChapterName: clusterMaxMap.get(id) != null ? String(clusterMaxMap.get(id)) : null,
     };
   });
 
