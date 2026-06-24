@@ -127,7 +127,8 @@ export async function getUserFavorites(userId) {
 export async function getUserFavoritesPaginated(userId, page, limit) {
   const where = { userId };
 
-  const [favorites, total] = await Promise.all([
+  const [allSeriesIds, favorites] = await Promise.all([
+    prisma.userFavorite.findMany({ where, select: { seriesId: true } }),
     prisma.userFavorite.findMany({
       where,
       include: FAVORITE_INCLUDE,
@@ -135,11 +136,14 @@ export async function getUserFavoritesPaginated(userId, page, limit) {
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.userFavorite.count({ where }),
   ]);
 
-  const normalized = await normalizeFavoriteCluster(favorites);
-  return { data: await enrichFavorites(normalized, userId), total: normalized.length };
+  const [allNormalized, normalized] = await Promise.all([
+    normalizeFavoriteCluster(allSeriesIds),
+    normalizeFavoriteCluster(favorites),
+  ]);
+
+  return { data: await enrichFavorites(normalized, userId), total: allNormalized.length };
 }
 
 export async function getFavorite(userId, seriesId) {
