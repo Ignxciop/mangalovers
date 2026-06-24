@@ -174,6 +174,13 @@ export async function refillSingleChapter(chapterId: number) {
     return data;
 }
 
+export async function scrapeSingleSeries(seriesId: number) {
+    const { data } = await api.post<{ success: boolean; data: { seriesId: number; results: { provider: string; status: string; error?: string }[] } }>(
+        `/admin/scraper/series/${seriesId}`
+    );
+    return data;
+}
+
 export async function getSeriesChapters(id: number, page = 1, limit = 20, order: "asc" | "desc" = "desc") {
     const { data } = await api.get<AdminChaptersResponse>(`/admin/series/${id}/chapters`, { params: { page, limit, order } });
     return data;

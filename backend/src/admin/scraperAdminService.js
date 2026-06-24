@@ -2,6 +2,13 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { prisma } from "../config/prisma.js";
 import { runAllScrapers, runSingleProvider, runPagesOnly, isRunning, stopScraper } from "../manga/scrapers/scraper.js";
+import { syncGenres } from "../manga/scrapers/syncGenres.js";
+import { processSeriesChapters as processOlympusChapters } from "../manga/scrapers/olympus/chapters_scraper.js";
+import { processSeriesChapters as processManhwawebChapters } from "../manga/scrapers/manhwaweb/chapters_scraper.js";
+import { processSeriesChapters as processLeermangaespChapters } from "../manga/scrapers/leermangaesp/chapters_scraper.js";
+import { processChapterPages as processOlympusPages } from "../manga/scrapers/olympus/pages_scraper.js";
+import { processChapterPages as processManhwawebPages } from "../manga/scrapers/manhwaweb/pages_scraper.js";
+import { processChapterPages as processLeermangaespPages } from "../manga/scrapers/leermangaesp/pages_scraper.js";
 import logger from "../config/logger.js";
 
 const ALL_PROVIDERS = ["olympus", "manhwaweb", "leermangaesp"];
@@ -78,6 +85,197 @@ export class ScraperAdminService {
         lastRun: latestRuns[i],
       })),
     };
+  }
+
+  static async scrapeSingleSeries(seriesId) {
+    const series = await prisma.series.findUnique({
+      where: { id: seriesId },
+      include: {
+        providerSeries: { include: { provider: true } },
+      },
+    });
+
+    if (!series) throw Object.assign(new Error("Serie no encontrada"), { statusCode: 404 });
+    if (series.providerSeries.length === 0) throw Object.assign(new Error("La serie no tiene providers asociados"), { statusCode: 400 });
+
+    const results = [];
+
+    for (const ps of series.providerSeries) {
+      const providerName = ps.provider.name;
+
+      try {
+        if (providerName === "olympus") {
+          const { data } = await axios.get(
+            `https://olympusbiblioteca.com/api/series/${ps.slug}`,
+            { params: { type: "comic" }, timeout: 30000 },
+          );
+          const d = data.data;
+
+          await prisma.$transaction(async (tx) => {
+            await tx.series.update({
+              where: { id: seriesId },
+              data: {
+                name: d.name,
+                slug: d.slug,
+                cover: d.cover ?? undefined,
+                status: d.status?.name ?? undefined,
+                summary: d.summary ?? undefined,
+                chapterCount: d.chapter_count ?? undefined,
+                metadataFetchedAt: new Date(),
+              },
+            });
+
+            if (d.genres?.length) {
+              await syncGenres(seriesId, d.genres.map((g) => g.name.trim()), tx);
+            }
+
+            if (d.slug !== ps.slug) {
+              await tx.providerSeries.update({
+                where: { id: ps.id },
+                data: { slug: d.slug },
+              });
+            }
+          });
+
+          await processOlympusChapters(ps, ps.provider.id);
+          const olympusPending = await prisma.providerChapter.findMany({
+            where: {
+              providerId: ps.provider.id,
+              chapter: { seriesId, pagesScraped: false },
+            },
+            include: { chapter: true },
+          });
+          for (const pc of olympusPending) {
+            await processOlympusPages(pc, ps.provider.id);
+          }
+          results.push({ provider: "olympus", status: "ok", chapters: olympusPending.length });
+        } else if (providerName === "manhwaweb") {
+          const { data: metadata } = await axios.get(
+            `https://manhwawebbackend-production.up.railway.app/manhwa/see/${ps.externalId}`,
+            { timeout: 30000 },
+          );
+
+          if (metadata) {
+            const genres =
+              metadata._categoris
+                ?.map((cat) => {
+                  if (typeof cat === "object") return Object.values(cat)[0];
+                  return null;
+                })
+                .filter(Boolean) ?? [];
+
+            await prisma.$transaction(async (tx) => {
+              await tx.series.update({
+                where: { id: seriesId },
+                data: {
+                  summary: metadata._sinopsis ?? undefined,
+                  metadataFetchedAt: new Date(),
+                },
+              });
+
+              if (genres.length) {
+                await syncGenres(seriesId, genres, tx);
+              }
+            });
+          }
+
+          await processManhwawebChapters(ps, ps.provider.id);
+          const manhwawebPending = await prisma.providerChapter.findMany({
+            where: {
+              providerId: ps.provider.id,
+              chapter: { seriesId, pagesScraped: false },
+            },
+            include: { chapter: true },
+          });
+          for (const pc of manhwawebPending) {
+            await processManhwawebPages(pc, ps.provider.id);
+          }
+          results.push({ provider: "manhwaweb", status: "ok", chapters: manhwawebPending.length });
+        } else if (providerName === "leermangaesp") {
+          const originalSlug = ps.url ?? ps.slug.replace("leermangaesp-", "");
+          const { data: html } = await axios.get(
+            `https://leermangaesp.net/manga/${originalSlug}/`,
+            { timeout: 30000 },
+          );
+          const $ = cheerio.load(html);
+
+          const summary = $("#synopsis-text").text().trim() || null;
+
+          const STATUS_MAP = {
+            "En curso": "Activo",
+            Completado: "Finalizado",
+            "En pausa": "En pausa",
+            Cancelado: "Abandonado por el scan",
+          };
+          const statusRaw = $("#info-block .info-value").text().trim();
+          const status = STATUS_MAP[statusRaw] ?? null;
+
+          const genres = [];
+          $(".info-generos .genero-item").each((_, el) => {
+            const g = $(el).text().trim();
+            if (g) genres.push(g);
+          });
+
+          const CDN_URL = "https://images.leermangaesp.net/file/leermangaesp";
+          const buildCoverUrl = (url) => {
+            if (!url) return null;
+            if (url.startsWith("http")) return url;
+            return `${CDN_URL}/${url}`;
+          };
+
+          const rel = $("body").attr("data-portada-rel");
+          const abs = $(".manga-cover img").attr("src");
+          let cover = null;
+          for (const candidate of [rel && buildCoverUrl(rel), abs && buildCoverUrl(abs)].filter(Boolean)) {
+            try {
+              const head = await axios.head(candidate, { timeout: 5000 });
+              if (head.status >= 200 && head.status < 400) {
+                cover = candidate;
+                break;
+              }
+            } catch {
+              // continue
+            }
+          }
+
+          await prisma.$transaction(async (tx) => {
+            await tx.series.update({
+              where: { id: seriesId },
+              data: {
+                summary: summary ?? undefined,
+                status: status ?? undefined,
+                cover: cover ?? undefined,
+                metadataFetchedAt: new Date(),
+              },
+            });
+
+            if (genres.length) {
+              await syncGenres(seriesId, genres, tx);
+            }
+          });
+
+          await processLeermangaespChapters(ps, ps.provider.id);
+          const leermangaespPending = await prisma.providerChapter.findMany({
+            where: {
+              providerId: ps.provider.id,
+              chapter: { seriesId, pagesScraped: false },
+            },
+            include: { chapter: true },
+          });
+          for (const pc of leermangaespPending) {
+            await processLeermangaespPages(pc, ps.provider.id);
+          }
+          results.push({ provider: "leermangaesp", status: "ok", chapters: leermangaespPending.length });
+        } else {
+          results.push({ provider: providerName, status: "skipped", reason: "provider no soportado" });
+        }
+      } catch (error) {
+        logger.error({ provider: providerName, err: error.message }, "Error al scrapear serie individual");
+        results.push({ provider: providerName, status: "error", error: error.message });
+      }
+    }
+
+    return { seriesId, results };
   }
 
   static async getMissingPages() {

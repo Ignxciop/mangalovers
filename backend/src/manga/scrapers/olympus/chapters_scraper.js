@@ -138,6 +138,10 @@ async function processSeries(providerSeries, providerId) {
     }
 }
 
+export async function processSeriesChapters(providerSeries, providerId) {
+    return processSeries(providerSeries, providerId);
+}
+
 export async function scrapeChapters() {
     logger.info("Capítulos incremental...");
 

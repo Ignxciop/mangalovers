@@ -12,6 +12,7 @@ import {
   handleGetMissingPages,
   handleRefillMissingPages,
   handleRefillSingleChapter,
+  handleScrapeSingleSeries,
 } from "./scraperAdminController.js";
 
 const router = Router();
@@ -24,5 +25,6 @@ router.get("/scraper/status", authenticate, authorize("ADMIN"), handleGetStatus)
 router.get("/scraper/missing-pages", authenticate, authorize("ADMIN"), handleGetMissingPages);
 router.post("/scraper/refill-pages/:provider", authenticate, authorize("ADMIN"), providerParamValidator, validate, handleRefillMissingPages);
 router.post("/scraper/refill-chapter", authenticate, authorize("ADMIN"), refillChapterValidator, validate, handleRefillSingleChapter);
+router.post("/scraper/series/:seriesId", authenticate, authorize("ADMIN"), handleScrapeSingleSeries);
 
 export default router;
