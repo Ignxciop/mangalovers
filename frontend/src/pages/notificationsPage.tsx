@@ -60,6 +60,8 @@ function NotificationItem({ notification, index, onRead }: { notification: AppNo
             navigate(`/manga/${notification.data.slug}`);
         } else if (notification.type === "SERIES_RELATION" && notification.data?.slug) {
             navigate(`/manga/${notification.data.slug}`);
+        } else if (notification.type === "SUGGESTION_RESOLVED") {
+            navigate("/configuracion", { state: { tab: "soporte" } });
         } else if (notification.type === "FRIEND_REQUEST" || notification.type === "FRIEND_ACCEPTED") {
             navigate("/amigos");
         } else if (notification.type === "COMMENT_REPLY" && notification.data?.seriesSlug && notification.data?.chapterId && notification.data?.replyId) {

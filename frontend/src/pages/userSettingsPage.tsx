@@ -1,6 +1,7 @@
 import { SEO } from "@/components/seo";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,8 @@ import {
     Eye,
     Users,
     EyeOff,
+    MessageSquare,
+    Plus,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
@@ -48,6 +51,12 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { isInAppEnabled, setInAppEnabled } from "@/lib/inAppNotifications";
 import { getSocket } from "@/api/socket";
 import { Switch } from "@/components/ui/switch";
+import { getMySuggestions } from "@/api/suggestions";
+import type { Suggestion, SuggestionType, SuggestionStatus } from "@/types/suggestion";
+import { SuggestionForm } from "@/components/suggestion-form";
+import { Skeleton } from "@/components/ui/skeleton";
+import { timeAgo } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 const AVATAR_API = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
 
@@ -848,8 +857,139 @@ function PrivacySection() {
     );
 }
 
+const TYPE_LABELS: Record<SuggestionType, string> = {
+    BUG: "Bug",
+    SUGGESTION: "Sugerencia",
+    CONTENT_ERROR: "Error de contenido",
+    TECHNICAL_PROBLEM: "Problema técnico",
+    OTHER: "Otro",
+};
+
+const STATUS_LABELS: Record<SuggestionStatus, string> = {
+    OPEN: "Abierta",
+    REVIEWING: "Revisando",
+    RESOLVED: "Resuelta",
+    REJECTED: "Rechazada",
+    CLOSED: "Cerrada",
+};
+
+const STATUS_ICON: Record<SuggestionStatus, string> = {
+    OPEN: "●",
+    REVIEWING: "◐",
+    RESOLVED: "✅",
+    REJECTED: "✕",
+    CLOSED: "○",
+};
+
+const STATUS_COLORS: Record<SuggestionStatus, string> = {
+    OPEN: "text-yellow-600 dark:text-yellow-400",
+    REVIEWING: "text-blue-600 dark:text-blue-400",
+    RESOLVED: "text-green-600 dark:text-green-400",
+    REJECTED: "text-red-600 dark:text-red-400",
+    CLOSED: "text-muted-foreground",
+};
+
+function SupportSection() {
+    const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [suggestionOpen, setSuggestionOpen] = useState(false);
+    const [expandedId, setExpandedId] = useState<number | null>(null);
+
+    const fetch = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await getMySuggestions(1, 50);
+            setSuggestions(res.data);
+        } catch {
+            setSuggestions([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetch(); }, [fetch]);
+
+    return (
+        <SectionCard accent="brand" icon={MessageSquare} title="Soporte" description="Tus sugerencias, reportes y respuestas del equipo">
+            <div className="space-y-4">
+                <Button size="sm" onClick={() => setSuggestionOpen(true)}>
+                    <Plus className="size-4 mr-1.5" />
+                    Nueva sugerencia
+                </Button>
+
+                {loading ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-[72px] rounded-lg" />
+                        <Skeleton className="h-[72px] rounded-lg" />
+                        <Skeleton className="h-[72px] rounded-lg" />
+                    </div>
+                ) : suggestions.length === 0 ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground/50">
+                        <p>No has enviado ninguna sugerencia todavía.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {suggestions.map((s) => (
+                            <div key={s.id} className="rounded-lg border border-border overflow-hidden">
+                                <button
+                                    type="button"
+                                    onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <span className="text-xs text-muted-foreground">{TYPE_LABELS[s.type]}</span>
+                                            <span className={cn("text-xs font-medium", STATUS_COLORS[s.status])}>
+                                                {STATUS_ICON[s.status]} {STATUS_LABELS[s.status]}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm font-medium truncate">{s.title}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span className="text-xs text-muted-foreground/50">{timeAgo(s.createdAt)}</span>
+                                        <ChevronRight className={cn(
+                                            "size-4 text-muted-foreground/50 transition-transform",
+                                            expandedId === s.id && "rotate-90",
+                                        )} />
+                                    </div>
+                                </button>
+                                {expandedId === s.id && (
+                                    <div className="border-t border-border px-4 py-3 space-y-3 bg-muted/10">
+                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                            {s.description}
+                                        </p>
+                                        {s.adminResponse && (
+                                            <div className="rounded-lg border border-brand/20 bg-brand/5 p-3 space-y-1">
+                                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                    Respuesta del administrador
+                                                </p>
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                                    {s.adminResponse}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <SuggestionForm open={suggestionOpen} onClose={() => {
+                    setSuggestionOpen(false);
+                    fetch();
+                }} />
+            </div>
+        </SectionCard>
+    );
+}
+
 export default function UserSettingsPage() {
-    const [tab, setTab] = useState("perfil");
+    const location = useLocation();
+    const [tab, setTab] = useState(() => {
+        const stateTab = (location.state as { tab?: string } | null)?.tab;
+        return stateTab === "soporte" ? "soporte" : "perfil";
+    });
 
     return (
         <>
@@ -871,24 +1011,28 @@ export default function UserSettingsPage() {
                     <ProfileHero />
 
                     <Tabs value={tab} onValueChange={setTab} className="w-full">
-                        <TabsList variant="line" className="w-full justify-start gap-0 border-b border-border rounded-none h-auto pb-1.5 bg-transparent">
-                            <TabsTrigger value="perfil" className="flex-1 px-2 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
-                                <User className="size-4 shrink-0" />
-                                <span className="truncate">Perfil</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="privacidad" className="flex-1 px-2 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
-                                <Eye className="size-4 shrink-0" />
-                                <span className="truncate">Privacidad</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="notificaciones" className="flex-1 px-2 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
-                                <Bell className="size-4 shrink-0" />
-                                <span className="truncate">Notificaciones</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="cuenta" className="flex-1 px-2 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
-                                <Lock className="size-4 shrink-0" />
-                                <span className="truncate">Cuenta</span>
-                            </TabsTrigger>
-                        </TabsList>
+                    <TabsList variant="line" className="w-full justify-start gap-0 border-b border-border rounded-none h-auto pb-1.5 bg-transparent overflow-x-auto flex-nowrap">
+                        <TabsTrigger value="perfil" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <User className="size-4 shrink-0" />
+                            <span className="truncate">Perfil</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="privacidad" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Eye className="size-4 shrink-0" />
+                            <span className="truncate">Privacidad</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="notificaciones" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Bell className="size-4 shrink-0" />
+                            <span className="truncate">Notificaciones</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="soporte" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <MessageSquare className="size-4 shrink-0" />
+                            <span className="truncate">Soporte</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="cuenta" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Lock className="size-4 shrink-0" />
+                            <span className="truncate">Cuenta</span>
+                        </TabsTrigger>
+                    </TabsList>
 
                         <div className="mt-6">
                             <TabsContent value="perfil" className="space-y-6">
@@ -902,6 +1046,9 @@ export default function UserSettingsPage() {
                             <TabsContent value="notificaciones" className="space-y-6">
                                 <InAppNotificationSection />
                                 <NotificationSection />
+                            </TabsContent>
+                            <TabsContent value="soporte" className="space-y-6">
+                                <SupportSection />
                             </TabsContent>
                             <TabsContent value="cuenta" className="space-y-6">
                                 <PasswordSection />

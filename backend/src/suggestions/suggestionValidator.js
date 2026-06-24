@@ -24,6 +24,10 @@ export const updateStatusValidator = [
   body("status")
     .isIn(["OPEN", "REVIEWING", "RESOLVED", "REJECTED", "CLOSED"])
     .withMessage("Estado inválido"),
+  body("adminResponse")
+    .optional({ values: "falsy" })
+    .trim()
+    .isLength({ max: 2000 }).withMessage("La respuesta no puede exceder 2000 caracteres"),
 ];
 
 export const listSuggestionsValidator = [

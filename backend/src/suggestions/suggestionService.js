@@ -35,8 +35,13 @@ export class SuggestionService {
           description: true,
           image: true,
           status: true,
+          adminResponse: true,
           createdAt: true,
           updatedAt: true,
+          reviewedById: true,
+          reviewedBy: {
+            select: { name: true, lastname: true },
+          },
         },
       }),
       prisma.suggestion.count({ where: { userId } }),
@@ -117,18 +122,23 @@ export class SuggestionService {
     });
   }
 
-  static async updateStatus(suggestionId, status, adminUserId) {
+  static async updateStatus(suggestionId, status, adminUserId, adminResponse) {
     const suggestion = await prisma.suggestion.findUnique({ where: { id: suggestionId } });
     if (!suggestion) throw new NotFoundError("Sugerencia no encontrada");
 
     const updated = await prisma.suggestion.update({
       where: { id: suggestionId },
-      data: { status, reviewedById: adminUserId },
+      data: {
+        status,
+        reviewedById: adminUserId,
+        ...(adminResponse !== undefined ? { adminResponse } : {}),
+      },
       select: {
         id: true,
         type: true,
         title: true,
         status: true,
+        adminResponse: true,
         updatedAt: true,
         reviewedById: true,
         reviewedBy: {
