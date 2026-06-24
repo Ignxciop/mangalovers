@@ -338,7 +338,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
                                             <span>Mi perfil</span>
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
-                                            onSelect={() => closeMobileAndNavigate("/perfil")}
+                                            onSelect={() => closeMobileAndNavigate("/configuracion")}
                                             className="rounded-lg cursor-pointer gap-2.5"
                                         >
                                             <Settings className="h-4 w-4 text-muted-foreground" />

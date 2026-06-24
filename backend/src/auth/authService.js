@@ -72,7 +72,7 @@ export class AuthService {
 
     const user = await prisma.user.create({
       data: { email, password: hashedPassword, name, lastname, alias: finalAlias, aliasChanged: !!alias },
-      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, status: true, avatarUrl: true, createdAt: true },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, status: true, avatarUrl: true, profileVisibility: true, hideOnline: true, createdAt: true },
     });
 
     const accessToken = this.generateAccessToken(user);
@@ -149,7 +149,7 @@ export class AuthService {
           password: "",
           alias,
         },
-        select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, status: true, avatarUrl: true, suspendedUntil: true, createdAt: true },
+        select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, status: true, avatarUrl: true, profileVisibility: true, hideOnline: true, suspendedUntil: true, createdAt: true },
       });
     } else {
       await checkUserStatus(user);
@@ -167,7 +167,7 @@ export class AuthService {
     logger.info({ event: "GOOGLE_LOGIN", userId: user.id, email: user.email }, "Login con Google");
 
     return {
-      user: { id: user.id, email: user.email, name: user.name, lastname: user.lastname, alias: user.alias, aliasChanged: user.aliasChanged, role: user.role, avatarUrl: user.avatarUrl },
+      user: { id: user.id, email: user.email, name: user.name, lastname: user.lastname, alias: user.alias, aliasChanged: user.aliasChanged, role: user.role, avatarUrl: user.avatarUrl, profileVisibility: user.profileVisibility, hideOnline: user.hideOnline },
       accessToken,
       refreshToken: refreshToken.token,
     };
@@ -299,7 +299,7 @@ export class AuthService {
     const user = await prisma.user.update({
       where: { id: userId },
       data: { avatarUrl: filename },
-      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true, profileVisibility: true, hideOnline: true },
     });
 
     logger.info({ event: "UPDATE_AVATAR", userId }, "Avatar actualizado");
@@ -325,7 +325,7 @@ export class AuthService {
     const updated = await prisma.user.update({
       where: { id: userId },
       data: { alias, aliasChanged: true },
-      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true },
+      select: { id: true, email: true, name: true, lastname: true, alias: true, aliasChanged: true, role: true, avatarUrl: true, profileVisibility: true, hideOnline: true },
     });
 
     logger.info({ event: "UPDATE_ALIAS", userId, alias }, "Alias actualizado");

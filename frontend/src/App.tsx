@@ -18,7 +18,7 @@ const ChapterReader = lazy(() => import("./pages/chapterReader.tsx"));
 const FavoritesList = lazy(() => import("./pages/favoriteList.tsx"));
 const TermsOfService = lazy(() => import("./pages/termsOfService.tsx"));
 const PrivacyPolicy = lazy(() => import("./pages/privacyPolicy.tsx"));
-const ProfilePage = lazy(() => import("./pages/profilePage.tsx"));
+const UserSettingsPage = lazy(() => import("./pages/userSettingsPage.tsx"));
 const StatsPage = lazy(() => import("./pages/statsPage.tsx"));
 const FriendsPage = lazy(() => import("./pages/friendsPage.tsx"));
 const UserProfilePage = lazy(() => import("./pages/userProfilePage.tsx"));
@@ -110,7 +110,7 @@ function AppRoutes() {
                             path="/favoritos"
                             element={<FavoritesList />}
                         />
-                        <Route path="/perfil" element={<ProfilePage />} />
+                        <Route path="/configuracion" element={<UserSettingsPage />} />
                         <Route
                             path="/estadisticas"
                             element={<StatsPage />}
