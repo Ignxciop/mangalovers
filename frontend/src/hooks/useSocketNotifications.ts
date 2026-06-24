@@ -10,8 +10,6 @@ export function useSocketNotifications() {
     const incrementUnread = useNotificationStore((s) => s.incrementUnread);
     const setUnreadCount = useNotificationStore((s) => s.setUnreadCount);
     const setPendingCount = useFriendStore((s) => s.setPendingCount);
-    const incrementPending = useFriendStore((s) => s.incrementPending);
-    const decrementPending = useFriendStore((s) => s.decrementPending);
 
     useEffect(() => {
         if (!socket) return;
@@ -23,11 +21,6 @@ export function useSocketNotifications() {
                     description: data.body,
                     duration: 5000,
                 });
-            }
-            if (data.type === "FRIEND_REQUEST") {
-                incrementPending();
-            } else if (data.type === "FRIEND_ACCEPTED") {
-                decrementPending();
             }
         };
 
@@ -48,5 +41,5 @@ export function useSocketNotifications() {
             socket.off("unread:count", handleUnreadCount);
             socket.off("friend:pending_count", handlePendingCount);
         };
-    }, [socket, incrementUnread, setUnreadCount, setPendingCount, incrementPending, decrementPending]);
+    }, [socket, incrementUnread, setUnreadCount, setPendingCount]);
 }
