@@ -1,5 +1,3 @@
-import logger from "../config/logger.js";
-
 const onlineUsers = new Map();
 
 export function getOnlineUsers() {
@@ -17,9 +15,11 @@ async function getFriendIds(userId) {
     },
     select: { senderId: true, receiverId: true },
   });
-  return friendships.map((f) =>
-    f.senderId === userId ? f.receiverId : f.senderId,
-  );
+  return [...new Set(
+    friendships.map((f) =>
+      f.senderId === userId ? f.receiverId : f.senderId,
+    ),
+  )];
 }
 
 async function getUserName(userId) {
@@ -53,12 +53,10 @@ async function joinPresence(io, socket, userId) {
   const friends = await getFriendIds(userId);
 
   for (const friendId of friends) {
-    if (onlineUsers.has(friendId)) {
-      io.to(`user:${friendId}`).emit("friend:online", {
-        userId,
-        displayName: userDisplayName,
-      });
-    }
+    io.to(`user:${friendId}`).emit("friend:online", {
+      userId,
+      displayName: userDisplayName,
+    });
   }
 
   const onlineFriendIds = friends.filter((fid) => onlineUsers.has(fid));
@@ -96,9 +94,8 @@ export async function registerPresenceOnConnect(io, socket) {
     socket.hideOnline = newValue;
 
     if (newValue) {
-      // Ocultar: salir de presencia, avisar a amigos
-      const friendIds = await getFriendIds(userId);
-      await leavePresence(io, userId, friendIds);
+      friends = await getFriendIds(userId);
+      await leavePresence(io, userId, friends);
     } else {
       // Mostrar: entrar a presencia
       friends = await joinPresence(io, socket, userId);

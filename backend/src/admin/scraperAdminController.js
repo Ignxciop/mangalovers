@@ -49,6 +49,16 @@ export async function handleGetStatus(req, res, next) {
   }
 }
 
+export async function handleScrapeSingleSeries(req, res, next) {
+  try {
+    const { seriesId } = req.params;
+    const result = await ScraperAdminService.scrapeSingleSeries(Number(seriesId));
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function handleGetMissingPages(req, res, next) {
   try {
     const data = await ScraperAdminService.getMissingPages();

@@ -2,7 +2,12 @@ import { useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { getSocket, subscribeToSocket } from "@/api/socket";
 import { useFriendStore } from "@/store/friendStore";
-import { isInAppEnabled } from "@/lib/inAppNotifications";
+
+function toastPresence(displayName: string | undefined, userId: string, kind: "online" | "offline") {
+    const name = displayName ?? "Un amigo";
+    const message = kind === "online" ? `${name} se ha conectado` : `${name} se ha desconectado`;
+    toast(message, { id: `pres:${userId}:${kind}`, duration: 3000 });
+}
 
 export function usePresence() {
     const socket = useSyncExternalStore(subscribeToSocket, getSocket, getSocket);
@@ -19,20 +24,13 @@ export function usePresence() {
 
         const handleOnline = (data: { userId: string; displayName?: string }) => {
             addOnlineFriend(data.userId);
-            if (isInAppEnabled()) {
-                toast(`${data.displayName ?? "Un amigo"} se ha conectado`, {
-                    duration: 3000,
-                });
-            }
+            toastPresence(data.displayName, data.userId, "online");
         };
 
         const handleOffline = (data: { userId: string; displayName?: string }) => {
+            const wasOnline = useFriendStore.getState().onlineUserIds.includes(data.userId);
             removeOnlineFriend(data.userId);
-            if (isInAppEnabled()) {
-                toast(`${data.displayName ?? "Un amigo"} se ha desconectado`, {
-                    duration: 3000,
-                });
-            }
+            if (wasOnline) toastPresence(data.displayName, data.userId, "offline");
         };
 
         socket.on("presence:online_list", handleOnlineList);

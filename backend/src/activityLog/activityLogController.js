@@ -37,6 +37,7 @@ export async function handleGetAllLogs(req, res, next) {
     if (req.query.event) filters.event = req.query.event;
     if (req.query.from) filters.from = req.query.from;
     if (req.query.to) filters.to = req.query.to;
+    if (req.query.search) filters.search = req.query.search;
 
     const result = await ActivityLogService.getAllLogs(page, limit, filters);
     res.json({ success: true, data: result.data, meta: result.meta });

@@ -211,15 +211,16 @@ describe("favoriteService.getUserFavoritesPaginated", () => {
   });
 
   it("retorna total normalizado despues de dedup", async () => {
-    prisma.userFavorite.findMany.mockResolvedValue([
-      { seriesId: 1, series: { id: 1, name: "A", slug: "a", cover: null, status: null, type: null, chapterCount: 0, lastChapterPublishedAt: null } },
-      { seriesId: 2, series: { id: 2, name: "B", slug: "b", cover: null, status: null, type: null, chapterCount: 0, lastChapterPublishedAt: null } },
-    ]);
-    prisma.userFavorite.count.mockResolvedValue(2);
+    const fullItem = (id) => ({
+      seriesId: id,
+      series: { id, name: id === 1 ? "A" : "B", slug: id === 1 ? "a" : "b", cover: null, status: null, type: null, chapterCount: 0, lastChapterPublishedAt: null },
+    });
 
-    resolveSeriesCluster
-      .mockResolvedValueOnce({ primary: { id: 1 }, allIds: [1, 2] })
-      .mockResolvedValueOnce({ primary: { id: 1 }, allIds: [1, 2] });
+    prisma.userFavorite.findMany
+      .mockResolvedValueOnce([{ seriesId: 1 }, { seriesId: 2 }])       // allSeriesIds (count)
+      .mockResolvedValueOnce([fullItem(1), fullItem(2)]);              // paginated favorites
+
+    resolveSeriesCluster.mockResolvedValue({ primary: { id: 1 }, allIds: [1, 2] });
 
     prisma.userChapterRead.findMany.mockResolvedValue([]);
     prisma.chapter.groupBy.mockResolvedValue([]);

@@ -143,6 +143,10 @@ async function processChapter(providerChapter, providerId) {
     }
 }
 
+export async function processChapterPages(providerChapter, providerId) {
+    return processChapter(providerChapter, providerId);
+}
+
 export async function scrapePages() {
     logger.info("LeerMangaEsp - Páginas incremental...");
 

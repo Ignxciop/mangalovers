@@ -700,9 +700,9 @@ export default function AdminUsers() {
                             )}
                         </div>
 
-                        <div className="hidden lg:block flex-1 min-w-0 border-l border-border pl-5">
+                        <div className="hidden lg:flex flex-col flex-1 min-w-0 border-l border-border pl-5 min-h-0">
                             {selected ? (
-                                <div className="sticky top-0">
+                                <div className="flex-1 overflow-y-auto">
                                     <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />
                                 </div>
                             ) : (

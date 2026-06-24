@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
     getAdminSeriesDetail, adminAddAlias, adminDeleteAlias, adminDeleteSeriesRelation,
     adminToggleSeriesVisibility, getSeriesChapters, bulkDeleteChapters, toggleProviderSeries,
+    scrapeSingleSeries,
 } from "@/api/admin";
 import type { AdminSeriesDetail, AdminChapter } from "@/types/admin";
 import { SEO } from "@/components/seo";
@@ -17,7 +18,7 @@ import type { AxiosError } from "axios";
 import { useQueryCache } from "@/store/queryCache";
 import {
     BookOpen, ChevronLeft, Link2, X, Plus, Trash2, Eye, EyeOff,
-    Loader2,
+    Loader2, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -180,6 +181,30 @@ export default function AdminSeriesDetailPage() {
             console.error("Error al cambiar visibilidad:", err);
         } finally {
             setToggling(false);
+        }
+    };
+
+    const [scraping, setScraping] = useState(false);
+
+    const handleScrapeSeries = async () => {
+        if (!series) return;
+        setScraping(true);
+        try {
+            const res = await scrapeSingleSeries(series.id);
+            const ok = res.data.results.filter((r) => r.status === "ok").length;
+            const errors = res.data.results.filter((r) => r.status === "error");
+            if (errors.length > 0) {
+                toast.warning(`Scrapeo completado con ${errors.length} error(es)`, {
+                    description: errors.map((e) => `${e.provider}: ${e.error}`).join(". "),
+                });
+            } else {
+                toast.success(`Serie scrapeada (${ok} provider${ok !== 1 ? "es" : ""})`);
+            }
+            fetch();
+        } catch {
+            toast.error("Error al scrapear la serie");
+        } finally {
+            setScraping(false);
         }
     };
 
@@ -486,6 +511,23 @@ export default function AdminSeriesDetailPage() {
                                     {series.visible ? "Visible" : "Oculta"}
                                 </Button>
                             </div>
+                        </div>
+
+                        {/* Scrapeo */}
+                        <div className="border border-border rounded-xl p-5 space-y-3">
+                            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Scraping</h2>
+                            <p className="text-xs text-muted-foreground/60">
+                                Re-scrapea los datos de esta serie desde {series.providerSeries.map((ps) => ps.provider.name).join(", ")}.
+                            </p>
+                            <Button
+                                className="w-full"
+                                size="sm"
+                                onClick={handleScrapeSeries}
+                                disabled={scraping}
+                            >
+                                {scraping ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                                {scraping ? "Scrapeando..." : "Scrapear serie"}
+                            </Button>
                         </div>
 
                         {/* Relaciones primarias */}

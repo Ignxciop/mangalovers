@@ -1,5 +1,6 @@
 import { SEO } from "@/components/seo";
 import { useState, useEffect, useCallback } from "react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -470,6 +471,10 @@ function SearchSection() {
 function FriendsList() {
     const [friends, setFriends] = useState<Friend[]>([]);
     const [loading, setLoading] = useState(true);
+    const [confirmAction, setConfirmAction] = useState<{
+        type: "remove" | "block";
+        userId: string;
+    } | null>(null);
     const onlineUserIds = useFriendStore((s) => s.onlineUserIds);
 
     const isOnline = (userId: string) => onlineUserIds.includes(userId);
@@ -561,7 +566,7 @@ function FriendsList() {
                             size="icon"
                             variant="ghost"
                             className="size-8 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-all"
-                            onClick={() => handleRemove(friend.id)}
+                            onClick={() => setConfirmAction({ type: "remove", userId: friend.id })}
                             title="Eliminar amigo"
                         >
                             <UserX className="size-4" />
@@ -570,7 +575,7 @@ function FriendsList() {
                             size="icon"
                             variant="ghost"
                             className="size-8 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-all"
-                            onClick={() => handleBlock(friend.id)}
+                            onClick={() => setConfirmAction({ type: "block", userId: friend.id })}
                             title="Bloquear usuario"
                         >
                             <Ban className="size-4" />
@@ -581,6 +586,32 @@ function FriendsList() {
             <p className="text-[11px] text-muted-foreground/60 text-center pt-3 col-span-full">
                 {friends.length} {friends.length === 1 ? "amigo" : "amigos"}
             </p>
+
+            <ConfirmDialog
+                open={confirmAction?.type === "remove"}
+                onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+                title="Eliminar amigo"
+                description="¿Estás seguro de eliminar este amigo? Esta acción no se puede deshacer."
+                confirmLabel="Eliminar"
+                variant="destructive"
+                onConfirm={() => {
+                    if (confirmAction) handleRemove(confirmAction.userId);
+                    setConfirmAction(null);
+                }}
+            />
+
+            <ConfirmDialog
+                open={confirmAction?.type === "block"}
+                onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+                title="Bloquear usuario"
+                description="¿Estás seguro de bloquear este usuario? No podrá ver tu perfil ni enviarte solicitudes."
+                confirmLabel="Bloquear"
+                variant="destructive"
+                onConfirm={() => {
+                    if (confirmAction) handleBlock(confirmAction.userId);
+                    setConfirmAction(null);
+                }}
+            />
         </div>
     );
 }
