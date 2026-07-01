@@ -7,6 +7,9 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import MangaDetail from "@/pages/mangaDetail";
 
 const mockNavigate = vi.fn();
+let authState: { user: { id: string; role: string } | null } = null;
+const mockAuthStore = vi.hoisted(() => vi.fn((s) => (s ? s(authState) : authState)));
+vi.mock("@/store/authStore", () => ({ useAuthStore: mockAuthStore }));
 vi.mock("react-router-dom", async () => {
     const actual = await vi.importActual("react-router-dom");
     return { ...actual, useNavigate: () => mockNavigate };
@@ -87,6 +90,7 @@ describe("MangaDetail", () => {
         vi.clearAllMocks();
         mockReadIds = new Set([1]);
         mockSeriesDetail = { series: SERIES_DATA, loading: false, error: null };
+        authState = { user: null };
     });
 
     describe("loading", () => {
@@ -154,7 +158,8 @@ describe("MangaDetail", () => {
             expect(screen.getByText("Aventura")).toBeInTheDocument();
         });
 
-        it("renderiza fuentes", () => {
+        it("renderiza fuentes (solo admin)", () => {
+            authState = { user: { id: "admin1", role: "ADMIN" } };
             renderPage();
             expect(screen.getByText("LectorManga")).toBeInTheDocument();
         });
