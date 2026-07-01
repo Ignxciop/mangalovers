@@ -112,12 +112,12 @@ function ReaderControls({
 
     return (
         <div className="flex items-center justify-center gap-6 w-full max-w-2xl mx-auto px-4 py-3">
-            <div className="flex items-center gap-1 border border-white/10 rounded-lg p-1 bg-white/5">
+            <div className="flex items-center gap-1 border border-border rounded-lg p-1 bg-muted/30">
                 <button
                     onClick={() => onModeChange("cascade")}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                         prefs.mode === "cascade"
-                            ? "bg-brand text-white shadow-[0_0_12px_-4px] shadow-brand/50"
+                            ? "bg-brand text-primary-foreground shadow-[0_0_12px_-4px] shadow-brand/50"
                             : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
@@ -128,7 +128,7 @@ function ReaderControls({
                     onClick={() => onModeChange("pagination")}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                         prefs.mode === "pagination"
-                            ? "bg-brand text-white shadow-[0_0_12px_-4px] shadow-brand/50"
+                            ? "bg-brand text-primary-foreground shadow-[0_0_12px_-4px] shadow-brand/50"
                             : "text-muted-foreground hover:text-foreground"
                     }`}
                 >
@@ -137,7 +137,7 @@ function ReaderControls({
                 </button>
             </div>
 
-            <div className="hidden md:flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5">
+            <div className="hidden md:flex items-center gap-2 border border-border rounded-lg px-3 py-1.5 bg-muted/30">
                 <button
                     onClick={() =>
                         onZoomChange(ZOOM_STEPS[Math.max(0, zoomIndex - 1)])
@@ -330,23 +330,23 @@ export interface PaginationReaderHandle {
                 />
                 <div className="absolute inset-0 flex">
                     <button
-                        className="flex-1 h-full active:bg-white/5 transition-colors"
+                        className="flex-1 h-full active:bg-muted/30 transition-colors"
                         onClick={() => handleTap("left")}
                         aria-label="Página anterior"
                     />
                     <button
-                        className="flex-1 h-full active:bg-white/5 transition-colors"
+                        className="flex-1 h-full active:bg-muted/30 transition-colors"
                         onClick={() => handleTap("right")}
                         aria-label="Página siguiente"
                     />
                 </div>
                 {tapFeedback && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="bg-black/30 rounded-full p-3">
+                        <div className="bg-foreground/10 rounded-full p-3">
                             {tapFeedback === "left" ? (
-                                <ChevronLeft className="h-6 w-6 text-white" />
+                                <ChevronLeft className="h-6 w-6 text-foreground" />
                             ) : (
-                                <ChevronRight className="h-6 w-6 text-white" />
+                                <ChevronRight className="h-6 w-6 text-foreground" />
                             )}
                         </div>
                     </div>
@@ -356,7 +356,7 @@ export interface PaginationReaderHandle {
                 <button
                     onClick={() => goToPage(Math.max(0, currentPage - 1))}
                     disabled={currentPage === 0}
-                    className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-30"
+                    className="p-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors disabled:opacity-30"
                 >
                     <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -368,7 +368,7 @@ export interface PaginationReaderHandle {
                         goToPage(Math.min(pages.length - 1, currentPage + 1))
                     }
                     disabled={currentPage === pages.length - 1}
-                    className="p-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-30"
+                    className="p-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors disabled:opacity-30"
                 >
                     <ChevronRight className="h-4 w-4" />
                 </button>
@@ -413,7 +413,7 @@ const ChapterSelect = forwardRef<
             <SelectTrigger
                 ref={ref}
                 size="sm"
-                className="w-auto min-w-[80px] text-xs border-white/10 bg-white/5"
+                className="w-auto min-w-[80px] text-xs border-border bg-muted/30"
             >
                 <SelectValue />
             </SelectTrigger>
@@ -684,7 +684,7 @@ export default function ChapterReader() {
                             : undefined
                     }
                 />
-                <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b] flex flex-col items-center py-10 gap-4 px-4">
+                <div className="min-h-screen bg-background flex flex-col items-center py-10 gap-4 px-4">
                     <Skeleton className="h-5 w-40 mb-6" />
                     {Array.from({ length: 6 }).map((_, i) => (
                         <Skeleton
@@ -753,9 +753,9 @@ export default function ChapterReader() {
             />
             <PullToRefresh pull={pull} refreshing={refreshing} />
 
-            <div className="min-h-screen bg-[#0a0a0f] dark:bg-[#06060b]">
+            <div className="min-h-screen bg-background">
                 <div
-                    className={`sticky top-0 z-40 bg-[#0a0a0f]/80 dark:bg-[#06060b]/80 backdrop-blur border-b border-white/5 transition-transform duration-300 ${
+                    className={`sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border transition-transform duration-300 ${
                         headerVisible ? "translate-y-0" : "-translate-y-full"
                     }`}
                 >
@@ -803,7 +803,7 @@ export default function ChapterReader() {
 
                 {prefs.mode === "cascade" ? (
                     <div
-                        className="flex flex-col items-center gap-1 mx-auto"
+                        className="flex flex-col items-center gap-0 mx-auto"
                         style={{ maxWidth: `${prefs.zoom}px`, width: "100%" }}
                     >
                         {activePages.map((page, index) => (

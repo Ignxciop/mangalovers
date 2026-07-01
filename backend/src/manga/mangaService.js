@@ -2,6 +2,7 @@ import { prisma } from "../config/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
 import { resolveSeriesCluster, batchResolveFallbackCovers } from "./seriesCluster.js";
 import axios from "axios";
+import { proxyUrl } from "../proxy/imageProxy.js";
 
 const HEAD_TIMEOUT_MS = 3000;
 
@@ -523,8 +524,9 @@ export async function getChapterPages(slug, chapterId, _userId = null) {
     series: chapter.series,
     prev: prev ?? null,
     next: next ?? null,
-    pages: chapter.pages.map((p) => ({ id: p.id, url: p.url })),
-    fallbackPages,
+    pages: chapter.pages.map((p) => ({ id: p.id, url: proxyUrl(p.url) })),
+    fallbackPages:
+      fallbackPages?.map((p) => ({ id: p.id, url: proxyUrl(p.url) })) ?? null,
   };
 }
 
