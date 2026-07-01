@@ -431,7 +431,7 @@ export default function MangaDetail() {
                                         value={series.genres.length}
                                     />
                                 </div>
-                                {series.providers.length > 0 && (
+                                {user?.role === "ADMIN" && series.providers.length > 0 && (
                                     <div className="mt-4">
                                         <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
                                             Fuentes
