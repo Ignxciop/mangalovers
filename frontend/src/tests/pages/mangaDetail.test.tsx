@@ -7,7 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import MangaDetail from "@/pages/mangaDetail";
 
 const mockNavigate = vi.fn();
-let authState: { user: { id: string; role: string } | null } = null;
+let authState: { user: { id: string; role: string } | null } = { user: null };
 const mockAuthStore = vi.hoisted(() => vi.fn((s) => (s ? s(authState) : authState)));
 vi.mock("@/store/authStore", () => ({ useAuthStore: mockAuthStore }));
 vi.mock("react-router-dom", async () => {
