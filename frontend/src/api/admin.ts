@@ -181,6 +181,13 @@ export async function scrapeSingleSeries(seriesId: number) {
     return data;
 }
 
+export async function fullScrapeSeries(seriesId: number, provider: string) {
+    const { data } = await api.post<{ success: boolean; data: { provider: string; newChapters: number; refilledChapters: number; errors?: { externalId: string; error: string }[] } }>(
+        `/admin/scraper/series/${seriesId}/full-scrape?provider=${encodeURIComponent(provider)}`
+    );
+    return data;
+}
+
 export async function getSeriesChapters(id: number, page = 1, limit = 20, order: "asc" | "desc" = "desc") {
     const { data } = await api.get<AdminChaptersResponse>(`/admin/series/${id}/chapters`, { params: { page, limit, order } });
     return data;

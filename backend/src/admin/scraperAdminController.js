@@ -59,6 +59,20 @@ export async function handleScrapeSingleSeries(req, res, next) {
   }
 }
 
+export async function handleFullScrapeSeries(req, res, next) {
+  try {
+    const { seriesId } = req.params;
+    const { provider } = req.query;
+    if (!provider) {
+      throw Object.assign(new Error("El query param 'provider' es requerido"), { statusCode: 400 });
+    }
+    const result = await ScraperAdminService.fullScrapeSeries(Number(seriesId), provider);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function handleGetMissingPages(req, res, next) {
   try {
     const data = await ScraperAdminService.getMissingPages();
