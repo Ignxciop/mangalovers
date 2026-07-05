@@ -14,10 +14,11 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MangaPagination } from "@/components/MangaPagination";
 import { cn } from "@/lib/utils";
 import {
     BookOpen, Search, X, Link2, Check,
-    AlertCircle, ChevronLeft, ChevronRight,
+    AlertCircle,
 } from "lucide-react";
 
 const PROVIDER_COLORS: Record<string, string> = {
@@ -400,26 +401,12 @@ export default function AdminSeries() {
                         </div>
 
                         {totalPages > 1 && (
-                            <div className="flex items-center justify-center gap-3 mt-4">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => updateParam("page", String(page - 1))}
-                                    disabled={page === 1}
-                                >
-                                    <ChevronLeft className="size-4" /> Anterior
-                                </Button>
-                                <span className="text-sm text-muted-foreground tabular-nums">
-                                    Página {page} de {totalPages}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => updateParam("page", String(page + 1))}
-                                    disabled={page === totalPages}
-                                >
-                                    Siguiente <ChevronRight className="size-4" />
-                                </Button>
+                            <div className="mt-4">
+                                <MangaPagination
+                                    page={page}
+                                    totalPages={totalPages}
+                                    setPage={(p) => updateParam("page", String(p))}
+                                />
                             </div>
                         )}
                     </div>
