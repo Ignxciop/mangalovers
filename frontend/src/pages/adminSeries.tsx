@@ -14,10 +14,11 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MangaPagination } from "@/components/MangaPagination";
 import { cn } from "@/lib/utils";
 import {
     BookOpen, Search, X, Link2, Check,
-    AlertCircle, ChevronLeft, ChevronRight,
+    AlertCircle,
 } from "lucide-react";
 
 const PROVIDER_COLORS: Record<string, string> = {
@@ -296,7 +297,7 @@ export default function AdminSeries() {
 
             <AdminHeader icon={BookOpen} title="Series" />
 
-            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0 overflow-x-hidden">
+            <main className="container mx-auto px-4 py-4 flex-1 flex flex-col min-h-0">
                 <div className="flex items-center gap-2 mb-4 flex-wrap">
                     <div className="relative flex-1 min-w-[200px] max-w-sm">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -334,8 +335,8 @@ export default function AdminSeries() {
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col min-h-0">
-                        <div className="border border-border rounded-lg overflow-hidden">
-                            <table className="w-full text-sm">
+                        <div className="overflow-x-auto rounded-lg border border-border">
+                            <table className="w-full text-sm min-w-[650px]">
                                 <thead>
                                     <tr className="border-b border-border bg-muted/20">
                                         <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>
@@ -368,18 +369,18 @@ export default function AdminSeries() {
                                             <td className="px-4 py-3">
                                                 <div className="flex gap-1 flex-wrap items-center">
                                                     {s.primaryRelations.map((rel: AdminSeriesRelation) => (
-                                                        <span key={rel.id} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                                                            <Link2 className="size-3" />
-                                                            {rel.fallbackSeries.name}
+                                                        <span key={rel.id} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 max-w-[160px] sm:max-w-none">
+                                                            <Link2 className="size-3 shrink-0" />
+                                                            <span className="truncate">{rel.fallbackSeries.name}</span>
                                                             <button type="button" onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
                                                                 <X className="size-3" />
                                                             </button>
                                                         </span>
                                                     ))}
                                                     {s.fallbackRelations.map((rel) => (
-                                                        <span key={rel.id} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/30">
-                                                            <Link2 className="size-3" />
-                                                            {rel.primarySeries.name}
+                                                        <span key={rel.id} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/30 max-w-[160px] sm:max-w-none">
+                                                            <Link2 className="size-3 shrink-0" />
+                                                            <span className="truncate">{rel.primarySeries.name}</span>
                                                             <span className="opacity-60 text-xs">(primaria)</span>
                                                             <button type="button" onClick={() => handleDeleteRelation(rel.id)} className="hover:text-rose-500 ml-0.5">
                                                                 <X className="size-3" />
@@ -400,26 +401,12 @@ export default function AdminSeries() {
                         </div>
 
                         {totalPages > 1 && (
-                            <div className="flex items-center justify-center gap-3 mt-4">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => updateParam("page", String(page - 1))}
-                                    disabled={page === 1}
-                                >
-                                    <ChevronLeft className="size-4" /> Anterior
-                                </Button>
-                                <span className="text-sm text-muted-foreground tabular-nums">
-                                    Página {page} de {totalPages}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => updateParam("page", String(page + 1))}
-                                    disabled={page === totalPages}
-                                >
-                                    Siguiente <ChevronRight className="size-4" />
-                                </Button>
+                            <div className="mt-4">
+                                <MangaPagination
+                                    page={page}
+                                    totalPages={totalPages}
+                                    setPage={(p) => updateParam("page", String(p))}
+                                />
                             </div>
                         )}
                     </div>

@@ -27,9 +27,9 @@ export function AdminHeader({ icon: Icon, title, search, children }: AdminHeader
                 <SidebarTrigger />
                 <div className="flex justify-center min-w-0">
                     <div className={`flex items-center gap-2 min-w-0 ${search ? "sm:gap-4" : ""}`}>
-                        <div className={`flex items-center gap-2 shrink-0 ${search ? "hidden sm:flex" : ""}`}>
-                            <Icon className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-semibold">{title}</span>
+                        <div className={`flex items-center gap-2 ${search ? "hidden sm:flex" : "min-w-0"}`}>
+                            <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="text-sm font-semibold truncate">{title}</span>
                         </div>
                         {search && (
                             <div className="w-full max-w-md">

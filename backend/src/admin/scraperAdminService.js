@@ -278,6 +278,184 @@ export class ScraperAdminService {
     return { seriesId, results };
   }
 
+  static async fullScrapeSeries(seriesId, providerName) {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    const provider = await prisma.provider.findUnique({ where: { name: providerName } });
+    if (!provider) throw Object.assign(new Error(`Provider "${providerName}" no encontrado`), { statusCode: 404 });
+
+    const ps = await prisma.providerSeries.findUnique({
+      where: { providerId_seriesId: { providerId: provider.id, seriesId } },
+    });
+    if (!ps) throw Object.assign(new Error(`La serie no tiene el provider "${providerName}" asociado`), { statusCode: 400 });
+
+    let newChapters = 0;
+    let refilledChapters = 0;
+    const errors = [];
+
+    const processChapter = async (externalId, chapterData, processPages) => {
+      try {
+        const existingPc = await prisma.providerChapter.findUnique({
+          where: { providerId_externalId: { providerId: provider.id, externalId } },
+          include: { chapter: true },
+        });
+
+        if (existingPc) {
+          if (!existingPc.chapter.pagesScraped) {
+            await prisma.page.deleteMany({ where: { chapterId: existingPc.chapterId } });
+            const freshPc = await prisma.providerChapter.findUnique({
+              where: { id: existingPc.id },
+              include: { chapter: true },
+            });
+            if (freshPc) await processPages(freshPc);
+            refilledChapters++;
+          }
+          return;
+        }
+
+        const existingChapter = await prisma.chapter.findFirst({
+          where: {
+            seriesId,
+            OR: [
+              { name: chapterData.name },
+              ...(chapterData.number !== null ? [{ number: chapterData.number }] : []),
+            ],
+          },
+        });
+
+        let chapterId;
+        if (existingChapter) {
+          chapterId = existingChapter.id;
+        } else {
+          const newC = await prisma.chapter.create({
+            data: { name: chapterData.name, number: chapterData.number, publishedAt: chapterData.publishedAt, seriesId },
+          });
+          chapterId = newC.id;
+        }
+
+        await prisma.providerChapter.create({
+          data: { providerId: provider.id, externalId, chapterId },
+        });
+
+        const pc = await prisma.providerChapter.findUnique({
+          where: { providerId_externalId: { providerId: provider.id, externalId } },
+          include: { chapter: true },
+        });
+        if (pc) await processPages(pc);
+        newChapters++;
+      } catch (err) {
+        logger.error({ provider: providerName, externalId, err: err.message }, "Error en capítulo full scrape");
+        errors.push({ externalId, error: err.message });
+      }
+    };
+
+    try {
+      if (providerName === "olympus") {
+        const processPages = (pc) => processOlympusPages(pc, provider.id);
+
+        const { data: firstPage } = await axios.get(
+          `https://panel.olympusxyz.com/api/series/${ps.slug}/chapters`,
+          { params: { page: 1, direction: "desc", type: "comic" }, timeout: 30000 },
+        );
+        const lastPage = firstPage.meta.last_page;
+
+        for (let page = 1; page <= lastPage; page++) {
+          const data = page === 1 ? firstPage : (await axios.get(
+            `https://panel.olympusxyz.com/api/series/${ps.slug}/chapters`,
+            { params: { page, direction: "desc", type: "comic" }, timeout: 30000 },
+          )).data;
+
+          for (const ch of data.data) {
+            const chapterNumber = (() => {
+              const m = ch.name?.match(/(\d+(?:\.\d+)?)/);
+              return m ? parseFloat(m[0]) : null;
+            })();
+            await processChapter(String(ch.id), {
+              name: ch.name,
+              number: chapterNumber,
+              publishedAt: new Date(ch.published_at),
+            }, processPages);
+          }
+          await sleep(300);
+        }
+      } else if (providerName === "manhwaweb") {
+        const processPages = (pc) => processManhwawebPages(pc, provider.id);
+
+        const { data } = await axios.get(
+          `https://manhwawebbackend-production.up.railway.app/manhwa/see/${ps.externalId}`,
+          { timeout: 45000 },
+        );
+        const chapters = (data.chapters ?? []).slice().reverse();
+
+        for (const ch of chapters) {
+          const chapterExternalId = `${ps.externalId}-${ch.chapter}`;
+          const chapterName = String(ch.chapter);
+          const chapterNumber = parseFloat(chapterName);
+          await processChapter(chapterExternalId, {
+            name: chapterName,
+            number: isNaN(chapterNumber) ? null : chapterNumber,
+            publishedAt: ch.create ? new Date(ch.create) : new Date(),
+          }, processPages);
+        }
+      } else if (providerName === "leermangaesp") {
+        const processPages = (pc) => processLeermangaespPages(pc, provider.id);
+        const originalSlug = ps.url;
+        let before = null;
+        const allChapters = [];
+
+        for (let page = 0; page < 100; page++) {
+          const url = before
+            ? `https://leermangaesp.net/manga/${originalSlug}/?before=${before}`
+            : `https://leermangaesp.net/manga/${originalSlug}/`;
+          const { data: html } = await axios.get(url, { timeout: 30000 });
+          const $ = cheerio.load(html);
+
+          $("#chapter-list .chapter-link").each((_, el) => {
+            const rawNumber = $(el).attr("data-chapter");
+            if (!rawNumber) return;
+            const chapterDate = $(el).find(".chapter-date").text().trim();
+            const num = parseFloat(rawNumber);
+            allChapters.push({
+              externalId: `${ps.externalId}-${rawNumber}`,
+              name: `Capítulo ${rawNumber}`,
+              number: isNaN(num) ? null : num,
+              publishedAt: chapterDate ? new Date(chapterDate) : new Date(),
+            });
+          });
+
+          const moreLink = $("#more-link");
+          let nextBefore = null;
+          if (moreLink.length) {
+            const href = moreLink.attr("href");
+            if (href) {
+              const match = href.match(/[?&]before=([\d.]+)/);
+              if (match) nextBefore = match[1];
+            }
+          }
+
+          if (!nextBefore) break;
+          before = nextBefore;
+          await sleep(1500);
+        }
+
+        for (const ch of allChapters) {
+          await processChapter(ch.externalId, {
+            name: ch.name,
+            number: ch.number,
+            publishedAt: ch.publishedAt,
+          }, processPages);
+        }
+      } else {
+        throw Object.assign(new Error(`Provider "${providerName}" no soportado`), { statusCode: 400 });
+      }
+    } catch (error) {
+      logger.error({ provider: providerName, seriesId, err: error.message }, "Error en full scrape");
+      throw error;
+    }
+
+    return { provider: providerName, newChapters, refilledChapters, errors: errors.length > 0 ? errors : undefined };
+  }
+
   static async getMissingPages() {
     const providers = await prisma.provider.findMany({
       where: { name: { in: ALL_PROVIDERS } },

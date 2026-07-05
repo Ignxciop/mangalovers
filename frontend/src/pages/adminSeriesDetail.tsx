@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
     getAdminSeriesDetail, adminAddAlias, adminDeleteAlias, adminDeleteSeriesRelation,
     adminToggleSeriesVisibility, getSeriesChapters, bulkDeleteChapters, toggleProviderSeries,
-    scrapeSingleSeries,
+    fullScrapeSeries,
 } from "@/api/admin";
 import type { AdminSeriesDetail, AdminChapter } from "@/types/admin";
 import { SEO } from "@/components/seo";
@@ -16,11 +16,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { AxiosError } from "axios";
 import { useQueryCache } from "@/store/queryCache";
+import { MangaPagination } from "@/components/MangaPagination";
 import {
     BookOpen, ChevronLeft, Link2, X, Plus, Trash2, Eye, EyeOff,
     Loader2, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+    Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from "@/components/ui/table";
 
 export default function AdminSeriesDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -184,27 +188,29 @@ export default function AdminSeriesDetailPage() {
         }
     };
 
-    const [scraping, setScraping] = useState(false);
+    const [scrapingPs, setScrapingPs] = useState<Record<number, boolean>>({});
 
-    const handleScrapeSeries = async () => {
+    const handleScrapeSeries = async (psId: number, providerName: string) => {
         if (!series) return;
-        setScraping(true);
+        setScrapingPs((prev) => ({ ...prev, [psId]: true }));
         try {
-            const res = await scrapeSingleSeries(series.id);
-            const ok = res.data.results.filter((r) => r.status === "ok").length;
-            const errors = res.data.results.filter((r) => r.status === "error");
-            if (errors.length > 0) {
-                toast.warning(`Scrapeo completado con ${errors.length} error(es)`, {
-                    description: errors.map((e) => `${e.provider}: ${e.error}`).join(". "),
+            const res = await fullScrapeSeries(series.id, providerName);
+            const d = res.data;
+            const parts = [];
+            if (d.newChapters > 0) parts.push(`${d.newChapters} nuevo(s)`);
+            if (d.refilledChapters > 0) parts.push(`${d.refilledChapters} re-scrapeado(s)`);
+            if (parts.length === 0) parts.push("sin cambios");
+            toast.success(`Scrapeo de "${providerName}" completado: ${parts.join(", ")}`);
+            if (d.errors && d.errors.length > 0) {
+                toast.warning(`${d.errors.length} error(es) en capítulos`, {
+                    description: d.errors.map((e) => `${e.externalId}: ${e.error}`).join(". "),
                 });
-            } else {
-                toast.success(`Serie scrapeada (${ok} provider${ok !== 1 ? "es" : ""})`);
             }
             fetch();
         } catch {
             toast.error("Error al scrapear la serie");
         } finally {
-            setScraping(false);
+            setScrapingPs((prev) => ({ ...prev, [psId]: false }));
         }
     };
 
@@ -311,6 +317,16 @@ export default function AdminSeriesDetailPage() {
                                             <span className="font-mono text-xs truncate">{ps.slug}</span>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0 ml-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleScrapeSeries(ps.id, ps.provider.name)}
+                                                disabled={scrapingPs[ps.id]}
+                                                className="h-8 text-xs"
+                                            >
+                                                {scrapingPs[ps.id] ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+                                                {scrapingPs[ps.id] ? "Scrapeando..." : "Scrapear"}
+                                            </Button>
                                             <span className="text-xs text-muted-foreground">
                                                 {ps.enabled ? "Activo" : "Inactivo"}
                                             </span>
@@ -403,75 +419,89 @@ export default function AdminSeriesDetailPage() {
                             ) : chapters.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">Sin capítulos registrados.</p>
                             ) : (
-                                <div className="space-y-1">
-                                    {chapters.map((ch) => (
-                                        <div
-                                            key={ch.id}
-                                            className={cn(
-                                                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                                                selectedIds.has(ch.id) ? "bg-primary/10" : "hover:bg-muted/50",
-                                            )}
-                                        >
-                                            <Checkbox
-                                                checked={selectedIds.has(ch.id)}
-                                                onCheckedChange={() => toggleSelect(ch.id)}
-                                                aria-label={`Seleccionar capítulo ${ch.number ?? ch.name}`}
-                                            />
-                                            <span className="font-mono text-xs tabular-nums w-12 shrink-0 text-muted-foreground">
-                                                #{ch.number ?? "?"}
-                                            </span>
-                                            <span className="truncate flex-1 min-w-0">{ch.name || "—"}</span>
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                {ch.providers.map((p) => (
-                                                    <span
-                                                        key={p}
-                                                        className={cn(
-                                                            "text-[10px] px-1.5 py-0.5 rounded font-medium",
-                                                            p === "olympus"
-                                                                ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
-                                                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-                                                        )}
-                                                    >
-                                                        {p}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <span className={cn(
-                                                "text-xs font-mono tabular-nums w-10 text-right shrink-0",
-                                                ch.pagesScraped ? "text-green-600 dark:text-green-400" : "text-muted-foreground",
-                                            )}>
-                                                {ch.pagesCount}p
-                                            </span>
-                                            <span className="text-xs text-muted-foreground shrink-0 w-20 text-right">
-                                                {ch.publishedAt ? new Date(ch.publishedAt).toLocaleDateString() : "—"}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-10">
+                                                <Checkbox
+                                                    checked={chapters.length > 0 && selectedIds.size === chapters.length}
+                                                    onCheckedChange={toggleSelectAll}
+                                                    aria-label="Seleccionar todos"
+                                                />
+                                            </TableHead>
+                                            <TableHead className="w-14 text-muted-foreground font-mono text-xs tabular-nums">#</TableHead>
+                                            <TableHead className="text-muted-foreground">Nombre</TableHead>
+                                            <TableHead className="text-muted-foreground">Provider</TableHead>
+                                            <TableHead className="w-14 text-right text-muted-foreground">Págs</TableHead>
+                                            <TableHead className="w-24 text-muted-foreground">Fecha</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {chapters.map((ch) => (
+                                            <TableRow
+                                                key={ch.id}
+                                                data-state={selectedIds.has(ch.id) ? "selected" : undefined}
+                                                className={selectedIds.has(ch.id) ? "bg-primary/10" : undefined}
+                                            >
+                                                <TableCell>
+                                                    <Checkbox
+                                                        checked={selectedIds.has(ch.id)}
+                                                        onCheckedChange={() => toggleSelect(ch.id)}
+                                                        aria-label={`Seleccionar capítulo ${ch.number ?? ch.name}`}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">
+                                                    #{ch.number ?? "?"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="truncate block max-w-[300px]">{ch.name || "—"}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {ch.providers.length === 0 ? (
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-muted/50 text-muted-foreground">
+                                                            —
+                                                        </span>
+                                                    ) : (
+                                                        <div className="flex gap-1">
+                                                            {ch.providers.map((p) => (
+                                                                <span
+                                                                    key={p}
+                                                                    className={cn(
+                                                                        "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                                                                        p === "olympus"
+                                                                            ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
+                                                                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                                                                    )}
+                                                                >
+                                                                    {p}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className={cn(
+                                                    "text-right font-mono text-xs tabular-nums",
+                                                    ch.pagesScraped ? "text-green-600 dark:text-green-400" : "text-muted-foreground",
+                                                )}>
+                                                    {ch.pagesCount}p
+                                                </TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">
+                                                    {ch.publishedAt ? new Date(ch.publishedAt).toLocaleDateString() : "—"}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             )}
 
                             {/* Paginación */}
                             {chapterTotalPages > 1 && (
-                                <div className="flex items-center justify-center gap-2 pt-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={chapterPage <= 1}
-                                        onClick={() => fetchChapters(chapterPage - 1, chapterOrder)}
-                                    >
-                                        Anterior
-                                    </Button>
-                                    <span className="text-xs text-muted-foreground tabular-nums">
-                                        {chapterPage} / {chapterTotalPages}
-                                    </span>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={chapterPage >= chapterTotalPages}
-                                        onClick={() => fetchChapters(chapterPage + 1, chapterOrder)}
-                                    >
-                                        Siguiente
-                                    </Button>
+                                <div className="pt-2">
+                                    <MangaPagination
+                                        page={chapterPage}
+                                        totalPages={chapterTotalPages}
+                                        setPage={(p) => fetchChapters(p, chapterOrder)}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -511,23 +541,6 @@ export default function AdminSeriesDetailPage() {
                                     {series.visible ? "Visible" : "Oculta"}
                                 </Button>
                             </div>
-                        </div>
-
-                        {/* Scrapeo */}
-                        <div className="border border-border rounded-xl p-5 space-y-3">
-                            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Scraping</h2>
-                            <p className="text-xs text-muted-foreground/60">
-                                Re-scrapea los datos de esta serie desde {series.providerSeries.map((ps) => ps.provider.name).join(", ")}.
-                            </p>
-                            <Button
-                                className="w-full"
-                                size="sm"
-                                onClick={handleScrapeSeries}
-                                disabled={scraping}
-                            >
-                                {scraping ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                                {scraping ? "Scrapeando..." : "Scrapear serie"}
-                            </Button>
                         </div>
 
                         {/* Relaciones primarias */}
