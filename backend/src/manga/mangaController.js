@@ -2,7 +2,6 @@ import {
   getAllManga, getLatestManga, getSeriesDetailBySlug,
   getChapterPages, getAllGenres, getRecommendedSeries,
 } from "./mangaService.js";
-import { markChaptersUntil } from "../read/readService.js";
 
 export async function handleGetAllManga(req, res, next) {
   try {
@@ -47,13 +46,7 @@ export async function getSeriesDetail(req, res, next) {
 export async function handleGetChapterPages(req, res, next) {
   try {
     const { slug, chapterId } = req.params;
-    const userId = req.user?.userId ?? null;
-    const chapter = await getChapterPages(slug, chapterId, userId);
-
-    if (userId) {
-      await markChaptersUntil(userId, chapterId).catch(() => {});
-    }
-
+    const chapter = await getChapterPages(slug, chapterId);
     res.json(chapter);
   } catch (error) {
     next(error);
