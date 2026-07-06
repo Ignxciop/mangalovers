@@ -20,7 +20,7 @@ function Toaster({ ...props }: ToasterProps) {
                 duration: 4000,
                 classNames: {
                     toast:
-                        "!bg-card/80 !backdrop-blur-xl !text-foreground !border-l-[3px] !border-l-brand-cyan !shadow-[-4px_0_15px_-5px_var(--brand-cyan),0_8px_32px_-12px_rgba(0,0,0,0.5)] !rounded-xl !px-4 !py-3.5 !gap-3 !border-0 !border-t !border-r !border-b !border-border/40 !animate-fade-in-up",
+                        "!bg-card/80 !backdrop-blur-xl !text-foreground !border-l-[3px] !border-l-brand-cyan !shadow-[-4px_0_15px_-5px_var(--brand-cyan),0_8px_32px_-12px_rgba(0,0,0,0.5)] !rounded-xl !px-4 !py-3.5 !gap-3 !border-0 !border-t !border-r !border-b !border-border/40",
                     title:
                         "!text-sm !font-semibold !text-foreground !tracking-tight",
                     description:
