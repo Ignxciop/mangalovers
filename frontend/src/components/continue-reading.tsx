@@ -106,9 +106,10 @@ export function ContinueReadingSection({
     allUpToDate?: boolean;
 }) {
     const navigate = useNavigate();
-    const { continueItems } = useViewportGrid();
+    const { continueItems, columns: gridColumns } = useViewportGrid();
 
     const visibleItems = items.slice(0, continueItems);
+    const cols = Math.min(gridColumns, continueItems);
 
     if (items.length === 0) {
         return (
@@ -172,7 +173,10 @@ export function ContinueReadingSection({
                 </Button>
             </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
+            <div
+                className="grid gap-3"
+                style={{ gridTemplateColumns: `repeat(${Math.max(cols, 1)}, minmax(0, 1fr))` }}
+            >
                 {visibleItems.map((item) => (
                     <ContinueItem key={item.id} item={item} />
                 ))}
@@ -182,12 +186,16 @@ export function ContinueReadingSection({
 }
 
 export function ContinueSkeleton() {
-    const { continueItems } = useViewportGrid();
+    const { continueItems, columns: gridColumns } = useViewportGrid();
+    const cols = Math.min(gridColumns, continueItems);
 
     return (
         <section>
             <Skeleton className="h-4 w-40 mb-4" />
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
+            <div
+                className="grid gap-3"
+                style={{ gridTemplateColumns: `repeat(${Math.max(cols, 1)}, minmax(0, 1fr))` }}
+            >
                 {Array.from({ length: continueItems }).map((_, i) => (
                     <div key={i} className="space-y-2">
                         <Skeleton className="aspect-[2/3] rounded-xl" />

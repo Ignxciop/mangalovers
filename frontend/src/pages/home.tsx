@@ -478,8 +478,8 @@ export default function Home() {
 
                         <div
                             ref={latestGridRef}
-                            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 3xl:grid-cols-16 4xl:grid-cols-20 gap-3"
-                            style={{ contentVisibility: "auto" }}
+                            className="grid gap-3"
+                            style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, contentVisibility: "auto" }}
                             aria-live="polite"
                             aria-atomic="true"
                         >

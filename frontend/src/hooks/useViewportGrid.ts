@@ -13,11 +13,12 @@ export function useViewportGrid() {
         width < 640 ? 3
         : width < 768 ? 4
         : width < 1024 ? 6
-        : width < 1280 ? 8
-        : width < 1536 ? 10
-        : width < 1920 ? 12
-        : width < 2560 ? 16
-        : 20;
+        : width <= 1280 ? 6
+        : width < 1536 ? 8
+        : width < 1880 ? 10
+        : width < 2520 ? 10
+        : width < 3400 ? 12
+        : 14;
 
     const isMobile = width < 640;
 
@@ -27,8 +28,11 @@ export function useViewportGrid() {
         latestItems: columns * 3,
         recommendedItems: columns,
         continueItems: isMobile ? 6 :
+            width >= 3400 ? 14 :
+            width >= 2520 ? 10 :
+            width >= 1880 ? 7 :
             width >= 1536 ? 8 :
-            width >= 1280 ? 7 :
+            width >= 1280 ? 6 :
             width >= 1024 ? 6 :
             width >= 768 ? 5 :
             4,
