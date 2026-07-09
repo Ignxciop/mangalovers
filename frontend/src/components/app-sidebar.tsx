@@ -37,7 +37,6 @@ import {
     LogIn,
     House,
     LibraryBig,
-    BookHeart,
     Heart,
     ChevronRight,
     Settings,
@@ -405,25 +404,9 @@ export function AppSidebar() {
             onClose={() => setShowSuggestionForm(false)}
         />
         <Sidebar collapsible="icon">
-            <SidebarHeader
-                className={cn("py-5", collapsed ? "items-center px-2" : "px-4")}
-            >
-                <Link
-                    to="/"
-                    className={cn(
-                        "flex items-center gap-2.5 transition-[gap,opacity]",
-                        collapsed && "justify-center",
-                    )}
-                >
-                    <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-brand to-brand-cyan text-white shrink-0 shadow-sm animate-[logo-glow_3s_ease-in-out_infinite]">
-                        <BookHeart className="size-4" />
-                    </div>
-                    {!collapsed && (
-                        <span className="font-extrabold text-[18px] tracking-tight">
-                            Mangalovers
-                        </span>
-                    )}
-                </Link>
+            {/* Spacer que empuja el sidebar debajo del header */}
+            <SidebarHeader className="p-0">
+                <div className="h-16" />
             </SidebarHeader>
 
             <SidebarContent className={cn("px-2", collapsed && "px-1")}>
