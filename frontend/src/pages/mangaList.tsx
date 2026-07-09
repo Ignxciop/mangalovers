@@ -13,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useState, memo, useMemo } from "react";
+import { useEffect, useState, memo, useMemo, useRef } from "react";
 import { useHeader } from "@/context/headerContext";
 import { useMangaList } from "@/hooks/useMangaList";
 import { Link, useSearchParams } from "react-router-dom";
@@ -258,6 +258,32 @@ export default function MangaList() {
         });
     }
 
+    const mangaGridRef = useRef<HTMLDivElement | null>(null);
+
+    const [contentWidth, setContentWidth] = useState(() => {
+        const sidebarW = document.querySelector("[data-slot=sidebar-gap]")?.clientWidth ?? 256;
+        return window.innerWidth - sidebarW - 32;
+    });
+
+    useEffect(() => {
+        const el = mangaGridRef.current;
+        if (!el) return;
+        const observer = new ResizeObserver(([entry]) => {
+            setContentWidth(entry.contentRect.width);
+        });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    const columns = useMemo(() => {
+        if (contentWidth >= 1480) return 8;
+        if (contentWidth >= 880) return 6;
+        if (contentWidth >= 560) return 4;
+        return 3;
+    }, [contentWidth]);
+
+    const limit = columns * 4;
+
     const { data, loading, error } = useMangaList({
         page,
         search,
@@ -268,6 +294,7 @@ export default function MangaList() {
         order,
         genres,
         read,
+        limit,
     });
 
     const mangas = data?.data ?? [];
@@ -480,17 +507,17 @@ export default function MangaList() {
                     </div>
                 </FilterDrawer>
 
-            <main className="container mx-auto py-6 px-4">
-                <div className="mb-8">
+            <main className="w-full px-4 py-6">
+                <div className="mb-8 flex justify-center">
                     <MangaPagination
                         page={page}
                         totalPages={data?.meta.totalPages ?? 1}
                         setPage={setPage}
                     />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                <div ref={mangaGridRef} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
                     {loading &&
-                        Array.from({ length: 24 }).map((_, i) => (
+                        Array.from({ length: limit }).map((_, i) => (
                             <div
                                 key={i}
                                 className="group cursor-pointer animate-pulse"
@@ -522,7 +549,7 @@ export default function MangaList() {
                         />
                     ))}
                 </div>
-                <div className="mt-8">
+                <div className="mt-8 flex justify-center">
                     <MangaPagination
                         page={page}
                         totalPages={data?.meta.totalPages ?? 1}
