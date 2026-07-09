@@ -13,8 +13,9 @@ import {
     Clock,
     Eye,
     Search,
+    SlidersHorizontal,
 } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -250,6 +251,14 @@ export default function FavoritesList() {
     const sortBy = (searchParams.get("sort") ?? "reciente") as SortBy;
     const page = Number(searchParams.get("page") ?? "1");
 
+    const activeFiltersCount = [
+        statusFilter !== "Todos" ? statusFilter : "",
+        typeFilter,
+        progressFilter !== "todos" ? progressFilter : "",
+        sortBy !== "reciente" ? sortBy : "",
+        searchText.trim(),
+    ].filter(Boolean).length;
+
     const handleRefresh = useCallback(async () => {
         try {
             const data = await fetchFavorites();
@@ -260,6 +269,50 @@ export default function FavoritesList() {
     }, []);
 
     const { pull, refreshing } = usePullToRefresh(handleRefresh);
+    const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+    const { setContent } = useHeader();
+
+    useEffect(() => {
+        setContent({
+            center: (
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-2.5 shrink-0">
+                        <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                            <Heart className="h-3.5 w-3.5 text-primary/80" />
+                        </div>
+                        <span className="text-sm font-semibold tracking-tight">Mis favoritos</span>
+                    </div>
+                    <div className="w-full max-w-md">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                            <Input
+                                placeholder="Buscar favorito..."
+                                className="pl-9 w-full bg-secondary/50"
+                                value={searchText}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            ),
+            right: (
+                <Button
+                    variant="outline"
+                    className="shrink-0 relative"
+                    onClick={() => setFilterDrawerOpen(true)}
+                >
+                    <SlidersHorizontal className="mr-2 h-4 w-4" />
+                    Filtros
+                    {activeFiltersCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center size-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                            {activeFiltersCount}
+                        </span>
+                    )}
+                </Button>
+            ),
+        });
+        return () => setContent({});
+    }, [setContent, searchText, activeFiltersCount]);
 
     useEffect(() => {
         fetchFavorites()
@@ -437,14 +490,6 @@ export default function FavoritesList() {
         });
     }
 
-    const activeFiltersCount = [
-        statusFilter !== "Todos" ? statusFilter : "",
-        typeFilter,
-        progressFilter !== "todos" ? progressFilter : "",
-        sortBy !== "reciente" ? sortBy : "",
-        searchText.trim(),
-    ].filter(Boolean).length;
-
     const fromUrl = useMemo(
         () => `/favoritos?${searchParams.toString()}`,
         [searchParams],
@@ -459,168 +504,145 @@ export default function FavoritesList() {
             />
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="flex items-center gap-2.5 shrink-0">
-                                    <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                        <Heart className="h-3.5 w-3.5 text-primary/80" />
-                                    </div>
-                                    <span className="text-sm font-semibold tracking-tight">Mis favoritos</span>
-                                </div>
-                                <div className="w-full max-w-md">
-                                    <div className="relative">
-                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                        <Input
-                                            placeholder="Buscar favorito..."
-                                            className="pl-9 w-full bg-secondary/50"
-                                            value={searchText}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <FilterDrawer
-                            activeFiltersCount={activeFiltersCount}
-                            title="Filtros"
-                            onClearAll={clearFilters}
+                <FilterDrawer
+                    open={filterDrawerOpen}
+                    onOpenChange={setFilterDrawerOpen}
+                    activeFiltersCount={activeFiltersCount}
+                    hideTrigger
+                    title="Filtros"
+                    onClearAll={clearFilters}
+                >
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Ordenar por
+                        </p>
+                        <Select
+                            value={sortBy}
+                            onValueChange={(v) => setSortBy(v as SortBy)}
                         >
-                            <div className="px-6 py-5 border-b border-border">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                    Ordenar por
-                                </p>
-                                <Select
-                                    value={sortBy}
-                                    onValueChange={(v) => setSortBy(v as SortBy)}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="reciente">
-                                            Favorito más reciente
-                                        </SelectItem>
-                                        <SelectItem value="pendiente-asc">
-                                            Menos capítulos pendientes
-                                        </SelectItem>
-                                        <SelectItem value="pendiente-desc">
-                                            Más capítulos pendientes
-                                        </SelectItem>
-                                        <SelectItem value="updated">
-                                            Actualización reciente
-                                        </SelectItem>
-                                        <SelectItem value="nombre">
-                                            A → Z
-                                        </SelectItem>
-                                        <SelectItem value="za">
-                                            Z → A
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="px-6 py-5 border-b border-border">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                    Estado
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    {(["Todos", "Siguiendo", "Terminado"] as const).map((f) => (
-                                        <Badge
-                                            key={f}
-                                            variant={statusFilter === f ? "default" : "outline"}
-                                            className="cursor-pointer px-3 py-1 text-xs"
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setStatusFilter(f)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") {
-                                                    e.preventDefault();
-                                                    setStatusFilter(f);
-                                                }
-                                            }}
-                                        >
-                                            {f}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="px-6 py-5 border-b border-border">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                    Tipo
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    {[
-                                        { label: "Todos", value: "" },
-                                        { label: "Manga", value: "manga" },
-                                        { label: "Manhwa", value: "manhwa" },
-                                        { label: "Manhua", value: "manhua" },
-                                    ].map(({ label, value }) => (
-                                        <Badge
-                                            key={value}
-                                            variant={typeFilter === value ? "default" : "outline"}
-                                            className="cursor-pointer px-3 py-1 text-xs"
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setTypeFilter(typeFilter === value ? "" : (value as TypeFilter))}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") {
-                                                    e.preventDefault();
-                                                    setTypeFilter(typeFilter === value ? "" : (value as TypeFilter));
-                                                }
-                                            }}
-                                        >
-                                            {label}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="px-6 py-5">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                    Progreso de lectura
-                                </p>
-                                <div className="overflow-y-auto">
-                                    {[
-                                        { value: "todos", label: "Todos" },
-                                        { value: "al-dia", label: "Al día" },
-                                        { value: "pendiente", label: "Con capítulos pendientes" },
-                                    ].map(({ value, label }, idx, arr) => (
-                                        <div
-                                            key={value}
-                                            role="button"
-                                            tabIndex={0}
-                                            className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
-                                                idx !== arr.length - 1 ? "border-b border-border/40" : ""
-                                            }`}
-                                            onClick={() => setProgressFilter(value as ProgressFilter)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") {
-                                                    e.preventDefault();
-                                                    setProgressFilter(value as ProgressFilter);
-                                                }
-                                            }}
-                                        >
-                                            <span className={`text-sm transition-colors ${
-                                                progressFilter === value
-                                                    ? "text-foreground font-medium"
-                                                    : "text-muted-foreground group-hover:text-foreground"
-                                            }`}>
-                                                {label}
-                                            </span>
-                                            {progressFilter === value && (
-                                                <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </FilterDrawer>
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="reciente">
+                                    Favorito más reciente
+                                </SelectItem>
+                                <SelectItem value="pendiente-asc">
+                                    Menos capítulos pendientes
+                                </SelectItem>
+                                <SelectItem value="pendiente-desc">
+                                    Más capítulos pendientes
+                                </SelectItem>
+                                <SelectItem value="updated">
+                                    Actualización reciente
+                                </SelectItem>
+                                <SelectItem value="nombre">
+                                    A → Z
+                                </SelectItem>
+                                <SelectItem value="za">
+                                    Z → A
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-                </header>
+
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Estado
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {(["Todos", "Siguiendo", "Terminado"] as const).map((f) => (
+                                <Badge
+                                    key={f}
+                                    variant={statusFilter === f ? "default" : "outline"}
+                                    className="cursor-pointer px-3 py-1 text-xs"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => setStatusFilter(f)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setStatusFilter(f);
+                                        }
+                                    }}
+                                >
+                                    {f}
+                                </Badge>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Tipo
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { label: "Todos", value: "" },
+                                { label: "Manga", value: "manga" },
+                                { label: "Manhwa", value: "manhwa" },
+                                { label: "Manhua", value: "manhua" },
+                            ].map(({ label, value }) => (
+                                <Badge
+                                    key={value}
+                                    variant={typeFilter === value ? "default" : "outline"}
+                                    className="cursor-pointer px-3 py-1 text-xs"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => setTypeFilter(typeFilter === value ? "" : (value as TypeFilter))}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setTypeFilter(typeFilter === value ? "" : (value as TypeFilter));
+                                        }
+                                    }}
+                                >
+                                    {label}
+                                </Badge>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Progreso de lectura
+                        </p>
+                        <div className="overflow-y-auto">
+                            {[
+                                { value: "todos", label: "Todos" },
+                                { value: "al-dia", label: "Al día" },
+                                { value: "pendiente", label: "Con capítulos pendientes" },
+                            ].map(({ value, label }, idx, arr) => (
+                                <div
+                                    key={value}
+                                    role="button"
+                                    tabIndex={0}
+                                    className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
+                                        idx !== arr.length - 1 ? "border-b border-border/40" : ""
+                                    }`}
+                                    onClick={() => setProgressFilter(value as ProgressFilter)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setProgressFilter(value as ProgressFilter);
+                                        }
+                                    }}
+                                >
+                                    <span className={`text-sm transition-colors ${
+                                        progressFilter === value
+                                            ? "text-foreground font-medium"
+                                            : "text-muted-foreground group-hover:text-foreground"
+                                    }`}>
+                                        {label}
+                                    </span>
+                                    {progressFilter === value && (
+                                        <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </FilterDrawer>
 
                 <main className="container mx-auto px-4 py-8">
                     {!loading && filtered.length > 0 && (

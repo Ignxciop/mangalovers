@@ -16,6 +16,7 @@ interface FilterDrawerProps {
     activeFiltersCount?: number;
     onClearAll?: () => void;
     children: ReactNode;
+    hideTrigger?: boolean;
 }
 
 export function FilterDrawer({
@@ -25,6 +26,7 @@ export function FilterDrawer({
     activeFiltersCount = 0,
     onClearAll,
     children,
+    hideTrigger = false,
 }: FilterDrawerProps) {
     const [internalOpen, setInternalOpen] = useState(false);
     const isControlled = controlledOpen !== undefined;
@@ -39,17 +41,19 @@ export function FilterDrawer({
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
-            <SheetTrigger asChild>
-                <Button variant="outline" className="shrink-0 relative">
-                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                    Filtros
-                    {activeFiltersCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
-                            {activeFiltersCount}
-                        </span>
-                    )}
-                </Button>
-            </SheetTrigger>
+            {hideTrigger ? null : (
+                <SheetTrigger asChild>
+                    <Button variant="outline" className="shrink-0 relative">
+                        <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        Filtros
+                        {activeFiltersCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                                {activeFiltersCount}
+                            </span>
+                        )}
+                    </Button>
+                </SheetTrigger>
+            )}
             <SheetContent className="flex flex-col gap-0 p-0">
                 <SheetHeader className="px-6 py-5 border-b border-border">
                     <SheetTitle className="text-base">{title}</SheetTitle>
