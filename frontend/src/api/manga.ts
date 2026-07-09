@@ -42,8 +42,8 @@ export async function fetchChapterPages(
     return data;
 }
 
-export async function fetchFavorites() {
-    const { data } = await api.get("/favorites");
+export async function fetchFavorites(params?: { page?: number; limit?: number }) {
+    const { data } = await api.get("/favorites", { params });
     return data;
 }
 

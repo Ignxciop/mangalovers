@@ -1,5 +1,5 @@
 import { SEO } from "@/components/seo";
-import { useEffect, useState, useMemo, memo, useCallback } from "react";
+import { useEffect, useState, useMemo, memo, useCallback, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
@@ -271,6 +271,29 @@ export default function FavoritesList() {
     const { pull, refreshing } = usePullToRefresh(handleRefresh);
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
     const { setContent } = useHeader();
+    const favGridRef = useRef<HTMLDivElement | null>(null);
+
+    const [columns, setColumns] = useState(() => {
+        const w = window.innerWidth;
+        if (w >= 1480) return 8;
+        if (w >= 880) return 5;
+        if (w >= 560) return 4;
+        return 3;
+    });
+
+    useEffect(() => {
+        const onResize = () => {
+            const w = window.innerWidth;
+            setColumns(
+                w >= 1480 ? 8 :
+                w >= 880 ? 5 :
+                w >= 560 ? 4 :
+                3
+            );
+        };
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
 
     useEffect(() => {
         setContent({
@@ -464,7 +487,7 @@ export default function FavoritesList() {
         return result;
     }, [favorites, statusFilter, typeFilter, progressFilter, sortBy, searchText]);
 
-    const ITEMS_PER_PAGE = 24;
+    const ITEMS_PER_PAGE = columns * 4;
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
 
@@ -634,7 +657,7 @@ export default function FavoritesList() {
                     </div>
                 </FilterDrawer>
 
-                <main className="container mx-auto px-4 py-8">
+                <main className="w-full px-4 py-8">
                     {!loading && filtered.length > 0 && (
                         <div className="mb-8">
                             <MangaPagination
@@ -646,8 +669,8 @@ export default function FavoritesList() {
                     )}
 
                     {loading && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                            {Array.from({ length: 10 }).map((_, i) => (
+                        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+                            {Array.from({ length: columns * 2 }).map((_, i) => (
                                 <div key={i} className="space-y-2">
                                     <Skeleton className="aspect-[2/3] rounded-xl" />
                                     <Skeleton className="h-4 w-3/4" />
@@ -684,7 +707,7 @@ export default function FavoritesList() {
 
                     {!loading && filtered.length > 0 && (
                         <>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                            <div ref={favGridRef} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
                                 {paginatedFavorites.map((fav) => (
                                     <FavoriteListItem
                                         key={fav.id}

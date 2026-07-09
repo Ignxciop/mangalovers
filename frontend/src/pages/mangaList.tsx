@@ -260,27 +260,27 @@ export default function MangaList() {
 
     const mangaGridRef = useRef<HTMLDivElement | null>(null);
 
-    const [contentWidth, setContentWidth] = useState(() => {
-        const sidebarW = document.querySelector("[data-slot=sidebar-gap]")?.clientWidth ?? 256;
-        return window.innerWidth - sidebarW - 32;
+    const [columns, setColumns] = useState(() => {
+        const w = window.innerWidth;
+        if (w >= 1480) return 8;
+        if (w >= 880) return 5;
+        if (w >= 560) return 4;
+        return 3;
     });
 
     useEffect(() => {
-        const el = mangaGridRef.current;
-        if (!el) return;
-        const observer = new ResizeObserver(([entry]) => {
-            setContentWidth(entry.contentRect.width);
-        });
-        observer.observe(el);
-        return () => observer.disconnect();
+        const onResize = () => {
+            const w = window.innerWidth;
+            setColumns(
+                w >= 1480 ? 8 :
+                w >= 880 ? 5 :
+                w >= 560 ? 4 :
+                3
+            );
+        };
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
     }, []);
-
-    const columns = useMemo(() => {
-        if (contentWidth >= 1480) return 8;
-        if (contentWidth >= 880) return 6;
-        if (contentWidth >= 560) return 4;
-        return 3;
-    }, [contentWidth]);
 
     const limit = columns * 4;
 
