@@ -13,8 +13,8 @@ function getSidebarInitialState(): boolean {
     return match ? match[2] === "true" : true;
 }
 
-function GlobalHeader() {
-    const { content, hidden, searchMode, setSearchMode } = useHeader();
+function GlobalHeader({ hidden }: { hidden: boolean }) {
+    const { content, searchMode, setSearchMode } = useHeader();
     const { isMobile } = useSidebar();
 
     if (hidden) return null;
@@ -37,8 +37,8 @@ function GlobalHeader() {
     }
 
     return (
-        <div className="grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-            <div className="flex items-center gap-2.5 min-w-0">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16 px-4 gap-4">
+            <div className="flex items-center gap-2.5 min-w-0 justify-self-start">
                 <SidebarTrigger />
                 <Link to="/" className="flex items-center gap-2 shrink-0">
                     <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-brand to-brand-cyan text-white shrink-0 shadow-sm">
@@ -51,10 +51,34 @@ function GlobalHeader() {
             <div className="flex justify-center min-w-0">
                 {content.center}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2">
                 {content.right}
             </div>
         </div>
+    );
+}
+
+function LayoutInner() {
+    const { hidden } = useHeader();
+
+    return (
+        <>
+            <header className={`sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5 h-16 transition-transform duration-200 ${hidden ? '-translate-y-full' : ''}`}>
+                <GlobalHeader hidden={hidden} />
+            </header>
+            <div className="flex flex-1">
+                <AppSidebar />
+                <div
+                    id="main-content"
+                    className="w-full"
+                    style={{ padding: "env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)" }}
+                >
+                    <PageTransition>
+                        <Outlet />
+                    </PageTransition>
+                </div>
+            </div>
+        </>
     );
 }
 
@@ -64,21 +88,7 @@ export default function MainLayout() {
     return (
         <HeaderProvider>
             <SidebarProvider defaultOpen={defaultOpen} className="flex-col">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <GlobalHeader />
-                </header>
-                <div className="flex flex-1">
-                    <AppSidebar />
-                    <div
-                        id="main-content"
-                        className="w-full"
-                        style={{ padding: "env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)" }}
-                    >
-                        <PageTransition>
-                            <Outlet />
-                        </PageTransition>
-                    </div>
-                </div>
+                <LayoutInner />
             </SidebarProvider>
         </HeaderProvider>
     );

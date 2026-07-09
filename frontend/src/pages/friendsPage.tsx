@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { useFriendStore } from "@/store/friendStore";
 import { useHeader } from "@/context/headerContext";
+import { SearchBar } from "@/components/search-bar";
 import { Link } from "react-router-dom";
 import {
     Search,
@@ -883,14 +884,7 @@ export default function FriendsPage() {
 
     useEffect(() => {
         setContent({
-            center: (
-                <div className="flex items-center gap-2.5">
-                    <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                        <HeartHandshake className="h-3.5 w-3.5 text-primary/80" />
-                    </div>
-                    <span className="text-sm font-semibold tracking-tight">Amigos</span>
-                </div>
-            ),
+            center: <SearchBar />,
         });
         return () => setContent({});
     }, [setContent]);

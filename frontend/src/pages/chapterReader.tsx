@@ -454,7 +454,45 @@ export default function ChapterReader() {
         Promise.all([refetchChapter(), refetchSeries()]),
     );
 
-    const { setContent } = useHeader();
+    const { setContent, setHidden, setSidebarCollapsible } = useHeader();
+
+    useEffect(() => {
+        setSidebarCollapsible("offcanvas");
+        return () => setSidebarCollapsible("icon");
+    }, [setSidebarCollapsible]);
+
+    const lastScrollY = useRef(0);
+    const ticking = useRef(false);
+
+    useEffect(() => {
+        lastScrollY.current = window.scrollY;
+
+        const handleScroll = () => {
+            if (ticking.current) return;
+            ticking.current = true;
+
+            requestAnimationFrame(() => {
+                const currentScrollY = window.scrollY;
+
+                if (currentScrollY <= 0) {
+                    setHidden(false);
+                } else if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+                    setHidden(true);
+                } else if (currentScrollY < lastScrollY.current) {
+                    setHidden(false);
+                }
+
+                lastScrollY.current = currentScrollY;
+                ticking.current = false;
+            });
+        };
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+            setHidden(false);
+        };
+    }, [setHidden]);
 
     useEffect(() => {
         setContent({

@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, memo, useCallback } from "react";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { SearchBar } from "@/components/search-bar";
 import { useAuthStore } from "@/store/authStore";
 import { getFriendReadsForSeries, type FriendSeriesRead, type SimpleFriend } from "@/api/friends";
 import { FriendAvatars } from "@/components/FriendAvatars";
@@ -265,11 +266,7 @@ export default function MangaDetail() {
 
     useEffect(() => {
         setContent({
-            center: series ? (
-                <span className="text-sm font-semibold truncate">{series.name}</span>
-            ) : (
-                <Skeleton className="h-4 w-32" />
-            ),
+            center: <SearchBar />,
             right: (
                 <button
                     onClick={() => navigate(backUrl)}

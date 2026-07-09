@@ -275,24 +275,14 @@ export default function FavoritesList() {
     useEffect(() => {
         setContent({
             center: (
-                <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex items-center gap-2.5 shrink-0">
-                        <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                            <Heart className="h-3.5 w-3.5 text-primary/80" />
-                        </div>
-                        <span className="text-sm font-semibold tracking-tight">Mis favoritos</span>
-                    </div>
-                    <div className="w-full max-w-md">
-                        <div className="relative">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input
-                                placeholder="Buscar favorito..."
-                                className="pl-9 w-full bg-secondary/50"
-                                value={searchText}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                        </div>
-                    </div>
+                <div className="relative w-[512px] max-w-full">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                        placeholder="Buscar"
+                        className="pl-9 w-full bg-secondary/50"
+                        value={searchText}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
                 </div>
             ),
             right: (

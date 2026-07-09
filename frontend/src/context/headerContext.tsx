@@ -14,6 +14,8 @@ interface HeaderContextValue {
     setHidden: (hidden: boolean) => void;
     searchMode: boolean;
     setSearchMode: (mode: boolean) => void;
+    sidebarCollapsible: "icon" | "offcanvas";
+    setSidebarCollapsible: (v: "icon" | "offcanvas") => void;
 }
 
 const HeaderContext = createContext<HeaderContextValue | null>(null);
@@ -22,9 +24,10 @@ export function HeaderProvider({ children }: { children: ReactNode }) {
     const [content, setContent] = useState<HeaderContent>({});
     const [hidden, setHidden] = useState(false);
     const [searchMode, setSearchMode] = useState(false);
+    const [sidebarCollapsible, setSidebarCollapsible] = useState<"icon" | "offcanvas">("icon");
 
     return (
-        <HeaderContext.Provider value={{ content, setContent, hidden, setHidden, searchMode, setSearchMode }}>
+        <HeaderContext.Provider value={{ content, setContent, hidden, setHidden, searchMode, setSearchMode, sidebarCollapsible, setSidebarCollapsible }}>
             {children}
         </HeaderContext.Provider>
     );

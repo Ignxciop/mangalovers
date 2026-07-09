@@ -2,6 +2,7 @@ import { SEO } from "@/components/seo";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useHeader } from "@/context/headerContext";
+import { SearchBar } from "@/components/search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CoverImage } from "@/components/coverImage";
 import { fetchFullStats } from "@/api/manga";
@@ -452,14 +453,7 @@ export default function StatsPage() {
 
     useEffect(() => {
         setContent({
-            center: (
-                <div className="flex items-center gap-2.5">
-                    <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                        <BarChart3 className="h-3.5 w-3.5 text-primary/80" />
-                    </div>
-                    <span className="text-sm font-semibold tracking-tight">Mis estadísticas</span>
-                </div>
-            ),
+            center: <SearchBar />,
         });
         return () => setContent({});
     }, [setContent]);

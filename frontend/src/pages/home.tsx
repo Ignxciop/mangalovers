@@ -371,14 +371,6 @@ export default function Home() {
     useEffect(() => {
         if (isMobile) {
             setContent({
-                center: (
-                    <div className="flex items-center gap-2.5 shrink-0">
-                        <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                            <Flame className="h-3.5 w-3.5 text-primary/80" />
-                        </div>
-                        <span className="text-sm font-semibold tracking-tight">Inicio</span>
-                    </div>
-                ),
                 right: (
                     <button
                         onClick={() => setSearchMode(true)}
@@ -391,19 +383,7 @@ export default function Home() {
             });
         } else {
             setContent({
-                center: (
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex items-center gap-2.5 shrink-0">
-                            <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                <Flame className="h-3.5 w-3.5 text-primary/80" />
-                            </div>
-                            <span className="text-sm font-semibold tracking-tight">Inicio</span>
-                        </div>
-                        <div className="w-full max-w-md">
-                            <SearchBar />
-                        </div>
-                    </div>
-                ),
+                center: <SearchBar />,
             });
         }
         return () => setContent({});

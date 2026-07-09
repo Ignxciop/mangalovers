@@ -28,6 +28,7 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useFriendStore } from "@/store/friendStore";
 import { SuggestionForm } from "@/components/suggestion-form";
 import { memo, useState } from "react";
+import { useHeader } from "@/context/headerContext";
 import {
     UserRound,
     EllipsisVertical,
@@ -392,6 +393,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
 export function AppSidebar() {
     const { isAuthenticated } = useAuth();
     const { state, isMobile } = useSidebar();
+    const { sidebarCollapsible } = useHeader();
     const collapsed = !isMobile && state === "collapsed";
     const [showSuggestionForm, setShowSuggestionForm] = useState(false);
     const unreadNotifCount = useNotificationStore((s) => s.unreadCount);
@@ -403,7 +405,7 @@ export function AppSidebar() {
             open={showSuggestionForm}
             onClose={() => setShowSuggestionForm(false)}
         />
-        <Sidebar collapsible="icon">
+        <Sidebar collapsible={sidebarCollapsible}>
             {/* Spacer que empuja el sidebar debajo del header */}
             <SidebarHeader className="p-0">
                 <div className="h-16" />
