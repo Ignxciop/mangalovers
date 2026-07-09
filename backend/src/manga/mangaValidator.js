@@ -23,5 +23,5 @@ export const chapterPagesValidator = [
 ];
 
 export const latestMangaValidator = [
-  query("limit").optional().isInt({ min: 1, max: 50 }).toInt(),
+  query("limit").optional().isInt({ min: 1, max: 100 }).toInt(),
 ];
