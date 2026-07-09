@@ -1,6 +1,6 @@
 import { SEO } from "@/components/seo";
 import { useState, useEffect, useCallback } from "react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -189,7 +189,7 @@ export default function NotificationsPage() {
         }
     };
 
-    const handleMarkAllAsRead = async () => {
+    const handleMarkAllAsRead = useCallback(async () => {
         try {
             await markAllNotificationsAsRead();
             setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -199,7 +199,34 @@ export default function NotificationsPage() {
         } catch {
             toast.error("Error al marcar notificaciones");
         }
-    };
+    }, [setStoreUnreadCount]);
+
+    const { setContent } = useHeader();
+
+    useEffect(() => {
+        setContent({
+            center: (
+                <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                        <BellRing className="h-3.5 w-3.5 text-primary/80" />
+                    </div>
+                    <span className="text-sm font-semibold tracking-tight">Notificaciones</span>
+                </div>
+            ),
+            right: notifications.length > 0 && unreadCount > 0 ? (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMarkAllAsRead}
+                    className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground"
+                >
+                    <CheckCheck className="size-3.5" />
+                    Leer todo
+                </Button>
+            ) : undefined,
+        });
+        return () => setContent({});
+    }, [notifications.length, unreadCount, handleMarkAllAsRead, setContent]);
 
     if (!user) return null;
 
@@ -211,30 +238,6 @@ export default function NotificationsPage() {
                 canonicalPath="/notificaciones"
             />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-2.5">
-                                <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                    <BellRing className="h-3.5 w-3.5 text-primary/80" />
-                                </div>
-                                <span className="text-sm font-semibold tracking-tight">Notificaciones</span>
-                            </div>
-                        </div>
-                        {notifications.length > 0 && unreadCount > 0 && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleMarkAllAsRead}
-                                className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground"
-                            >
-                                <CheckCheck className="size-3.5" />
-                                Leer todo
-                            </Button>
-                        )}
-                    </div>
-                </header>
 
                 <main className="container mx-auto px-4 py-6">
                     {loading ? (
