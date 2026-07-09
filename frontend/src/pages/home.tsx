@@ -1,8 +1,7 @@
 import { SEO } from "@/components/seo";
 import { JsonLd } from "@/components/jsonld";
-import { useEffect, useState, memo, useCallback } from "react";
+import { useEffect, useState, memo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CoverImage } from "@/components/coverImage";
 import { fetchLatestManga, fetchReadingStats, fetchRecommended } from "@/api/manga";
@@ -26,14 +25,18 @@ import {
     TrendingUp,
     ChevronRight,
     Trophy,
+    Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useViewportGrid } from "@/hooks/useViewportGrid";
+import { useGridColumnCount } from "@/hooks/useGridColumnCount";
 import { toast } from "sonner";
 import { SearchBar } from "@/components/search-bar";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
+import { useHeader } from "@/context/headerContext";
 import {
     ContinueReadingSection,
     ContinueSkeleton,
@@ -288,10 +291,15 @@ export default function Home() {
     const [activityMap, setActivityMap] = useState<Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>>({});
     const [recActivityMap, setRecActivityMap] = useState<Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>>({});
     const { favoriteIds } = useFavoriteIds();
+    const { columns, latestItems, isMobile } = useViewportGrid();
+    const latestGridRef = useRef<HTMLDivElement | null>(null);
+    const actualColumns = useGridColumnCount(latestGridRef, columns);
+    const displayCount = actualColumns * (isMobile ? 6 : 3);
+    const { setContent, setSearchMode } = useHeader();
 
     const handleRefresh = useCallback(async () => {
         try {
-            const latest = await fetchLatestManga(24);
+            const latest = await fetchLatestManga(Math.max(latestItems + 6, 24));
             setMangas(latest);
             if (isAuthenticated) {
                 const statsData = await fetchReadingStats();
@@ -303,19 +311,19 @@ export default function Home() {
         } catch {
             toast.error("Error al actualizar");
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, latestItems]);
 
     const { pull, refreshing } = usePullToRefresh(handleRefresh);
 
     useEffect(() => {
-        fetchLatestManga(24)
+        fetchLatestManga(Math.max(latestItems + 6, 24))
             .then(setMangas)
             .catch(() => {
                 setError(true);
                 toast.error("No se pudieron cargar las actualizaciones");
             })
             .finally(() => setLoadingLatest(false));
-    }, []);
+    }, [latestItems]);
 
     useEffect(() => {
         if (!user || mangas.length === 0) { setActivityMap({}); return; }
@@ -360,6 +368,51 @@ export default function Home() {
         getSeriesActivity(ids).then(setRecActivityMap).catch(() => setRecActivityMap({}));
     }, [recommended, user]);
 
+    useEffect(() => {
+        if (isMobile) {
+            setContent({
+                center: (
+                    <div className="flex items-center gap-2.5 shrink-0">
+                        <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                            <Flame className="h-3.5 w-3.5 text-primary/80" />
+                        </div>
+                        <span className="text-sm font-semibold tracking-tight">Inicio</span>
+                    </div>
+                ),
+                right: (
+                    <button
+                        onClick={() => setSearchMode(true)}
+                        className="p-2 rounded-lg hover:bg-accent transition-colors"
+                        aria-label="Buscar series"
+                    >
+                        <Search className="h-5 w-5" />
+                    </button>
+                ),
+            });
+        } else {
+            setContent({
+                center: (
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                                <Flame className="h-3.5 w-3.5 text-primary/80" />
+                            </div>
+                            <span className="text-sm font-semibold tracking-tight">Inicio</span>
+                        </div>
+                        <div className="w-full max-w-md">
+                            <SearchBar />
+                        </div>
+                    </div>
+                ),
+            });
+        }
+        return () => setContent({});
+    }, [isMobile, setContent, setSearchMode]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
+
     return (
         <>
             <SEO />
@@ -374,28 +427,9 @@ export default function Home() {
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <AnnouncementModal />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="flex items-center gap-2.5 shrink-0">
-                                    <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                        <Flame className="h-3.5 w-3.5 text-primary/80" />
-                                    </div>
-                                    <span className="text-sm font-semibold tracking-tight">Inicio</span>
-                                </div>
-                                <div className="w-full max-w-md">
-                                    <SearchBar />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
-                <main className="container mx-auto px-4 py-8 space-y-10">
+                <main className="w-full mx-auto px-4 py-8 space-y-10">
                     {isAuthenticated && (
-                        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+                        <div className="grid grid-cols-1 2xl:grid-cols-[1fr_340px] gap-6 items-start">
                             {loadingStats ? (
                                 <ContinueSkeleton />
                             ) : (
@@ -420,6 +454,7 @@ export default function Home() {
                             basedOn={basedOn}
                             loading={loadingRecommended}
                             friendActivity={recActivityMap}
+                            columns={columns}
                         />
                     )}
 
@@ -442,16 +477,17 @@ export default function Home() {
                         )}
 
                         <div
-                            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"
+                            ref={latestGridRef}
+                            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12 3xl:grid-cols-16 4xl:grid-cols-20 gap-3"
                             style={{ contentVisibility: "auto" }}
                             aria-live="polite"
                             aria-atomic="true"
                         >
                             {loadingLatest
-                                ? Array.from({ length: 24 }).map((_, i) => (
+                                ? Array.from({ length: displayCount }).map((_, i) => (
                                       <MangaCardSkeleton key={i} />
                                   ))
-                                : mangas.map((manga, i) => (
+                                : mangas.slice(0, displayCount).map((manga, i) => (
                                       <MangaCard
                                           key={manga.id}
                                           manga={manga}

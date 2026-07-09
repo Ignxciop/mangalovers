@@ -1,4 +1,4 @@
-import { useEffect, useState, memo } from "react";
+import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,19 +22,7 @@ export interface ContinueReadingItem {
     chaptersLeft: number | null;
 }
 
-function useSmBreakpoint(): boolean {
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 640);
-        };
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
-
-    return isMobile;
-}
+import { useViewportGrid } from "@/hooks/useViewportGrid";
 
 const ContinueItem = memo(function ContinueItem({
     item,
@@ -118,10 +106,9 @@ export function ContinueReadingSection({
     allUpToDate?: boolean;
 }) {
     const navigate = useNavigate();
-    const isMobile = useSmBreakpoint();
+    const { continueItems } = useViewportGrid();
 
-    const limit = isMobile ? 6 : 5;
-    const visibleItems = items.slice(0, limit);
+    const visibleItems = items.slice(0, continueItems);
 
     if (items.length === 0) {
         return (
@@ -185,7 +172,7 @@ export function ContinueReadingSection({
                 </Button>
             </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
                 {visibleItems.map((item) => (
                     <ContinueItem key={item.id} item={item} />
                 ))}
@@ -195,13 +182,13 @@ export function ContinueReadingSection({
 }
 
 export function ContinueSkeleton() {
-    const isMobile = useSmBreakpoint();
+    const { continueItems } = useViewportGrid();
 
     return (
         <section>
             <Skeleton className="h-4 w-40 mb-4" />
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                {Array.from({ length: isMobile ? 6 : 5 }).map((_, i) => (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-3">
+                {Array.from({ length: continueItems }).map((_, i) => (
                     <div key={i} className="space-y-2">
                         <Skeleton className="aspect-[2/3] rounded-xl" />
                         <Skeleton className="h-3 w-3/4" />

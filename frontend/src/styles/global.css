@@ -49,6 +49,8 @@
     --color-brand-amber: var(--brand-amber);
     --color-brand-green: var(--brand-green);
     --color-brand-purple: var(--brand-purple);
+    --breakpoint-3xl: 1920px;
+    --breakpoint-4xl: 2560px;
 }
 
 :root {
