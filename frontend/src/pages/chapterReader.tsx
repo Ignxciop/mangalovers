@@ -11,7 +11,7 @@ import {
     ZoomIn,
     ZoomOut,
 } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
 import { Button } from "@/components/ui/button";
 import { ChapterImage } from "@/components/chapterImage";
 import { useSeriesDetail } from "@/hooks/useSeriesDetail";
@@ -74,29 +74,6 @@ function loadPrefs(): ReaderPrefs {
 
 function savePrefs(prefs: ReaderPrefs) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-}
-
-function useHideOnScrollDown() {
-    const [visible, setVisible] = useState(true);
-    const lastScrollY = useRef(0);
-
-    useEffect(() => {
-        function onScroll() {
-            const current = window.scrollY;
-            if (current < 10) {
-                setVisible(true);
-            } else if (current > lastScrollY.current) {
-                setVisible(false);
-            } else {
-                setVisible(true);
-            }
-            lastScrollY.current = current;
-        }
-        window.addEventListener("scroll", onScroll, { passive: true });
-        return () => window.removeEventListener("scroll", onScroll);
-    }, []);
-
-    return visible;
 }
 
 function ReaderControls({
@@ -468,8 +445,6 @@ export default function ChapterReader() {
         }
     }, [chapterId, refetch]);
 
-    const headerVisible = useHideOnScrollDown();
-
     const [prefs, setPrefs] = useState<ReaderPrefs>(loadPrefs);
 
     const paginationRef = useRef<PaginationReaderHandle>(null);
@@ -478,6 +453,33 @@ export default function ChapterReader() {
     const { pull, refreshing } = usePullToRefresh(() =>
         Promise.all([refetchChapter(), refetchSeries()]),
     );
+
+    const { setContent } = useHeader();
+
+    useEffect(() => {
+        setContent({
+            center: (
+                <button
+                    onClick={() => navigate(`/manga/${slug}`, { state: { from } })}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group truncate"
+                >
+                    <ChevronLeft className="h-4 w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
+                    <span className="truncate max-w-[240px] md:max-w-[250px]">
+                        {chapter?.series.name ?? "Cargando..."}
+                    </span>
+                </button>
+            ),
+            right: chapters.length > 0 && chapterId ? (
+                <ChapterSelect
+                    ref={chapterSelectRef}
+                    chapters={chapters}
+                    currentChapterId={chapterId}
+                    slug={slug!}
+                />
+            ) : undefined,
+        });
+        return () => setContent({});
+    }, [setContent, chapter, slug, from, navigate, chapters, chapterId]);
 
     const markUntilRef = useRef(markUntil);
     useEffect(() => {
@@ -754,39 +756,6 @@ export default function ChapterReader() {
             <PullToRefresh pull={pull} refreshing={refreshing} />
 
             <div className="min-h-screen bg-background">
-                <div
-                    className={`sticky top-0 z-40 bg-background/80 backdrop-blur border-b border-border transition-transform duration-300 ${
-                        headerVisible ? "translate-y-0" : "-translate-y-full"
-                    }`}
-                >
-                    <div className="container mx-auto max-w-3xl">
-                        <div className="grid grid-cols-[auto_1fr_auto] items-center px-4 h-14 md:h-16">
-                            <SidebarTrigger />
-                            <div className="flex justify-center min-w-0">
-                                <button
-                                    onClick={() =>
-                                        navigate(`/manga/${slug}`, {
-                                            state: { from },
-                                        })
-                                    }
-                                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group truncate"
-                                >
-                                    <ChevronLeft className="h-4 w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
-                                    <span className="truncate max-w-[240px] md:max-w-[250px]">
-                                        {chapter.series.name}
-                                    </span>
-                                </button>
-                            </div>
-                            <ChapterSelect
-                                ref={chapterSelectRef}
-                                chapters={chapters}
-                                currentChapterId={chapterId!}
-                                slug={slug!}
-                            />
-                        </div>
-                    </div>
-                </div>
-
                 <ReaderControls
                     prefs={prefs}
                     onModeChange={updateMode}

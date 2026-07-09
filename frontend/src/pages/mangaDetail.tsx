@@ -21,7 +21,7 @@ import {
     PlayCircle,
     Share2,
 } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
 import { useFavorite } from "@/hooks/useFavorite";
 import { useReadChapters } from "@/hooks/useReadChapters";
 
@@ -261,6 +261,28 @@ export default function MangaDetail() {
             .catch(() => setFriendReads([]));
     }, [series?.id, user]);
 
+    const { setContent } = useHeader();
+
+    useEffect(() => {
+        setContent({
+            center: series ? (
+                <span className="text-sm font-semibold truncate">{series.name}</span>
+            ) : (
+                <Skeleton className="h-4 w-32" />
+            ),
+            right: (
+                <button
+                    onClick={() => navigate(backUrl)}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
+                >
+                    <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                    Volver
+                </button>
+            ),
+        });
+        return () => setContent({});
+    }, [series, backUrl, navigate, setContent]);
+
     const friendReadsByChapter = useMemo(() => {
         const map = new Map<number, FriendSeriesRead[]>();
         for (const read of friendReads) {
@@ -387,23 +409,6 @@ export default function MangaDetail() {
             <JsonLd schema={jsonLdBreadcrumb} />
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <span className="text-sm font-semibold truncate">
-                                {series.name}
-                            </span>
-                        </div>
-                        <button
-                            onClick={() => navigate(backUrl)}
-                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
-                        >
-                            <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-                            Volver
-                        </button>
-                    </div>
-                </header>
 
                 <div className="container mx-auto px-4 pt-8 pb-8">
                     <div className="flex flex-col md:flex-row gap-8 lg:gap-12">

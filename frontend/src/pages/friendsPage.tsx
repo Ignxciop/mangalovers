@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { useFriendStore } from "@/store/friendStore";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
 import { Link } from "react-router-dom";
 import {
     Search,
@@ -879,6 +879,21 @@ function ListSkeleton({ count = 3 }: { count?: number }) {
 
 export default function FriendsPage() {
     const user = useAuthStore((s) => s.user);
+    const { setContent } = useHeader();
+
+    useEffect(() => {
+        setContent({
+            center: (
+                <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                        <HeartHandshake className="h-3.5 w-3.5 text-primary/80" />
+                    </div>
+                    <span className="text-sm font-semibold tracking-tight">Amigos</span>
+                </div>
+            ),
+        });
+        return () => setContent({});
+    }, [setContent]);
 
     if (!user) return null;
 
@@ -890,21 +905,6 @@ export default function FriendsPage() {
                 canonicalPath="/amigos"
             />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-2.5">
-                                <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                    <HeartHandshake className="h-3.5 w-3.5 text-primary/80" />
-                                </div>
-                                <span className="text-sm font-semibold tracking-tight">
-                                    Amigos
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </header>
 
                 <main className="container mx-auto px-4 py-6">
                     <Tabs defaultValue="activity" className="w-full">

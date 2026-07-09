@@ -1,7 +1,7 @@
 import { SEO } from "@/components/seo";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CoverImage } from "@/components/coverImage";
 import { fetchFullStats } from "@/api/manga";
@@ -448,6 +448,21 @@ function EmptyStats() {
 export default function StatsPage() {
     const [stats, setStats] = useState<FullStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const { setContent } = useHeader();
+
+    useEffect(() => {
+        setContent({
+            center: (
+                <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                        <BarChart3 className="h-3.5 w-3.5 text-primary/80" />
+                    </div>
+                    <span className="text-sm font-semibold tracking-tight">Mis estadísticas</span>
+                </div>
+            ),
+        });
+        return () => setContent({});
+    }, [setContent]);
 
     useEffect(() => {
         async function load() {
@@ -468,19 +483,6 @@ export default function StatsPage() {
         <>
             <SEO title="Mis Estadísticas" description="Revisa tus estadísticas de lectura en Mangalovers: capítulos leídos, rachas, géneros favoritos y más." canonicalPath="/estadisticas" />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-2.5">
-                                <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                    <BarChart3 className="h-3.5 w-3.5 text-primary/80" />
-                                </div>
-                                <span className="text-sm font-semibold tracking-tight">Mis estadísticas</span>
-                            </div>
-                        </div>
-                    </div>
-                </header>
 
             <main className="container mx-auto px-4 py-8">
                 {loading && <StatsSkeleton />}

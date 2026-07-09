@@ -1,6 +1,6 @@
 import { SEO } from "@/components/seo";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
 import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -990,22 +990,24 @@ export default function UserSettingsPage() {
         const stateTab = (location.state as { tab?: string } | null)?.tab;
         return stateTab === "soporte" ? "soporte" : "perfil";
     });
+    const { setContent } = useHeader();
+
+    useEffect(() => {
+        setContent({
+            center: (
+                <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm font-semibold">Configuración</span>
+                </div>
+            ),
+        });
+        return () => setContent({});
+    }, [setContent]);
 
     return (
         <>
             <SEO title="Configuración" description="Administra tu perfil, cambia tu contraseña y gestiona las notificaciones en Mangalovers." canonicalPath="/configuracion" />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-semibold truncate">Configuración</span>
-                            </div>
-                        </div>
-                    </div>
-                </header>
 
                 <main className="container mx-auto px-4 py-8 space-y-8">
                     <ProfileHero />
