@@ -4,7 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { CoverImage } from "@/components/coverImage";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
@@ -18,7 +17,12 @@ import {
   UserPlus, UserCheck, Clock, Ban,
   Calendar, Users, ShieldAlert, UserRound,
   CheckCheck, ArrowRight, ArrowLeft,
+  Search,
 } from "lucide-react";
+import { useHeader } from "@/context/headerContext";
+import { SearchBar } from "@/components/search-bar";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MangaPagination } from "@/components/MangaPagination";
 import { AxiosError } from "axios";
 
 const viewTransitionStyle = `
@@ -171,6 +175,7 @@ function FavoritesGrid({
   showComparison,
   profile,
   columns = 5,
+  dynamic,
 }: {
   favorites: ProfileFavorite[];
   loading: boolean;
@@ -178,16 +183,19 @@ function FavoritesGrid({
   showComparison: boolean;
   profile: PublicUserProfile;
   columns?: number;
+  dynamic?: boolean;
 }) {
   const navigate = useNavigate();
-  const gridClass = columns === 6
-    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"
-    : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3";
+  const gridClass = dynamic
+    ? `grid gap-3`
+    : columns === 6
+      ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"
+      : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3";
 
   if (loading) {
     const skeletonItems = Array.from({ length: columns * 2 });
     return (
-      <div className={gridClass}>
+      <div className={gridClass} style={dynamic ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}>
         {skeletonItems.map((_, i) => (
           <div key={i} className="rounded-xl overflow-hidden border border-border">
             <Skeleton className="aspect-[3/4] w-full rounded-none" />
@@ -198,7 +206,7 @@ function FavoritesGrid({
   }
 
   return (
-    <div className={gridClass}>
+    <div className={gridClass} style={dynamic ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}>
       {favorites.map((fav) => (
         <SeriesCard
           key={fav.id}
@@ -235,6 +243,59 @@ export default function UserProfilePage() {
   const [loadingMine, setLoadingMine] = useState(true);
   const [mutualOnly, setMutualOnly] = useState(false);
   const [compareChapters, setCompareChapters] = useState(false);
+  const { setContent } = useHeader();
+  const isMobile = useIsMobile();
+
+  const [favColumns, setFavColumns] = useState(() => {
+    const w = window.innerWidth;
+    if (w >= 1920) return 8;
+    if (w >= 1280) return 5;
+    if (w >= 880) return 5;
+    if (w >= 560) return 4;
+    return 3;
+  });
+  const favLimit = favColumns * 4;
+
+  useEffect(() => {
+    setContent({
+      center: <SearchBar />,
+      right: isMobile ? (
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.querySelector<HTMLInputElement>('[data-search-input]');
+            el?.focus();
+          }}
+          className="flex items-center justify-center size-9 rounded-lg hover:bg-accent transition-colors"
+        >
+          <Search className="h-5 w-5" />
+        </button>
+      ) : undefined,
+    });
+    return () => setContent({});
+  }, [setContent, isMobile]);
+
+  useEffect(() => {
+    if (viewMode !== 'favorites') return;
+    function onResize() {
+      const w = window.innerWidth;
+      setFavColumns(
+        w >= 1920 ? 8 :
+        w >= 1280 ? 5 :
+        w >= 880 ? 5 :
+        w >= 560 ? 4 :
+        3
+      );
+    }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (viewMode === 'favorites') {
+      fetchFavPage(1, favLimit);
+    }
+  }, [favColumns]);
 
   const isOtherUser = currentUser && !profile?.isOwner;
 
@@ -355,7 +416,8 @@ export default function UserProfilePage() {
 
   async function handleViewFavorites() {
     setViewMode('favorites');
-    await fetchFavPage(1, 18);
+    setFavPage(1);
+    await fetchFavPage(1, favLimit);
   }
 
   async function handleViewActivity() {
@@ -372,7 +434,7 @@ export default function UserProfilePage() {
   }
 
   const favTotalPages = viewMode === 'favorites'
-    ? Math.max(1, Math.ceil(favTotal / 18))
+    ? Math.max(1, Math.ceil(favTotal / favLimit))
     : Math.max(1, Math.ceil(favTotal / 15));
   const actTotalPages = viewMode === 'activity'
     ? Math.max(1, Math.ceil(actTotal / 24))
@@ -382,21 +444,8 @@ export default function UserProfilePage() {
     return (
       <>
         <SEO title="Cargando perfil..." />
-        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
-          <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-            <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-              <SidebarTrigger />
-              <div className="flex justify-center min-w-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                    <UserRound className="h-3.5 w-3.5 text-primary/80" />
-                  </div>
-                  <span className="text-sm font-semibold tracking-tight">Perfil</span>
-                </div>
-              </div>
-            </div>
-          </header>
-          <main className="container mx-auto px-4 py-8 flex-1 space-y-8">
+        <div className="min-h-full bg-background flex flex-col overflow-x-hidden">
+          <main className="w-full px-4 lg:px-6 py-8 flex-1 space-y-8">
             <div className="relative rounded-2xl border border-border bg-gradient-to-br from-brand/5 via-brand-cyan/[0.02] to-background p-6 md:p-8 overflow-hidden">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 <Skeleton className="size-24 rounded-full shrink-0" />
@@ -453,21 +502,8 @@ export default function UserProfilePage() {
     return (
       <>
         <SEO title="Perfil no disponible" />
-        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
-          <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-            <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-              <SidebarTrigger />
-              <div className="flex justify-center min-w-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                    <UserRound className="h-3.5 w-3.5 text-primary/80" />
-                  </div>
-                  <span className="text-sm font-semibold tracking-tight">Perfil</span>
-                </div>
-              </div>
-            </div>
-          </header>
-          <main className="container mx-auto px-4 py-8 flex-1 flex items-center justify-center">
+        <div className="min-h-full bg-background flex flex-col overflow-x-hidden">
+          <main className="w-full px-4 lg:px-6 py-8 flex-1 flex items-center justify-center">
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center size-16 rounded-full bg-destructive/10 mx-auto">
                 <ShieldAlert className="size-7 text-destructive" />
@@ -494,24 +530,8 @@ export default function UserProfilePage() {
         title={`Perfil de ${profile.alias ?? profile.name}`}
         description={`Perfil de ${profile.name} ${profile.lastname} en Mangalovers.`}
       />
-      <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
-        <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-          <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-            <SidebarTrigger />
-            <div className="flex justify-center min-w-0">
-              <div className="flex items-center gap-2.5">
-                <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                  <UserRound className="h-3.5 w-3.5 text-primary/80" />
-                </div>
-                <span className="text-sm font-semibold tracking-tight truncate">
-                  {profile.name} {profile.lastname}
-                </span>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="container mx-auto px-4 py-8 flex-1 space-y-8">
+      <div className="min-h-full bg-background flex flex-col overflow-x-hidden">
+        <main className="w-full px-4 lg:px-6 py-8 flex-1 space-y-8">
           <div className="relative rounded-2xl border border-border bg-gradient-to-br from-brand/5 via-brand-cyan/[0.02] to-background p-6 md:p-8 overflow-hidden">
             <div className="absolute top-0 right-0 size-64 bg-gradient-to-bl from-brand/5 to-transparent rounded-full blur-3xl pointer-events-none" />
             <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6">
@@ -756,34 +776,17 @@ export default function UserProfilePage() {
                   myReadMap={myReadMap}
                   showComparison={compareChapters}
                   profile={profile}
-                  columns={6}
+                  columns={favColumns}
+                  dynamic
                 />
 
                 {favTotalPages > 1 && (
-                  <div className="flex items-center justify-center gap-3 pt-6">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={favPage <= 1 || favLoading}
-                      onClick={() => fetchFavPage(favPage - 1, 18)}
-                      className="gap-1.5"
-                    >
-                      <ArrowLeft className="size-3.5" />
-                      Anterior
-                    </Button>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      Página {favPage} de {favTotalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={favPage >= favTotalPages || favLoading}
-                      onClick={() => fetchFavPage(favPage + 1, 18)}
-                      className="gap-1.5"
-                    >
-                      Siguiente
-                      <ArrowRight className="size-3.5" />
-                    </Button>
+                  <div className="flex justify-center pt-6">
+                    <MangaPagination
+                      page={favPage}
+                      totalPages={favTotalPages}
+                      setPage={(p) => fetchFavPage(p, favLimit)}
+                    />
                   </div>
                 )}
               </section>
@@ -854,30 +857,12 @@ export default function UserProfilePage() {
                 )}
 
                 {actTotalPages > 1 && (
-                  <div className="flex items-center justify-center gap-3 pt-6">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={actPage <= 1 || actLoading}
-                      onClick={() => fetchActPage(actPage - 1, 24)}
-                      className="gap-1.5"
-                    >
-                      <ArrowLeft className="size-3.5" />
-                      Anterior
-                    </Button>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      Página {actPage} de {actTotalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={actPage >= actTotalPages || actLoading}
-                      onClick={() => fetchActPage(actPage + 1, 24)}
-                      className="gap-1.5"
-                    >
-                      Siguiente
-                      <ArrowRight className="size-3.5" />
-                    </Button>
+                  <div className="flex justify-center pt-6">
+                    <MangaPagination
+                      page={actPage}
+                      totalPages={actTotalPages}
+                      setPage={(p) => fetchActPage(p, 24)}
+                    />
                   </div>
                 )}
               </section>
