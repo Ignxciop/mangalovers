@@ -11,6 +11,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useFriendStore } from "@/store/friendStore";
 import { useHeader } from "@/context/headerContext";
 import { SearchBar } from "@/components/search-bar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "react-router-dom";
 import {
     Search,
@@ -880,14 +881,33 @@ function ListSkeleton({ count = 3 }: { count?: number }) {
 
 export default function FriendsPage() {
     const user = useAuthStore((s) => s.user);
-    const { setContent } = useHeader();
+    const { setContent, setSearchMode } = useHeader();
+    const isMobile = useIsMobile();
 
     useEffect(() => {
-        setContent({
-            center: <SearchBar />,
-        });
+        if (isMobile) {
+            setContent({
+                right: (
+                    <button
+                        onClick={() => setSearchMode(true)}
+                        className="p-2 rounded-lg hover:bg-accent transition-colors"
+                        aria-label="Buscar usuarios"
+                    >
+                        <Search className="h-5 w-5" />
+                    </button>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+            });
+        }
         return () => setContent({});
-    }, [setContent]);
+    }, [isMobile, setContent, setSearchMode]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
     if (!user) return null;
 

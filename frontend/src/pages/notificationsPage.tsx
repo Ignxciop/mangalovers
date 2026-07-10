@@ -2,6 +2,7 @@ import { SEO } from "@/components/seo";
 import { useState, useEffect, useCallback } from "react";
 import { useHeader } from "@/context/headerContext";
 import { SearchBar } from "@/components/search-bar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ import {
     UserCheck,
     Sparkles,
     CheckCheck,
+    Search,
 } from "lucide-react";
 import {
     getNotifications,
@@ -199,25 +201,56 @@ export default function NotificationsPage() {
         }
     }, [setStoreUnreadCount]);
 
-    const { setContent } = useHeader();
+    const { setContent, setSearchMode } = useHeader();
+    const isMobile = useIsMobile();
 
     useEffect(() => {
-        setContent({
-            center: <SearchBar />,
-            right: notifications.length > 0 && unreadCount > 0 ? (
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMarkAllAsRead}
-                    className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground"
-                >
-                    <CheckCheck className="size-3.5" />
-                    Leer todo
-                </Button>
-            ) : undefined,
-        });
+        if (isMobile) {
+            setContent({
+                right: (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setSearchMode(true)}
+                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                            aria-label="Buscar"
+                        >
+                            <Search className="h-5 w-5" />
+                        </button>
+                        {notifications.length > 0 && unreadCount > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleMarkAllAsRead}
+                                className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground"
+                            >
+                                <CheckCheck className="size-3.5" />
+                            </Button>
+                        )}
+                    </div>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+                right: notifications.length > 0 && unreadCount > 0 ? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleMarkAllAsRead}
+                        className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground"
+                    >
+                        <CheckCheck className="size-3.5" />
+                        Leer todo
+                    </Button>
+                ) : undefined,
+            });
+        }
         return () => setContent({});
-    }, [notifications.length, unreadCount, handleMarkAllAsRead, setContent]);
+    }, [isMobile, setContent, setSearchMode, notifications.length, unreadCount, handleMarkAllAsRead]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
     if (!user) return null;
 

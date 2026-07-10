@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useHeader } from "@/context/headerContext";
 import { SearchBar } from "@/components/search-bar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CoverImage } from "@/components/coverImage";
 import { fetchFullStats } from "@/api/manga";
@@ -22,6 +23,7 @@ import {
     BarChart3,
     Activity,
     Star,
+    Search,
     Zap,
 } from "lucide-react";
 
@@ -449,14 +451,33 @@ function EmptyStats() {
 export default function StatsPage() {
     const [stats, setStats] = useState<FullStats | null>(null);
     const [loading, setLoading] = useState(true);
-    const { setContent } = useHeader();
+    const { setContent, setSearchMode } = useHeader();
+    const isMobile = useIsMobile();
 
     useEffect(() => {
-        setContent({
-            center: <SearchBar />,
-        });
+        if (isMobile) {
+            setContent({
+                right: (
+                    <button
+                        onClick={() => setSearchMode(true)}
+                        className="p-2 rounded-lg hover:bg-accent transition-colors"
+                        aria-label="Buscar"
+                    >
+                        <Search className="h-5 w-5" />
+                    </button>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+            });
+        }
         return () => setContent({});
-    }, [setContent]);
+    }, [isMobile, setContent, setSearchMode]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
     useEffect(() => {
         async function load() {

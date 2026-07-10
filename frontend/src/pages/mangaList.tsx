@@ -2,7 +2,6 @@ import { SEO } from "@/components/seo";
 import { JsonLd } from "@/components/jsonld";
 import { Search, BookOpen, Eye, Heart, SlidersHorizontal } from "lucide-react";
 import { CoverImage } from "@/components/coverImage";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FilterDrawer } from "@/components/FilterDrawer";
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useEffect, useState, memo, useMemo, useRef } from "react";
 import { useHeader } from "@/context/headerContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useMangaList } from "@/hooks/useMangaList";
 import { Link, useSearchParams } from "react-router-dom";
 import { fetchGenres } from "@/api/manga";
@@ -25,6 +25,8 @@ import type { Manga } from "@/types/manga";
 import { useAuthStore } from "@/store/authStore";
 import { getSeriesActivity } from "@/api/friends";
 import { FriendAvatars } from "@/components/FriendAvatars";
+
+import { DebouncedSearchInput } from "@/components/DebouncedSearchInput";
 
 const MangaListItem = memo(function MangaListItem({
     manga,
@@ -142,7 +144,8 @@ export default function MangaList() {
     const selectedGenres = genres.split(",").filter(Boolean);
     const provider = "";
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-    const { setContent } = useHeader();
+    const { setContent, setSearchMode, setSearchContent } = useHeader();
+    const isMobile = useIsMobile();
 
     const activeFiltersCount = [
         status,
@@ -153,36 +156,71 @@ export default function MangaList() {
     ].filter(Boolean).length;
 
     useEffect(() => {
-        setContent({
-            center: (
-                <div className="relative w-[512px] max-w-full">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                        placeholder="Buscar"
-                        className="pl-9 w-full bg-secondary/50"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </div>
-            ),
-            right: (
-                <Button
-                    variant="outline"
-                    className="shrink-0 relative"
-                    onClick={() => setFilterDrawerOpen(true)}
-                >
-                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                    Filtros
-                    {activeFiltersCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
-                            {activeFiltersCount}
-                        </span>
-                    )}
-                </Button>
-            ),
-        });
-        return () => setContent({});
-    }, [search, activeFiltersCount, setContent, setFilterDrawerOpen]);
+        if (isMobile) {
+            setContent({
+                right: (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                setSearchContent(<DebouncedSearchInput />);
+                                setSearchMode(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                            aria-label="Buscar series"
+                        >
+                            <Search className="h-5 w-5" />
+                        </button>
+                        <Button
+                            variant="outline"
+                            className="shrink-0 relative"
+                            onClick={() => setFilterDrawerOpen(true)}
+                        >
+                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                            Filtros
+                            {activeFiltersCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                                    {activeFiltersCount}
+                                </span>
+                            )}
+                        </Button>
+                    </div>
+                ),
+            });
+        } else {
+            setContent({
+                center: (
+                    <div className="relative w-[512px] max-w-full">
+                        <DebouncedSearchInput />
+                    </div>
+                ),
+                right: (
+                    <Button
+                        variant="outline"
+                        className="shrink-0 relative"
+                        onClick={() => setFilterDrawerOpen(true)}
+                    >
+                        <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        Filtros
+                        {activeFiltersCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                                {activeFiltersCount}
+                            </span>
+                        )}
+                    </Button>
+                ),
+            });
+        }
+        return () => {
+            setContent({});
+        };
+    }, [isMobile, activeFiltersCount, setContent, setFilterDrawerOpen]);
+
+    useEffect(() => {
+        return () => {
+            setSearchMode(false);
+            setSearchContent(null);
+        };
+    }, [setSearchMode, setSearchContent]);
 
     const backUrl = useMemo(
         () => `/mangas?${searchParams.toString()}`,
@@ -196,15 +234,6 @@ export default function MangaList() {
     function setPage(newPage: number) {
         setSearchParams((prev) => {
             prev.set("page", String(newPage));
-            return prev;
-        });
-    }
-
-    function setSearch(value: string) {
-        setSearchParams((prev) => {
-            if (value) prev.set("search", value);
-            else prev.delete("search");
-            prev.set("page", "1");
             return prev;
         });
     }

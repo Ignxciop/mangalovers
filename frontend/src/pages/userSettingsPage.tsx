@@ -993,27 +993,34 @@ export default function UserSettingsPage() {
         const stateTab = (location.state as { tab?: string } | null)?.tab;
         return stateTab === "soporte" ? "soporte" : "perfil";
     });
-    const { setContent } = useHeader();
+    const { setContent, setSearchMode } = useHeader();
     const isMobile = useIsMobile();
 
     useEffect(() => {
-        setContent({
-            center: <SearchBar />,
-            right: isMobile ? (
-                <button
-                    type="button"
-                    onClick={() => {
-                        const el = document.querySelector<HTMLInputElement>('[data-search-input]');
-                        el?.focus();
-                    }}
-                    className="flex items-center justify-center size-9 rounded-lg hover:bg-accent transition-colors"
-                >
-                    <Search className="h-5 w-5" />
-                </button>
-            ) : undefined,
-        });
+        if (isMobile) {
+            setContent({
+                right: (
+                    <button
+                        type="button"
+                        onClick={() => setSearchMode(true)}
+                        className="flex items-center justify-center size-9 rounded-lg hover:bg-accent transition-colors"
+                        aria-label="Buscar"
+                    >
+                        <Search className="h-5 w-5" />
+                    </button>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+            });
+        }
         return () => setContent({});
-    }, [setContent, isMobile]);
+    }, [isMobile, setContent, setSearchMode]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
     return (
         <>

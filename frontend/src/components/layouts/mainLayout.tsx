@@ -14,7 +14,7 @@ function getSidebarInitialState(): boolean {
 }
 
 function GlobalHeader({ hidden }: { hidden: boolean }) {
-    const { content, searchMode, setSearchMode } = useHeader();
+    const { content, searchMode, setSearchMode, searchContent } = useHeader();
     const { isMobile } = useSidebar();
 
     if (hidden) return null;
@@ -30,7 +30,7 @@ function GlobalHeader({ hidden }: { hidden: boolean }) {
                     <ArrowLeft className="h-5 w-5" />
                 </button>
                 <div className="flex-1 min-w-0">
-                    <SearchBar />
+                    {searchContent ?? <SearchBar />}
                 </div>
             </div>
         );

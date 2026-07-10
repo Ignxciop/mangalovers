@@ -15,7 +15,7 @@ import { timeAgo } from "@/lib/date";
 import {
   Heart, BookOpen, BookMinus,
   UserPlus, UserCheck, Clock, Ban,
-  Calendar, Users, ShieldAlert, UserRound,
+  Calendar, Users, ShieldAlert,
   CheckCheck, ArrowRight, ArrowLeft,
   Search,
 } from "lucide-react";
@@ -243,8 +243,8 @@ export default function UserProfilePage() {
   const [loadingMine, setLoadingMine] = useState(true);
   const [mutualOnly, setMutualOnly] = useState(false);
   const [compareChapters, setCompareChapters] = useState(false);
-  const { setContent } = useHeader();
-  const isMobile = useIsMobile();
+    const { setContent, setSearchMode } = useHeader();
+    const isMobile = useIsMobile();
 
   const [favColumns, setFavColumns] = useState(() => {
     const w = window.innerWidth;
@@ -256,24 +256,31 @@ export default function UserProfilePage() {
   });
   const favLimit = favColumns * 4;
 
-  useEffect(() => {
-    setContent({
-      center: <SearchBar />,
-      right: isMobile ? (
-        <button
-          type="button"
-          onClick={() => {
-            const el = document.querySelector<HTMLInputElement>('[data-search-input]');
-            el?.focus();
-          }}
-          className="flex items-center justify-center size-9 rounded-lg hover:bg-accent transition-colors"
-        >
-          <Search className="h-5 w-5" />
-        </button>
-      ) : undefined,
-    });
-    return () => setContent({});
-  }, [setContent, isMobile]);
+    useEffect(() => {
+        if (isMobile) {
+            setContent({
+                right: (
+                    <button
+                        type="button"
+                        onClick={() => setSearchMode(true)}
+                        className="flex items-center justify-center size-9 rounded-lg hover:bg-accent transition-colors"
+                        aria-label="Buscar"
+                    >
+                        <Search className="h-5 w-5" />
+                    </button>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+            });
+        }
+        return () => setContent({});
+    }, [isMobile, setContent, setSearchMode]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
   useEffect(() => {
     if (viewMode !== 'favorites') return;

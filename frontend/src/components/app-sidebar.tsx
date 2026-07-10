@@ -46,6 +46,7 @@ import {
     MessageCirclePlus,
     Shield,
     Bell,
+    BookHeart,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useLocation, Link, useNavigate } from "react-router-dom";
@@ -392,7 +393,7 @@ const SidebarUserSection = memo(function SidebarUserSection({
 
 export function AppSidebar() {
     const { isAuthenticated } = useAuth();
-    const { state, isMobile } = useSidebar();
+    const { state, isMobile, setOpenMobile } = useSidebar();
     const { sidebarCollapsible } = useHeader();
     const collapsed = !isMobile && state === "collapsed";
     const [showSuggestionForm, setShowSuggestionForm] = useState(false);
@@ -406,9 +407,19 @@ export function AppSidebar() {
             onClose={() => setShowSuggestionForm(false)}
         />
         <Sidebar collapsible={sidebarCollapsible}>
-            {/* Spacer que empuja el sidebar debajo del header */}
-            <SidebarHeader className="p-0">
-                <div className="h-16" />
+            <SidebarHeader className={cn(isMobile && "border-b border-border")}>
+                {isMobile ? (
+                    <div className="flex items-center justify-center h-14 px-1">
+                        <Link to="/" className="flex items-center gap-2" onClick={() => setOpenMobile(false)}>
+                            <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-brand to-brand-cyan text-white shrink-0 shadow-sm">
+                                <BookHeart className="size-4" />
+                            </div>
+                            <span className="font-extrabold text-lg tracking-tight">Mangalovers</span>
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="h-16" />
+                )}
             </SidebarHeader>
 
             <SidebarContent className={cn("px-2", collapsed && "px-1")}>

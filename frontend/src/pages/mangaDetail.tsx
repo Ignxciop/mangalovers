@@ -20,8 +20,10 @@ import {
     ArrowUpDown,
     PlayCircle,
     Share2,
+    Search,
 } from "lucide-react";
 import { useHeader } from "@/context/headerContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useFavorite } from "@/hooks/useFavorite";
 import { useReadChapters } from "@/hooks/useReadChapters";
 
@@ -262,23 +264,51 @@ export default function MangaDetail() {
             .catch(() => setFriendReads([]));
     }, [series?.id, user]);
 
-    const { setContent } = useHeader();
+    const { setContent, setSearchMode } = useHeader();
+    const isMobile = useIsMobile();
 
     useEffect(() => {
-        setContent({
-            center: <SearchBar />,
-            right: (
-                <button
-                    onClick={() => navigate(backUrl)}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
-                >
-                    <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-                    Volver
-                </button>
-            ),
-        });
+        if (isMobile) {
+            setContent({
+                right: (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setSearchMode(true)}
+                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                            aria-label="Buscar series"
+                        >
+                            <Search className="h-5 w-5" />
+                        </button>
+                        <button
+                            onClick={() => navigate(backUrl)}
+                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
+                        >
+                            <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                            Volver
+                        </button>
+                    </div>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+                right: (
+                    <button
+                        onClick={() => navigate(backUrl)}
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
+                    >
+                        <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                        Volver
+                    </button>
+                ),
+            });
+        }
         return () => setContent({});
-    }, [series, backUrl, navigate, setContent]);
+    }, [isMobile, series, backUrl, navigate, setContent, setSearchMode]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
     const friendReadsByChapter = useMemo(() => {
         const map = new Map<number, FriendSeriesRead[]>();

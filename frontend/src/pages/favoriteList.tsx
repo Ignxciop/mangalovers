@@ -16,6 +16,7 @@ import {
     SlidersHorizontal,
 } from "lucide-react";
 import { useHeader } from "@/context/headerContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -32,7 +33,7 @@ import {
 import { FilterDrawer } from "@/components/FilterDrawer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+
 import {
     AlertDialog,
     AlertDialogAction,
@@ -48,6 +49,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { MangaPagination } from "@/components/MangaPagination";
 import { getSeriesActivity } from "@/api/friends";
 import { FriendAvatars } from "@/components/FriendAvatars";
+import { DebouncedSearchInput } from "@/components/DebouncedSearchInput";
 import { toast } from "sonner";
 
 function chaptersLeft(fav: Favorite): number {
@@ -270,7 +272,8 @@ export default function FavoritesList() {
 
     const { pull, refreshing } = usePullToRefresh(handleRefresh);
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-    const { setContent } = useHeader();
+    const { setContent, setSearchMode, setSearchContent } = useHeader();
+    const isMobile = useIsMobile();
     const favGridRef = useRef<HTMLDivElement | null>(null);
 
     const [columns, setColumns] = useState(() => {
@@ -296,36 +299,71 @@ export default function FavoritesList() {
     }, []);
 
     useEffect(() => {
-        setContent({
-            center: (
-                <div className="relative w-[512px] max-w-full">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                        placeholder="Buscar"
-                        className="pl-9 w-full bg-secondary/50"
-                        value={searchText}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </div>
-            ),
-            right: (
-                <Button
-                    variant="outline"
-                    className="shrink-0 relative"
-                    onClick={() => setFilterDrawerOpen(true)}
-                >
-                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                    Filtros
-                    {activeFiltersCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center size-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                            {activeFiltersCount}
-                        </span>
-                    )}
-                </Button>
-            ),
-        });
-        return () => setContent({});
-    }, [setContent, searchText, activeFiltersCount]);
+        if (isMobile) {
+            setContent({
+                right: (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                setSearchContent(<DebouncedSearchInput />);
+                                setSearchMode(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                            aria-label="Buscar series"
+                        >
+                            <Search className="h-5 w-5" />
+                        </button>
+                        <Button
+                            variant="outline"
+                            className="shrink-0 relative"
+                            onClick={() => setFilterDrawerOpen(true)}
+                        >
+                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                            Filtros
+                            {activeFiltersCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center size-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                                    {activeFiltersCount}
+                                </span>
+                            )}
+                        </Button>
+                    </div>
+                ),
+            });
+        } else {
+            setContent({
+                center: (
+                    <div className="relative w-[512px] max-w-full">
+                        <DebouncedSearchInput />
+                    </div>
+                ),
+                right: (
+                    <Button
+                        variant="outline"
+                        className="shrink-0 relative"
+                        onClick={() => setFilterDrawerOpen(true)}
+                    >
+                        <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        Filtros
+                        {activeFiltersCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center size-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                                {activeFiltersCount}
+                            </span>
+                        )}
+                    </Button>
+                ),
+            });
+        }
+        return () => {
+            setContent({});
+        };
+    }, [isMobile, activeFiltersCount, setContent, setFilterDrawerOpen]);
+
+    useEffect(() => {
+        return () => {
+            setSearchMode(false);
+            setSearchContent(null);
+        };
+    }, [setSearchMode, setSearchContent]);
 
     useEffect(() => {
         fetchFavorites()
@@ -341,17 +379,6 @@ export default function FavoritesList() {
         const ids = favorites.map((f) => f.seriesId);
         getSeriesActivity(ids).then(setActivityMap).catch(() => setActivityMap({}));
     }, [favorites]);
-
-    function setSearch(value: string) {
-        setSearchParams((prev) => {
-            if (value) prev.set("search", value);
-            else prev.delete("search");
-
-            prev.set("page", "1");
-
-            return prev;
-        });
-    }
 
     function setStatusFilter(value: StatusFilter) {
         setSearchParams((prev) => {
