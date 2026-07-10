@@ -476,9 +476,9 @@ export default function StatsPage() {
     return (
         <>
             <SEO title="Mis Estadísticas" description="Revisa tus estadísticas de lectura en Mangalovers: capítulos leídos, rachas, géneros favoritos y más." canonicalPath="/estadisticas" />
-            <div className="min-h-screen bg-background">
+            <div className="bg-background min-h-full">
 
-            <main className="container mx-auto px-4 py-8">
+            <main className="w-full px-4 lg:px-6 py-8">
                 {loading && <StatsSkeleton />}
                 {!loading && (!stats || stats.totalChaptersRead === 0) && (
                     <EmptyStats />
@@ -504,7 +504,7 @@ export default function StatsPage() {
                         )}
 
                         {/* Grid principal de stats */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-8 gap-3">
                             <StatCard
                                 icon={BookOpen}
                                 label="Capítulos leídos"
@@ -532,9 +532,6 @@ export default function StatsPage() {
                                 sub={`en ${stats.totalActiveDays} días activos`}
                                 accent="amber"
                             />
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <StatCard
                                 icon={Library}
                                 label="Series seguidas"
@@ -623,8 +620,38 @@ export default function StatsPage() {
                             </div>
                         </div>
 
-                        {/* Heatmap */}
-                        <ActivityHeatmap data={stats.activityLast30} />
+                        {/* Heatmap + Progreso */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <ActivityHeatmap data={stats.activityLast30} />
+                            <div className="rounded-xl border border-white/10 dark:border-white/[0.05] bg-card p-5">
+                                <SectionHeader
+                                    icon={CheckCircle2}
+                                    title="Progreso de colección"
+                                    color="green"
+                                />
+                                <div className="space-y-3">
+                                    <div>
+                                        <div className="flex justify-between mb-1.5">
+                                            <span className="text-xs text-muted-foreground">
+                                                Tasa de finalización
+                                            </span>
+                                            <span className="text-xs font-semibold">
+                                                {stats.completionRate}%
+                                            </span>
+                                        </div>
+                                        <Progress
+                                            value={stats.completionRate}
+                                            className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-brand-green [&>div]:to-brand"
+                                        />
+                                        <p className="text-[11px] text-muted-foreground mt-1.5">
+                                            {stats.completedSeries} de{" "}
+                                            {stats.startedSeries} series iniciadas
+                                            terminadas
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Charts 2 columnas */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -643,36 +670,6 @@ export default function StatsPage() {
                             {stats.topGenres.length > 0 && (
                                 <TopGenres genres={stats.topGenres} />
                             )}
-                        </div>
-
-                        {/* Tasa de finalización visual */}
-                        <div className="rounded-xl border border-white/10 dark:border-white/[0.05] bg-card p-5">
-                            <SectionHeader
-                                icon={CheckCircle2}
-                                title="Progreso de colección"
-                                color="green"
-                            />
-                            <div className="space-y-3">
-                                <div>
-                                    <div className="flex justify-between mb-1.5">
-                                        <span className="text-xs text-muted-foreground">
-                                            Tasa de finalización
-                                        </span>
-                                        <span className="text-xs font-semibold">
-                                            {stats.completionRate}%
-                                        </span>
-                                    </div>
-                                    <Progress
-                                        value={stats.completionRate}
-                                        className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-brand-green [&>div]:to-brand"
-                                    />
-                                    <p className="text-[11px] text-muted-foreground mt-1.5">
-                                        {stats.completedSeries} de{" "}
-                                        {stats.startedSeries} series iniciadas
-                                        terminadas
-                                    </p>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 )}
