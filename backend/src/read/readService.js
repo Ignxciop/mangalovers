@@ -489,7 +489,7 @@ export async function getUserReadingStats(userId) {
       const dateB = lastReadDateMap.get(b.seriesId) ?? new Date(0);
       return new Date(dateB) - new Date(dateA);
     })
-    .slice(0, 6)
+    .slice(0, 14)
     .map((fav) => {
       const lastRead = clusterLastRead.get(fav.seriesId) ?? null;
       const lastAvail = clusterLastAvail.get(fav.seriesId) ?? null;

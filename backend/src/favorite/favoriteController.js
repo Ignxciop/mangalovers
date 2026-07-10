@@ -1,11 +1,19 @@
 import {
-  getUserFavorites, getFavorite, upsertFavorite, deleteFavorite, getSeriesBasicInfo,
+  getUserFavorites, getFavorite, upsertFavorite, deleteFavorite, getSeriesBasicInfo, getUserFavoritesPaginated,
 } from "./favoriteService.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 import logger from "../config/logger.js";
 
 export async function handleGetFavorites(req, res, next) {
   try {
+    const { page, limit } = req.query;
+
+    if (limit) {
+      const capped = Math.min(Number(limit), 32);
+      const result = await getUserFavoritesPaginated(req.user.userId, Number(page ?? 1), capped);
+      return res.json(result);
+    }
+
     const favorites = await getUserFavorites(req.user.userId);
     res.json(favorites);
   } catch (error) {

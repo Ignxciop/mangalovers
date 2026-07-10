@@ -20,8 +20,10 @@ import {
     ArrowUpDown,
     PlayCircle,
     Share2,
+    Search,
 } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useFavorite } from "@/hooks/useFavorite";
 import { useReadChapters } from "@/hooks/useReadChapters";
 
@@ -35,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useMemo, useEffect, memo, useCallback } from "react";
 import { PullToRefresh } from "@/components/pullToRefresh";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { SearchBar } from "@/components/search-bar";
 import { useAuthStore } from "@/store/authStore";
 import { getFriendReadsForSeries, type FriendSeriesRead, type SimpleFriend } from "@/api/friends";
 import { FriendAvatars } from "@/components/FriendAvatars";
@@ -44,11 +47,11 @@ const AVATAR_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
 
 function MangaDetailSkeleton() {
     return (
-        <div className="min-h-screen bg-background">
+        <div className="bg-background min-h-full">
             <div className="container mx-auto px-4 py-10">
                 <Skeleton className="h-5 w-24 mb-10" />
                 <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
-                    <div className="md:w-56 lg:w-64 shrink-0">
+                    <div className="md:w-56 lg:w-72 xl:w-80 shrink-0">
                         <Skeleton className="w-full aspect-[2/3] rounded-xl" />
                     </div>
                     <div className="flex-1 space-y-4 pt-2">
@@ -157,14 +160,14 @@ const ChapterRow = memo(function ChapterRow({
     return (
         <div
             onClick={handleClick}
-            className={`group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-[background-color,border-color,opacity] duration-150 border ${
+            className={`group flex items-center justify-between px-5 py-4 rounded-lg cursor-pointer transition-[background-color,border-color,opacity] duration-150 border ${
                 isRead
                     ? "border-transparent hover:bg-muted hover:border-border opacity-50 hover:opacity-100"
                     : "border-transparent hover:bg-muted hover:border-border"
             }`}
         >
-            <div className="flex items-center gap-3 min-w-0">
-                <span className="text-[11px] font-mono text-muted-foreground w-6 shrink-0 text-right tabular-nums">
+            <div className="flex items-center gap-4 min-w-0">
+                <span className="text-sm font-mono text-muted-foreground w-8 shrink-0 text-right tabular-nums">
                     {chapter.chapterNumber}
                 </span>
                 <button
@@ -175,36 +178,36 @@ const ChapterRow = memo(function ChapterRow({
                     }
                 >
                     {isRead ? (
-                        <Eye className="h-3.5 w-3.5" />
+                        <Eye className="h-5 w-5" />
                     ) : (
-                        <EyeOff className="h-3.5 w-3.5" />
+                        <EyeOff className="h-5 w-5" />
                     )}
                 </button>
-                <span className="text-sm text-foreground/90 truncate group-hover:text-foreground transition-colors">
+                <span className="text-base text-foreground/90 truncate group-hover:text-foreground transition-colors">
                     {chapter.name}
                 </span>
                 {friends.length > 0 && (
-                    <span className="flex -space-x-1.5 shrink-0" title={friends.map((f) => `${f.name} ${f.lastname}`).join(", ")}>
+                    <span className="flex -space-x-2 shrink-0" title={friends.map((f) => `${f.name} ${f.lastname}`).join(", ")}>
                         {friends.slice(0, 3).map((f) => (
-                            <Avatar key={f.userId} className="size-5 rounded-full border-2 border-background">
+                            <Avatar key={f.userId} className="size-7 rounded-full border-2 border-background">
                                 {f.avatarUrl && (
                                     <AvatarImage src={`${AVATAR_BASE}/uploads/avatars/${f.avatarUrl}`} alt={f.name} className="rounded-full object-cover" />
                                 )}
-                                <AvatarFallback className="rounded-full text-[8px] font-bold bg-primary/10 text-primary">
+                                <AvatarFallback className="rounded-full text-[10px] font-bold bg-primary/10 text-primary">
                                     {f.name[0]}
                                 </AvatarFallback>
                             </Avatar>
                         ))}
                         {friends.length > 3 && (
-                            <span className="size-5 rounded-full bg-muted text-[8px] font-bold flex items-center justify-center border-2 border-background text-muted-foreground">
+                            <span className="size-7 rounded-full bg-muted text-[10px] font-bold flex items-center justify-center border-2 border-background text-muted-foreground">
                                 +{friends.length - 3}
                             </span>
                         )}
                     </span>
                 )}
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0 ml-4">
-                <Clock className="h-3 w-3" />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0 ml-6">
+                <Clock className="h-4 w-4" />
                 {date}
             </div>
         </div>
@@ -260,6 +263,52 @@ export default function MangaDetail() {
             .then(setFriendReads)
             .catch(() => setFriendReads([]));
     }, [series?.id, user]);
+
+    const { setContent, setSearchMode } = useHeader();
+    const isMobile = useIsMobile();
+
+    useEffect(() => {
+        if (isMobile) {
+            setContent({
+                right: (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setSearchMode(true)}
+                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                            aria-label="Buscar series"
+                        >
+                            <Search className="h-5 w-5" />
+                        </button>
+                        <button
+                            onClick={() => navigate(backUrl)}
+                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
+                        >
+                            <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                            Volver
+                        </button>
+                    </div>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+                right: (
+                    <button
+                        onClick={() => navigate(backUrl)}
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
+                    >
+                        <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                        Volver
+                    </button>
+                ),
+            });
+        }
+        return () => setContent({});
+    }, [isMobile, series, backUrl, navigate, setContent, setSearchMode]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
     const friendReadsByChapter = useMemo(() => {
         const map = new Map<number, FriendSeriesRead[]>();
@@ -331,7 +380,7 @@ export default function MangaDetail() {
 
     if (error || !series) {
         return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center px-4">
+            <div className="bg-background min-h-full flex flex-col items-center justify-center gap-4 text-center px-4">
                 <p className="text-4xl">📭</p>
                 <h2 className="text-xl font-bold">Serie no encontrada</h2>
                 <p className="text-muted-foreground text-sm">
@@ -386,30 +435,13 @@ export default function MangaDetail() {
             <JsonLd schema={jsonLdSeries} />
             <JsonLd schema={jsonLdBreadcrumb} />
             <PullToRefresh pull={pull} refreshing={refreshing} />
-            <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <span className="text-sm font-semibold truncate">
-                                {series.name}
-                            </span>
-                        </div>
-                        <button
-                            onClick={() => navigate(backUrl)}
-                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group shrink-0"
-                        >
-                            <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-                            Volver
-                        </button>
-                    </div>
-                </header>
+            <div className="bg-background min-h-full">
 
-                <div className="container mx-auto px-4 pt-8 pb-8">
-                    <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
+                <div className="w-full px-4 pt-8 pb-8">
+                    <div className="flex flex-col md:flex-row gap-8 lg:gap-12 xl:gap-16">
                         {/* Columna izquierda */}
-                        <div className="md:w-56 lg:w-64 shrink-0">
-                            <div className="sticky top-8">
+                        <div className="md:w-56 lg:w-72 xl:w-80 shrink-0">
+                            <div className="sticky top-20">
                                 <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 dark:border-white/[0.05] shadow-xl ring-1 ring-white/5">
                                     <CoverImage
                                         src={series.cover}
@@ -670,7 +702,7 @@ export default function MangaDetail() {
                                         No hay capítulos disponibles
                                     </div>
                                 ) : (
-                                    <ScrollArea className="h-[420px] rounded-xl border border-border bg-muted/20 pr-2">
+                                    <ScrollArea className="h-[595px] rounded-xl border border-border bg-muted/20 pr-2">
                                         <div className="p-2 space-y-0.5">
                                             {sortedChapters.map((chapter) => (
                                                 <ChapterRow

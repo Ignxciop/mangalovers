@@ -28,6 +28,7 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useFriendStore } from "@/store/friendStore";
 import { SuggestionForm } from "@/components/suggestion-form";
 import { memo, useState } from "react";
+import { useHeader } from "@/context/headerContext";
 import {
     UserRound,
     EllipsisVertical,
@@ -37,7 +38,6 @@ import {
     LogIn,
     House,
     LibraryBig,
-    BookHeart,
     Heart,
     ChevronRight,
     Settings,
@@ -46,6 +46,7 @@ import {
     MessageCirclePlus,
     Shield,
     Bell,
+    BookHeart,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useLocation, Link, useNavigate } from "react-router-dom";
@@ -392,7 +393,8 @@ const SidebarUserSection = memo(function SidebarUserSection({
 
 export function AppSidebar() {
     const { isAuthenticated } = useAuth();
-    const { state, isMobile } = useSidebar();
+    const { state, isMobile, setOpenMobile } = useSidebar();
+    const { sidebarCollapsible } = useHeader();
     const collapsed = !isMobile && state === "collapsed";
     const [showSuggestionForm, setShowSuggestionForm] = useState(false);
     const unreadNotifCount = useNotificationStore((s) => s.unreadCount);
@@ -404,26 +406,20 @@ export function AppSidebar() {
             open={showSuggestionForm}
             onClose={() => setShowSuggestionForm(false)}
         />
-        <Sidebar collapsible="icon">
-            <SidebarHeader
-                className={cn("py-5", collapsed ? "items-center px-2" : "px-4")}
-            >
-                <Link
-                    to="/"
-                    className={cn(
-                        "flex items-center gap-2.5 transition-[gap,opacity]",
-                        collapsed && "justify-center",
-                    )}
-                >
-                    <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-brand to-brand-cyan text-white shrink-0 shadow-sm animate-[logo-glow_3s_ease-in-out_infinite]">
-                        <BookHeart className="size-4" />
+        <Sidebar collapsible={sidebarCollapsible}>
+            <SidebarHeader className={cn(isMobile && "border-b border-border")}>
+                {isMobile ? (
+                    <div className="flex items-center justify-center h-14 px-1">
+                        <Link to="/" className="flex items-center gap-2" onClick={() => setOpenMobile(false)}>
+                            <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-brand to-brand-cyan text-white shrink-0 shadow-sm">
+                                <BookHeart className="size-4" />
+                            </div>
+                            <span className="font-extrabold text-lg tracking-tight">Mangalovers</span>
+                        </Link>
                     </div>
-                    {!collapsed && (
-                        <span className="font-extrabold text-[18px] tracking-tight">
-                            Mangalovers
-                        </span>
-                    )}
-                </Link>
+                ) : (
+                    <div className="h-16" />
+                )}
             </SidebarHeader>
 
             <SidebarContent className={cn("px-2", collapsed && "px-1")}>

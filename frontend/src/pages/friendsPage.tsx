@@ -9,7 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { useFriendStore } from "@/store/friendStore";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
+import { SearchBar } from "@/components/search-bar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "react-router-dom";
 import {
     Search,
@@ -879,6 +881,33 @@ function ListSkeleton({ count = 3 }: { count?: number }) {
 
 export default function FriendsPage() {
     const user = useAuthStore((s) => s.user);
+    const { setContent, setSearchMode } = useHeader();
+    const isMobile = useIsMobile();
+
+    useEffect(() => {
+        if (isMobile) {
+            setContent({
+                right: (
+                    <button
+                        onClick={() => setSearchMode(true)}
+                        className="p-2 rounded-lg hover:bg-accent transition-colors"
+                        aria-label="Buscar usuarios"
+                    >
+                        <Search className="h-5 w-5" />
+                    </button>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+            });
+        }
+        return () => setContent({});
+    }, [isMobile, setContent, setSearchMode]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
     if (!user) return null;
 
@@ -890,68 +919,35 @@ export default function FriendsPage() {
                 canonicalPath="/amigos"
             />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-2.5">
-                                <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                    <HeartHandshake className="h-3.5 w-3.5 text-primary/80" />
-                                </div>
-                                <span className="text-sm font-semibold tracking-tight">
-                                    Amigos
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </header>
 
                 <main className="container mx-auto px-4 py-6">
                     <Tabs defaultValue="activity" className="w-full">
-                        <TabsList className="w-full h-auto p-1 bg-muted/50 rounded-2xl flex-wrap mb-6 gap-0.5">
-                            <TabsTrigger
-                                value="activity"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <Sparkles className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Actividad</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="friends"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <HeartHandshake className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Amigos</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="requests"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <UserPlus className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Solicitudes</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="sent"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <Send className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Enviadas</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="search"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <Search className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Buscar</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="blocked"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <Ban className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Bloqueados</span>
-                            </TabsTrigger>
-                        </TabsList>
+                    <TabsList variant="line" className="w-full justify-start gap-0 border-b border-border rounded-none h-auto pb-1.5 bg-transparent overflow-x-auto flex-nowrap">
+                        <TabsTrigger value="activity" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Sparkles className="size-4 shrink-0" />
+                            <span className="truncate">Actividad</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="friends" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <HeartHandshake className="size-4 shrink-0" />
+                            <span className="truncate">Amigos</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="requests" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <UserPlus className="size-4 shrink-0" />
+                            <span className="truncate">Solicitudes</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="sent" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Send className="size-4 shrink-0" />
+                            <span className="truncate">Enviadas</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="search" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Search className="size-4 shrink-0" />
+                            <span className="truncate">Buscar</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="blocked" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Ban className="size-4 shrink-0" />
+                            <span className="truncate">Bloqueados</span>
+                        </TabsTrigger>
+                    </TabsList>
 
                         <TabsContent value="activity">
                             <ActivityFeed />

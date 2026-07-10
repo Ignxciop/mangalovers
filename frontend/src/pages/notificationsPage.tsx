@@ -1,6 +1,8 @@
 import { SEO } from "@/components/seo";
 import { useState, useEffect, useCallback } from "react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
+import { SearchBar } from "@/components/search-bar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -10,7 +12,6 @@ import { timeAgo } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import {
     Bell,
-    BellRing,
     BookOpen,
     MessageSquare,
     Link2,
@@ -18,6 +19,7 @@ import {
     UserCheck,
     Sparkles,
     CheckCheck,
+    Search,
 } from "lucide-react";
 import {
     getNotifications,
@@ -26,6 +28,7 @@ import {
     getUnreadNotificationCount,
     type AppNotification,
 } from "@/api/notifications";
+import { MangaPagination } from "@/components/MangaPagination";
 import { useNavigate } from "react-router-dom";
 
 function NotificationIcon({ type }: { type: AppNotification["type"] }) {
@@ -141,27 +144,29 @@ export default function NotificationsPage() {
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const ITEMS_PER_PAGE = 24;
 
-    const fetch = useCallback(async (p: number, append: boolean) => {
+    const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+
+    const fetch = useCallback(async (p: number) => {
         try {
-            const res = await getNotifications(p, 20);
-            setNotifications((prev) => append ? [...prev, ...res.data] : res.data);
+            setLoading(true);
+            const res = await getNotifications(p, ITEMS_PER_PAGE);
+            setNotifications(res.data);
             setTotal(res.total);
             setPage(p);
         } catch {
             toast.error("Error al cargar notificaciones");
         } finally {
             setLoading(false);
-            setLoadingMore(false);
         }
     }, []);
 
     const setStoreUnreadCount = useNotificationStore((s) => s.setUnreadCount);
 
     useEffect(() => {
-        fetch(1, false);
+        fetch(1);
         getUnreadNotificationCount().then(setUnreadCount).catch(() => {});
 
         markAllNotificationsAsRead()
@@ -172,11 +177,6 @@ export default function NotificationsPage() {
             })
             .catch(() => {});
     }, [fetch, setStoreUnreadCount]);
-
-    const handleLoadMore = () => {
-        setLoadingMore(true);
-        fetch(page + 1, true);
-    };
 
     const handleMarkAsRead = async (id: string) => {
         try {
@@ -189,7 +189,7 @@ export default function NotificationsPage() {
         }
     };
 
-    const handleMarkAllAsRead = async () => {
+    const handleMarkAllAsRead = useCallback(async () => {
         try {
             await markAllNotificationsAsRead();
             setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -199,7 +199,58 @@ export default function NotificationsPage() {
         } catch {
             toast.error("Error al marcar notificaciones");
         }
-    };
+    }, [setStoreUnreadCount]);
+
+    const { setContent, setSearchMode } = useHeader();
+    const isMobile = useIsMobile();
+
+    useEffect(() => {
+        if (isMobile) {
+            setContent({
+                right: (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setSearchMode(true)}
+                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                            aria-label="Buscar"
+                        >
+                            <Search className="h-5 w-5" />
+                        </button>
+                        {notifications.length > 0 && unreadCount > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleMarkAllAsRead}
+                                className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground"
+                            >
+                                <CheckCheck className="size-3.5" />
+                            </Button>
+                        )}
+                    </div>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+                right: notifications.length > 0 && unreadCount > 0 ? (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleMarkAllAsRead}
+                        className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground"
+                    >
+                        <CheckCheck className="size-3.5" />
+                        Leer todo
+                    </Button>
+                ) : undefined,
+            });
+        }
+        return () => setContent({});
+    }, [isMobile, setContent, setSearchMode, notifications.length, unreadCount, handleMarkAllAsRead]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
     if (!user) return null;
 
@@ -210,36 +261,12 @@ export default function NotificationsPage() {
                 description="Tus notificaciones de Mangalovers: actividad de amigos, nuevos capítulos y más."
                 canonicalPath="/notificaciones"
             />
-            <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-2.5">
-                                <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                    <BellRing className="h-3.5 w-3.5 text-primary/80" />
-                                </div>
-                                <span className="text-sm font-semibold tracking-tight">Notificaciones</span>
-                            </div>
-                        </div>
-                        {notifications.length > 0 && unreadCount > 0 && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleMarkAllAsRead}
-                                className="gap-1.5 text-xs h-8 text-muted-foreground hover:text-foreground"
-                            >
-                                <CheckCheck className="size-3.5" />
-                                Leer todo
-                            </Button>
-                        )}
-                    </div>
-                </header>
+            <div className="bg-background min-h-full">
 
-                <main className="container mx-auto px-4 py-6">
+                <main className="w-full px-4 lg:px-6 py-8">
                     {loading ? (
-                        <div className="flex flex-col gap-2">
-                            {[1, 2, 3, 4, 5].map((i) => (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {Array.from({ length: 24 }).map((_, i) => (
                                 <NotificationSkeleton key={i} />
                             ))}
                         </div>
@@ -251,7 +278,7 @@ export default function NotificationsPage() {
                         />
                     ) : (
                         <>
-                            <div className="flex flex-col gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {notifications.map((n, i) => (
                                     <NotificationItem
                                         key={n.id}
@@ -261,26 +288,13 @@ export default function NotificationsPage() {
                                     />
                                 ))}
                             </div>
-                            {notifications.length < total && (
-                                <div className="flex justify-center pt-4">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleLoadMore}
-                                        disabled={loadingMore}
-                                        className="gap-1.5 min-w-[130px]"
-                                    >
-                                        {loadingMore ? (
-                                            <>
-                                                <div className="size-3.5 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-                                                Cargando...
-                                            </>
-                                        ) : (
-                                            "Cargar más"
-                                        )}
-                                    </Button>
-                                </div>
-                            )}
+                            <div className="flex justify-center pt-6">
+                                <MangaPagination
+                                    page={page}
+                                    totalPages={totalPages}
+                                    setPage={(p) => fetch(p)}
+                                />
+                            </div>
                         </>
                     )}
                 </main>

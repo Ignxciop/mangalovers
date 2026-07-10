@@ -16,17 +16,17 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export function useMangaList(params: Record<string, string | number>) {
-    const { search: rawSearch, page, status, type, provider, sort, order, genres, read } = params;
+    const { search: rawSearch, page, status, type, provider, sort, order, genres, read, limit } = params;
 
     const search = useDebounce(rawSearch, 300);
 
     const user = useAuthStore((s) => s.user);
-    const cacheKey = `manga-list:${user?.id ?? "anon"}:${JSON.stringify({ search, page, status, type, provider, sort, order, genres, read })}`;
+    const cacheKey = `manga-list:${user?.id ?? "anon"}:${JSON.stringify({ search, page, status, type, provider, sort, order, genres, read, limit })}`;
 
     return useCachedQuery<MangaListResponse | null>(
         cacheKey,
         (signal) => fetchMangaList(
-            { page, search, status, type, provider, sort, order, genres, read },
+            { page, search, status, type, provider, sort, order, genres, read, limit },
             signal,
         ),
         { ttl: 30_000, initialData: null },

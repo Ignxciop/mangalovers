@@ -80,11 +80,13 @@ export function RecommendedSection({
     basedOn,
     loading,
     friendActivity,
+    columns = 6,
 }: {
     items: RecommendedSeries[];
     basedOn: string[];
     loading: boolean;
     friendActivity: Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>;
+    columns?: number;
 }) {
     if (loading) {
         return (
@@ -97,8 +99,11 @@ export function RecommendedSection({
                         Recomendados para ti
                     </h2>
                 </div>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                    {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                    className="grid gap-3"
+                    style={{ gridTemplateColumns: `repeat(${Math.max(columns, 1)}, minmax(0, 1fr))` }}
+                >
+                    {Array.from({ length: columns }).map((_, i) => (
                         <RecommendedSkeleton key={i} />
                     ))}
                 </div>
@@ -134,10 +139,13 @@ export function RecommendedSection({
             </div>
 
             <div
-                className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3"
-                style={{ contentVisibility: "auto" }}
+                className="grid gap-3"
+                style={{
+                    gridTemplateColumns: `repeat(${Math.max(columns, 1)}, minmax(0, 1fr))`,
+                    contentVisibility: "auto",
+                }}
             >
-                {items.slice(0, 6).map((item, i) => (
+                {items.slice(0, columns).map((item, i) => (
                     <RecommendedCard key={item.id} item={item} index={i} friends={friendActivity[item.id] ?? []} />
                 ))}
             </div>

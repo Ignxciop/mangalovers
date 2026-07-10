@@ -1,6 +1,6 @@
 import { SEO } from "@/components/seo";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
 import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,10 @@ import {
     EyeOff,
     MessageSquare,
     Plus,
+    Search,
 } from "lucide-react";
+import { SearchBar } from "@/components/search-bar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/api/axios";
@@ -990,24 +993,41 @@ export default function UserSettingsPage() {
         const stateTab = (location.state as { tab?: string } | null)?.tab;
         return stateTab === "soporte" ? "soporte" : "perfil";
     });
+    const { setContent, setSearchMode } = useHeader();
+    const isMobile = useIsMobile();
+
+    useEffect(() => {
+        if (isMobile) {
+            setContent({
+                right: (
+                    <button
+                        type="button"
+                        onClick={() => setSearchMode(true)}
+                        className="flex items-center justify-center size-9 rounded-lg hover:bg-accent transition-colors"
+                        aria-label="Buscar"
+                    >
+                        <Search className="h-5 w-5" />
+                    </button>
+                ),
+            });
+        } else {
+            setContent({
+                center: <SearchBar />,
+            });
+        }
+        return () => setContent({});
+    }, [isMobile, setContent, setSearchMode]);
+
+    useEffect(() => {
+        return () => setSearchMode(false);
+    }, [setSearchMode]);
 
     return (
         <>
             <SEO title="Configuración" description="Administra tu perfil, cambia tu contraseña y gestiona las notificaciones en Mangalovers." canonicalPath="/configuracion" />
-            <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-semibold truncate">Configuración</span>
-                            </div>
-                        </div>
-                    </div>
-                </header>
+            <div className="min-h-full bg-background">
 
-                <main className="container mx-auto px-4 py-8 space-y-8">
+                <main className="w-full px-4 lg:px-6 py-8 space-y-8">
                     <ProfileHero />
 
                     <Tabs value={tab} onValueChange={setTab} className="w-full">

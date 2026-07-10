@@ -548,7 +548,7 @@ function hashStr(str) {
   return Math.abs(hash);
 }
 
-export async function getRecommendedSeries(userId, limit = 12) {
+export async function getRecommendedSeries(userId, limit = 14) {
   const reads = await prisma.userChapterRead.findMany({
     where: { userId },
     select: {

@@ -1,5 +1,5 @@
 import { SEO } from "@/components/seo";
-import { useEffect, useState, useMemo, memo, useCallback } from "react";
+import { useEffect, useState, useMemo, memo, useCallback, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchFavorites, deleteFavorite, upsertFavorite } from "@/api/manga";
 import type { Favorite } from "@/types/manga";
@@ -13,8 +13,10 @@ import {
     Clock,
     Eye,
     Search,
+    SlidersHorizontal,
 } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/context/headerContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -31,7 +33,7 @@ import {
 import { FilterDrawer } from "@/components/FilterDrawer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+
 import {
     AlertDialog,
     AlertDialogAction,
@@ -47,6 +49,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { MangaPagination } from "@/components/MangaPagination";
 import { getSeriesActivity } from "@/api/friends";
 import { FriendAvatars } from "@/components/FriendAvatars";
+import { DebouncedSearchInput } from "@/components/DebouncedSearchInput";
 import { toast } from "sonner";
 
 function chaptersLeft(fav: Favorite): number {
@@ -250,6 +253,14 @@ export default function FavoritesList() {
     const sortBy = (searchParams.get("sort") ?? "reciente") as SortBy;
     const page = Number(searchParams.get("page") ?? "1");
 
+    const activeFiltersCount = [
+        statusFilter !== "Todos" ? statusFilter : "",
+        typeFilter,
+        progressFilter !== "todos" ? progressFilter : "",
+        sortBy !== "reciente" ? sortBy : "",
+        searchText.trim(),
+    ].filter(Boolean).length;
+
     const handleRefresh = useCallback(async () => {
         try {
             const data = await fetchFavorites();
@@ -260,6 +271,101 @@ export default function FavoritesList() {
     }, []);
 
     const { pull, refreshing } = usePullToRefresh(handleRefresh);
+    const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+    const { setContent, setSearchMode, setSearchContent } = useHeader();
+    const isMobile = useIsMobile();
+    const favGridRef = useRef<HTMLDivElement | null>(null);
+
+    const [columns, setColumns] = useState(() => {
+        const w = window.innerWidth;
+        if (w >= 1480) return 8;
+        if (w >= 880) return 5;
+        if (w >= 560) return 4;
+        return 3;
+    });
+
+    const gridColumns = isMobile ? 2 : columns;
+
+    useEffect(() => {
+        const onResize = () => {
+            const w = window.innerWidth;
+            setColumns(
+                w >= 1480 ? 8 :
+                w >= 880 ? 5 :
+                w >= 560 ? 4 :
+                3
+            );
+        };
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
+
+    useEffect(() => {
+        if (isMobile) {
+            setContent({
+                right: (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                setSearchContent(<DebouncedSearchInput />);
+                                setSearchMode(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                            aria-label="Buscar series"
+                        >
+                            <Search className="h-5 w-5" />
+                        </button>
+                        <Button
+                            variant="outline"
+                            className="shrink-0 relative"
+                            onClick={() => setFilterDrawerOpen(true)}
+                        >
+                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                            Filtros
+                            {activeFiltersCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center size-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                                    {activeFiltersCount}
+                                </span>
+                            )}
+                        </Button>
+                    </div>
+                ),
+            });
+        } else {
+            setContent({
+                center: (
+                    <div className="relative w-[512px] max-w-full">
+                        <DebouncedSearchInput />
+                    </div>
+                ),
+                right: (
+                    <Button
+                        variant="outline"
+                        className="shrink-0 relative"
+                        onClick={() => setFilterDrawerOpen(true)}
+                    >
+                        <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        Filtros
+                        {activeFiltersCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center size-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                                {activeFiltersCount}
+                            </span>
+                        )}
+                    </Button>
+                ),
+            });
+        }
+        return () => {
+            setContent({});
+        };
+    }, [isMobile, activeFiltersCount, setContent, setFilterDrawerOpen]);
+
+    useEffect(() => {
+        return () => {
+            setSearchMode(false);
+            setSearchContent(null);
+        };
+    }, [setSearchMode, setSearchContent]);
 
     useEffect(() => {
         fetchFavorites()
@@ -275,17 +381,6 @@ export default function FavoritesList() {
         const ids = favorites.map((f) => f.seriesId);
         getSeriesActivity(ids).then(setActivityMap).catch(() => setActivityMap({}));
     }, [favorites]);
-
-    function setSearch(value: string) {
-        setSearchParams((prev) => {
-            if (value) prev.set("search", value);
-            else prev.delete("search");
-
-            prev.set("page", "1");
-
-            return prev;
-        });
-    }
 
     function setStatusFilter(value: StatusFilter) {
         setSearchParams((prev) => {
@@ -421,7 +516,7 @@ export default function FavoritesList() {
         return result;
     }, [favorites, statusFilter, typeFilter, progressFilter, sortBy, searchText]);
 
-    const ITEMS_PER_PAGE = 24;
+    const ITEMS_PER_PAGE = columns * 4;
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
 
@@ -437,14 +532,6 @@ export default function FavoritesList() {
         });
     }
 
-    const activeFiltersCount = [
-        statusFilter !== "Todos" ? statusFilter : "",
-        typeFilter,
-        progressFilter !== "todos" ? progressFilter : "",
-        sortBy !== "reciente" ? sortBy : "",
-        searchText.trim(),
-    ].filter(Boolean).length;
-
     const fromUrl = useMemo(
         () => `/favoritos?${searchParams.toString()}`,
         [searchParams],
@@ -459,170 +546,147 @@ export default function FavoritesList() {
             />
             <PullToRefresh pull={pull} refreshing={refreshing} />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                    <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                        <SidebarTrigger />
-                        <div className="flex justify-center min-w-0">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="flex items-center gap-2.5 shrink-0">
-                                    <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                        <Heart className="h-3.5 w-3.5 text-primary/80" />
-                                    </div>
-                                    <span className="text-sm font-semibold tracking-tight">Mis favoritos</span>
-                                </div>
-                                <div className="w-full max-w-md">
-                                    <div className="relative">
-                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                        <Input
-                                            placeholder="Buscar favorito..."
-                                            className="pl-9 w-full bg-secondary/50"
-                                            value={searchText}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <FilterDrawer
-                            activeFiltersCount={activeFiltersCount}
-                            title="Filtros"
-                            onClearAll={clearFilters}
+                <FilterDrawer
+                    open={filterDrawerOpen}
+                    onOpenChange={setFilterDrawerOpen}
+                    activeFiltersCount={activeFiltersCount}
+                    hideTrigger
+                    title="Filtros"
+                    onClearAll={clearFilters}
+                >
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Ordenar por
+                        </p>
+                        <Select
+                            value={sortBy}
+                            onValueChange={(v) => setSortBy(v as SortBy)}
                         >
-                            <div className="px-6 py-5 border-b border-border">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                    Ordenar por
-                                </p>
-                                <Select
-                                    value={sortBy}
-                                    onValueChange={(v) => setSortBy(v as SortBy)}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="reciente">
-                                            Favorito más reciente
-                                        </SelectItem>
-                                        <SelectItem value="pendiente-asc">
-                                            Menos capítulos pendientes
-                                        </SelectItem>
-                                        <SelectItem value="pendiente-desc">
-                                            Más capítulos pendientes
-                                        </SelectItem>
-                                        <SelectItem value="updated">
-                                            Actualización reciente
-                                        </SelectItem>
-                                        <SelectItem value="nombre">
-                                            A → Z
-                                        </SelectItem>
-                                        <SelectItem value="za">
-                                            Z → A
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="px-6 py-5 border-b border-border">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                    Estado
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    {(["Todos", "Siguiendo", "Terminado"] as const).map((f) => (
-                                        <Badge
-                                            key={f}
-                                            variant={statusFilter === f ? "default" : "outline"}
-                                            className="cursor-pointer px-3 py-1 text-xs"
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setStatusFilter(f)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") {
-                                                    e.preventDefault();
-                                                    setStatusFilter(f);
-                                                }
-                                            }}
-                                        >
-                                            {f}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="px-6 py-5 border-b border-border">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                    Tipo
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    {[
-                                        { label: "Todos", value: "" },
-                                        { label: "Manga", value: "manga" },
-                                        { label: "Manhwa", value: "manhwa" },
-                                        { label: "Manhua", value: "manhua" },
-                                    ].map(({ label, value }) => (
-                                        <Badge
-                                            key={value}
-                                            variant={typeFilter === value ? "default" : "outline"}
-                                            className="cursor-pointer px-3 py-1 text-xs"
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setTypeFilter(typeFilter === value ? "" : (value as TypeFilter))}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") {
-                                                    e.preventDefault();
-                                                    setTypeFilter(typeFilter === value ? "" : (value as TypeFilter));
-                                                }
-                                            }}
-                                        >
-                                            {label}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="px-6 py-5">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                    Progreso de lectura
-                                </p>
-                                <div className="overflow-y-auto">
-                                    {[
-                                        { value: "todos", label: "Todos" },
-                                        { value: "al-dia", label: "Al día" },
-                                        { value: "pendiente", label: "Con capítulos pendientes" },
-                                    ].map(({ value, label }, idx, arr) => (
-                                        <div
-                                            key={value}
-                                            role="button"
-                                            tabIndex={0}
-                                            className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
-                                                idx !== arr.length - 1 ? "border-b border-border/40" : ""
-                                            }`}
-                                            onClick={() => setProgressFilter(value as ProgressFilter)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") {
-                                                    e.preventDefault();
-                                                    setProgressFilter(value as ProgressFilter);
-                                                }
-                                            }}
-                                        >
-                                            <span className={`text-sm transition-colors ${
-                                                progressFilter === value
-                                                    ? "text-foreground font-medium"
-                                                    : "text-muted-foreground group-hover:text-foreground"
-                                            }`}>
-                                                {label}
-                                            </span>
-                                            {progressFilter === value && (
-                                                <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </FilterDrawer>
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="reciente">
+                                    Favorito más reciente
+                                </SelectItem>
+                                <SelectItem value="pendiente-asc">
+                                    Menos capítulos pendientes
+                                </SelectItem>
+                                <SelectItem value="pendiente-desc">
+                                    Más capítulos pendientes
+                                </SelectItem>
+                                <SelectItem value="updated">
+                                    Actualización reciente
+                                </SelectItem>
+                                <SelectItem value="nombre">
+                                    A → Z
+                                </SelectItem>
+                                <SelectItem value="za">
+                                    Z → A
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-                </header>
 
-                <main className="container mx-auto px-4 py-8">
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Estado
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {(["Todos", "Siguiendo", "Terminado"] as const).map((f) => (
+                                <Badge
+                                    key={f}
+                                    variant={statusFilter === f ? "default" : "outline"}
+                                    className="cursor-pointer px-3 py-1 text-xs"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => setStatusFilter(f)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setStatusFilter(f);
+                                        }
+                                    }}
+                                >
+                                    {f}
+                                </Badge>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Tipo
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { label: "Todos", value: "" },
+                                { label: "Manga", value: "manga" },
+                                { label: "Manhwa", value: "manhwa" },
+                                { label: "Manhua", value: "manhua" },
+                            ].map(({ label, value }) => (
+                                <Badge
+                                    key={value}
+                                    variant={typeFilter === value ? "default" : "outline"}
+                                    className="cursor-pointer px-3 py-1 text-xs"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => setTypeFilter(typeFilter === value ? "" : (value as TypeFilter))}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setTypeFilter(typeFilter === value ? "" : (value as TypeFilter));
+                                        }
+                                    }}
+                                >
+                                    {label}
+                                </Badge>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Progreso de lectura
+                        </p>
+                        <div className="overflow-y-auto">
+                            {[
+                                { value: "todos", label: "Todos" },
+                                { value: "al-dia", label: "Al día" },
+                                { value: "pendiente", label: "Con capítulos pendientes" },
+                            ].map(({ value, label }, idx, arr) => (
+                                <div
+                                    key={value}
+                                    role="button"
+                                    tabIndex={0}
+                                    className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
+                                        idx !== arr.length - 1 ? "border-b border-border/40" : ""
+                                    }`}
+                                    onClick={() => setProgressFilter(value as ProgressFilter)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setProgressFilter(value as ProgressFilter);
+                                        }
+                                    }}
+                                >
+                                    <span className={`text-sm transition-colors ${
+                                        progressFilter === value
+                                            ? "text-foreground font-medium"
+                                            : "text-muted-foreground group-hover:text-foreground"
+                                    }`}>
+                                        {label}
+                                    </span>
+                                    {progressFilter === value && (
+                                        <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </FilterDrawer>
+
+                <main className="w-full px-4 py-8">
                     {!loading && filtered.length > 0 && (
                         <div className="mb-8">
                             <MangaPagination
@@ -634,8 +698,8 @@ export default function FavoritesList() {
                     )}
 
                     {loading && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                            {Array.from({ length: 10 }).map((_, i) => (
+                        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
+                            {Array.from({ length: columns * 2 }).map((_, i) => (
                                 <div key={i} className="space-y-2">
                                     <Skeleton className="aspect-[2/3] rounded-xl" />
                                     <Skeleton className="h-4 w-3/4" />
@@ -672,7 +736,7 @@ export default function FavoritesList() {
 
                     {!loading && filtered.length > 0 && (
                         <>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                            <div ref={favGridRef} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
                                 {paginatedFavorites.map((fav) => (
                                     <FavoriteListItem
                                         key={fav.id}

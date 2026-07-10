@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { HeaderProvider } from "@/context/headerContext";
 import MangaDetail from "@/pages/mangaDetail";
 
 const mockNavigate = vi.fn();
@@ -74,13 +75,15 @@ const SERIES_DATA = {
 function renderPage() {
     return render(
         <HelmetProvider>
-            <SidebarProvider>
-                <MemoryRouter initialEntries={["/manga/one-piece"]}>
-                    <Routes>
-                        <Route path="/manga/:slug" element={<MangaDetail />} />
-                    </Routes>
-                </MemoryRouter>
-            </SidebarProvider>
+            <HeaderProvider>
+                <SidebarProvider>
+                    <MemoryRouter initialEntries={["/manga/one-piece"]}>
+                        <Routes>
+                            <Route path="/manga/:slug" element={<MangaDetail />} />
+                        </Routes>
+                    </MemoryRouter>
+                </SidebarProvider>
+            </HeaderProvider>
         </HelmetProvider>,
     );
 }

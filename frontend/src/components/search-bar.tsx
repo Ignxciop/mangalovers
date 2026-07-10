@@ -75,7 +75,7 @@ export function SearchBar() {
     const listboxId = "search-listbox";
 
     return (
-        <div ref={ref} className="relative w-full max-w-md">
+        <div ref={ref} className="relative w-[512px] max-w-full">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
             <Input
                 ref={inputRef}
@@ -85,7 +85,7 @@ export function SearchBar() {
                 aria-controls={listboxId}
                 aria-autocomplete="list"
                 aria-label="Buscar series"
-                placeholder="Buscar series..."
+                placeholder="Buscar"
                 className="pl-9 pr-9 w-full bg-secondary/50"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

@@ -1,9 +1,9 @@
 import { SEO } from "@/components/seo";
 import { JsonLd } from "@/components/jsonld";
-import { Search, BookOpen, Eye, Heart } from "lucide-react";
+import { Search, BookOpen, Eye, Heart, SlidersHorizontal } from "lucide-react";
 import { CoverImage } from "@/components/coverImage";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FilterDrawer } from "@/components/FilterDrawer";
 import {
     Select,
@@ -12,8 +12,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useState, memo, useMemo } from "react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useEffect, useState, memo, useMemo, useRef } from "react";
+import { useHeader } from "@/context/headerContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useMangaList } from "@/hooks/useMangaList";
 import { Link, useSearchParams } from "react-router-dom";
 import { fetchGenres } from "@/api/manga";
@@ -24,6 +25,8 @@ import type { Manga } from "@/types/manga";
 import { useAuthStore } from "@/store/authStore";
 import { getSeriesActivity } from "@/api/friends";
 import { FriendAvatars } from "@/components/FriendAvatars";
+
+import { DebouncedSearchInput } from "@/components/DebouncedSearchInput";
 
 const MangaListItem = memo(function MangaListItem({
     manga,
@@ -140,6 +143,85 @@ export default function MangaList() {
     const read = searchParams.get("read") ?? "";
     const selectedGenres = genres.split(",").filter(Boolean);
     const provider = "";
+    const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+    const { setContent, setSearchMode, setSearchContent } = useHeader();
+    const isMobile = useIsMobile();
+
+    const activeFiltersCount = [
+        status,
+        type,
+        genres,
+        read,
+        sort !== "updated" ? sort : "",
+    ].filter(Boolean).length;
+
+    useEffect(() => {
+        if (isMobile) {
+            setContent({
+                right: (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                setSearchContent(<DebouncedSearchInput />);
+                                setSearchMode(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-accent transition-colors"
+                            aria-label="Buscar series"
+                        >
+                            <Search className="h-5 w-5" />
+                        </button>
+                        <Button
+                            variant="outline"
+                            className="shrink-0 relative"
+                            onClick={() => setFilterDrawerOpen(true)}
+                        >
+                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                            Filtros
+                            {activeFiltersCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                                    {activeFiltersCount}
+                                </span>
+                            )}
+                        </Button>
+                    </div>
+                ),
+            });
+        } else {
+            setContent({
+                center: (
+                    <div className="relative w-[512px] max-w-full">
+                        <DebouncedSearchInput />
+                    </div>
+                ),
+                right: (
+                    <Button
+                        variant="outline"
+                        className="shrink-0 relative"
+                        onClick={() => setFilterDrawerOpen(true)}
+                    >
+                        <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        Filtros
+                        {activeFiltersCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                                {activeFiltersCount}
+                            </span>
+                        )}
+                    </Button>
+                ),
+            });
+        }
+        return () => {
+            setContent({});
+        };
+    }, [isMobile, activeFiltersCount, setContent, setFilterDrawerOpen]);
+
+    useEffect(() => {
+        return () => {
+            setSearchMode(false);
+            setSearchContent(null);
+        };
+    }, [setSearchMode, setSearchContent]);
+
     const backUrl = useMemo(
         () => `/mangas?${searchParams.toString()}`,
         [searchParams],
@@ -152,15 +234,6 @@ export default function MangaList() {
     function setPage(newPage: number) {
         setSearchParams((prev) => {
             prev.set("page", String(newPage));
-            return prev;
-        });
-    }
-
-    function setSearch(value: string) {
-        setSearchParams((prev) => {
-            if (value) prev.set("search", value);
-            else prev.delete("search");
-            prev.set("page", "1");
             return prev;
         });
     }
@@ -214,6 +287,34 @@ export default function MangaList() {
         });
     }
 
+    const mangaGridRef = useRef<HTMLDivElement | null>(null);
+
+    const [columns, setColumns] = useState(() => {
+        const w = window.innerWidth;
+        if (w >= 1480) return 8;
+        if (w >= 880) return 5;
+        if (w >= 560) return 4;
+        return 3;
+    });
+
+    const gridColumns = isMobile ? 2 : columns;
+
+    useEffect(() => {
+        const onResize = () => {
+            const w = window.innerWidth;
+            setColumns(
+                w >= 1480 ? 8 :
+                w >= 880 ? 5 :
+                w >= 560 ? 4 :
+                3
+            );
+        };
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
+
+    const limit = columns * 4;
+
     const { data, loading, error } = useMangaList({
         page,
         search,
@@ -224,6 +325,7 @@ export default function MangaList() {
         order,
         genres,
         read,
+        limit,
     });
 
     const mangas = data?.data ?? [];
@@ -236,14 +338,6 @@ export default function MangaList() {
         const ids = data.data.map((m: Manga) => m.id);
         getSeriesActivity(ids).then(setActivityMap).catch(() => setActivityMap({}));
     }, [data, user]);
-
-    const activeFiltersCount = [
-        status,
-        type,
-        genres,
-        read,
-        sort !== "updated" ? sort : "",
-    ].filter(Boolean).length;
 
     return (
         <>
@@ -261,219 +355,200 @@ export default function MangaList() {
                 ],
             }} />
             <div className="min-h-screen bg-background">
-                <header className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur border-b border-border shadow-[0_1px_0_0] shadow-brand/5">
-                <div className="container mx-auto grid grid-cols-[auto_1fr_auto] items-center h-16 px-4 gap-4">
-                    <SidebarTrigger />
-                    <div className="flex justify-center min-w-0">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="flex items-center gap-2.5 shrink-0">
-                                <div className="flex items-center justify-center size-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
-                                    <BookOpen className="h-3.5 w-3.5 text-primary/80" />
-                                </div>
-                                <span className="text-sm font-semibold tracking-tight">Catálogo</span>
-                            </div>
-                            <div className="w-full max-w-md">
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                    <Input
-                                        placeholder="Buscar por nombre..."
-                                        className="pl-9 w-full bg-secondary/50"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                <FilterDrawer
+                    open={filterDrawerOpen}
+                    onOpenChange={setFilterDrawerOpen}
+                    activeFiltersCount={activeFiltersCount}
+                    hideTrigger
+                    title="Filtros de búsqueda"
+                    onClearAll={() => {
+                        setSearchParams((prev) => {
+                            prev.delete("status");
+                            prev.delete("type");
+                            prev.delete("genres");
+                            prev.delete("read");
+                            prev.delete("sort");
+                            prev.set("page", "1");
+                            return prev;
+                        });
+                    }}
+                >
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Ordenar por
+                        </p>
+                        <Select
+                            value={sort}
+                            onValueChange={setSort}
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="updated">
+                                    Actualización reciente
+                                </SelectItem>
+                                <SelectItem value="chapters">
+                                    Más capítulos
+                                </SelectItem>
+                                <SelectItem value="az">
+                                    A → Z
+                                </SelectItem>
+                                <SelectItem value="za">
+                                    Z → A
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <FilterDrawer
-                        activeFiltersCount={activeFiltersCount}
-                        title="Filtros de búsqueda"
-                        onClearAll={() => {
-                            setSearchParams((prev) => {
-                                prev.delete("status");
-                                prev.delete("type");
-                                prev.delete("genres");
-                                prev.delete("read");
-                                prev.delete("sort");
-                                prev.set("page", "1");
-                                return prev;
-                            });
-                        }}
-                    >
-                        <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                Ordenar por
-                            </p>
-                            <Select
-                                value={sort}
-                                onValueChange={setSort}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="updated">
-                                        Actualización reciente
-                                    </SelectItem>
-                                    <SelectItem value="chapters">
-                                        Más capítulos
-                                    </SelectItem>
-                                    <SelectItem value="az">
-                                        A → Z
-                                    </SelectItem>
-                                    <SelectItem value="za">
-                                        Z → A
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
 
-                        <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                Estado
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                {[
-                                    { label: "Activo", value: "Activo" },
-                                    { label: "Finalizado", value: "Finalizado" },
-                                    { label: "Pausado", value: "Pausado por el autor (Hiatus)" },
-                                    { label: "Abandonado", value: "Abandonado por el scan" },
-                                ].map(({ label, value }) => (
-                                    <Badge
-                                        key={value}
-                                        variant={status === value ? "default" : "outline"}
-                                        className="cursor-pointer px-3 py-1 text-xs"
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={() => setStatus(status === value ? "" : value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" || e.key === " ") {
-                                                e.preventDefault();
-                                                setStatus(status === value ? "" : value);
-                                            }
-                                        }}
-                                    >
-                                        {label}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="px-6 py-5 border-b border-border">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                Progreso
-                            </p>
-                            <div className="flex flex-wrap gap-2">
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Estado
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { label: "Activo", value: "Activo" },
+                                { label: "Finalizado", value: "Finalizado" },
+                                { label: "Pausado", value: "Pausado por el autor (Hiatus)" },
+                                { label: "Abandonado", value: "Abandonado por el scan" },
+                            ].map(({ label, value }) => (
                                 <Badge
-                                    variant={read === "true" ? "default" : "outline"}
+                                    key={value}
+                                    variant={status === value ? "default" : "outline"}
                                     className="cursor-pointer px-3 py-1 text-xs"
                                     role="button"
                                     tabIndex={0}
-                                    onClick={() => setRead(read === "true" ? "" : "true")}
+                                    onClick={() => setStatus(status === value ? "" : value)}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" || e.key === " ") {
                                             e.preventDefault();
-                                            setRead(read === "true" ? "" : "true");
+                                            setStatus(status === value ? "" : value);
                                         }
                                     }}
                                 >
-                                    <Eye className="h-3 w-3 mr-1.5" />
-                                    Leídos
+                                    {label}
                                 </Badge>
-                            </div>
+                            ))}
                         </div>
+                    </div>
 
-                        <div className="px-6 py-5 border-b border-border">
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Progreso
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <Badge
+                                variant={read === "true" ? "default" : "outline"}
+                                className="cursor-pointer px-3 py-1 text-xs"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setRead(read === "true" ? "" : "true")}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        setRead(read === "true" ? "" : "true");
+                                    }
+                                }}
+                            >
+                                <Eye className="h-3 w-3 mr-1.5" />
+                                Leídos
+                            </Badge>
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5 border-b border-border">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                            Tipo
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { label: "Todos", value: "" },
+                                { label: "Manga", value: "manga" },
+                                { label: "Manhwa", value: "manhwa" },
+                                { label: "Manhua", value: "manhua" },
+                            ].map(({ label, value }) => (
+                                <Badge
+                                    key={value}
+                                    variant={type === value ? "default" : "outline"}
+                                    className="cursor-pointer px-3 py-1 text-xs"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => setType(type === value ? "" : value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setType(type === value ? "" : value);
+                                        }
+                                    }}
+                                >
+                                    {label}
+                                </Badge>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5">
+                        <div className="flex items-center justify-between mb-3">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                Tipo
+                                Géneros
                             </p>
-                            <div className="flex flex-wrap gap-2">
-                                {[
-                                    { label: "Todos", value: "" },
-                                    { label: "Manga", value: "manga" },
-                                    { label: "Manhwa", value: "manhwa" },
-                                    { label: "Manhua", value: "manhua" },
-                                ].map(({ label, value }) => (
-                                    <Badge
-                                        key={value}
-                                        variant={type === value ? "default" : "outline"}
-                                        className="cursor-pointer px-3 py-1 text-xs"
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={() => setType(type === value ? "" : value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" || e.key === " ") {
-                                                e.preventDefault();
-                                                setType(type === value ? "" : value);
-                                            }
-                                        }}
-                                    >
-                                        {label}
-                                    </Badge>
-                                ))}
-                            </div>
+                            {selectedGenres.length > 0 && (
+                                <button
+                                    onClick={() => setSearchParams((prev) => {
+                                        prev.delete("genres");
+                                        prev.set("page", "1");
+                                        return prev;
+                                    })}
+                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    Limpiar ({selectedGenres.length})
+                                </button>
+                            )}
                         </div>
-
-                        <div className="px-6 py-5">
-                            <div className="flex items-center justify-between mb-3">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                    Géneros
-                                </p>
-                                {selectedGenres.length > 0 && (
-                                    <button
-                                        onClick={() => setSearchParams((prev) => { prev.delete("genres"); prev.set("page", "1"); return prev; })}
-                                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                    >
-                                        Limpiar ({selectedGenres.length})
-                                    </button>
-                                )}
-                            </div>
-                            <div className="overflow-y-auto max-h-72">
-                                {genresList.map((genre, idx) => (
-                                    <div
-                                        key={genre.id}
-                                        role="button"
-                                        tabIndex={0}
-                                        className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
-                                            idx !== genresList.length - 1 ? "border-b border-border/40" : ""
-                                        }`}
-                                        onClick={() => toggleGenre(genre.name)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" || e.key === " ") {
-                                                e.preventDefault();
-                                                toggleGenre(genre.name);
-                                            }
-                                        }}
-                                    >
-                                        <span className={`text-sm transition-colors ${
-                                            selectedGenres.includes(genre.name)
-                                                ? "text-foreground font-medium"
-                                                : "text-muted-foreground group-hover:text-foreground"
-                                        }`}>
-                                            {genre.name}
-                                        </span>
-                                        {selectedGenres.includes(genre.name) && (
-                                            <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                        <div className="overflow-y-auto max-h-72">
+                            {genresList.map((genre, idx) => (
+                                <div
+                                    key={genre.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
+                                        idx !== genresList.length - 1 ? "border-b border-border/40" : ""
+                                    }`}
+                                    onClick={() => toggleGenre(genre.name)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            toggleGenre(genre.name);
+                                        }
+                                    }}
+                                >
+                                    <span className={`text-sm transition-colors ${
+                                        selectedGenres.includes(genre.name)
+                                            ? "text-foreground font-medium"
+                                            : "text-muted-foreground group-hover:text-foreground"
+                                    }`}>
+                                        {genre.name}
+                                    </span>
+                                    {selectedGenres.includes(genre.name) && (
+                                        <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                                    )}
+                                </div>
+                            ))}
                         </div>
-                    </FilterDrawer>
-                </div>
-            </header>
+                    </div>
+                </FilterDrawer>
 
-            <main className="container mx-auto py-6 px-4">
-                <div className="mb-8">
+            <main className="w-full px-4 py-6">
+                <div className="mb-8 flex justify-center">
                     <MangaPagination
                         page={page}
                         totalPages={data?.meta.totalPages ?? 1}
                         setPage={setPage}
                     />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                <div ref={mangaGridRef} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
                     {loading &&
-                        Array.from({ length: 24 }).map((_, i) => (
+                        Array.from({ length: limit }).map((_, i) => (
                             <div
                                 key={i}
                                 className="group cursor-pointer animate-pulse"
@@ -505,7 +580,7 @@ export default function MangaList() {
                         />
                     ))}
                 </div>
-                <div className="mt-8">
+                <div className="mt-8 flex justify-center">
                     <MangaPagination
                         page={page}
                         totalPages={data?.meta.totalPages ?? 1}

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { HeaderProvider, useHeader } from "@/context/headerContext";
 import NotificationsPage from "@/pages/notificationsPage";
 
 const mockNavigate = vi.fn();
@@ -40,14 +41,28 @@ const NOTIFICATIONS_MOCK = [
     { id: "3", userId: "u1", type: "FRIEND_ACCEPTED" as const, title: "Solicitud aceptada", body: "María aceptó tu solicitud", data: null, read: true, createdAt: "2026-05-27T08:00:00Z" },
 ];
 
+function TestHeader() {
+    const { content } = useHeader();
+    return (
+        <>
+            <div data-testid="header-left">{content.left}</div>
+            <div data-testid="header-center">{content.center}</div>
+            <div data-testid="header-right">{content.right}</div>
+        </>
+    );
+}
+
 function renderPage() {
     return render(
         <HelmetProvider>
-            <SidebarProvider>
-                <MemoryRouter>
-                    <NotificationsPage />
-                </MemoryRouter>
-            </SidebarProvider>
+            <HeaderProvider>
+                <SidebarProvider>
+                    <MemoryRouter>
+                        <TestHeader />
+                        <NotificationsPage />
+                    </MemoryRouter>
+                </SidebarProvider>
+            </HeaderProvider>
         </HelmetProvider>,
     );
 }
@@ -150,7 +165,7 @@ it("muestra botón 'Cargar más' cuando hay más páginas", async () => {
     renderPage();
 
     await waitFor(() => {
-        expect(screen.getByText("Cargar más")).toBeInTheDocument();
+        expect(screen.getByText("3")).toBeInTheDocument();
     });
 });
 
