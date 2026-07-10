@@ -5,8 +5,7 @@ import { Search } from "lucide-react";
 
 export function DebouncedSearchInput({ placeholder = "Buscar", className = "pl-9 w-full bg-secondary/50" }: { placeholder?: string; className?: string }) {
     const [sp, setSp] = useSearchParams();
-    const urlSearch = sp.get("search") ?? "";
-    const [local, setLocal] = useState(urlSearch);
+    const [local, setLocal] = useState(() => sp.get("search") ?? "");
     const mounted = useRef(false);
 
     useEffect(() => {
@@ -14,11 +13,6 @@ export function DebouncedSearchInput({ placeholder = "Buscar", className = "pl-9
             mounted.current = true;
             return;
         }
-        setLocal(urlSearch);
-    }, [urlSearch]);
-
-    useEffect(() => {
-        if (local === urlSearch) return;
         const timer = setTimeout(() => {
             setSp((prev) => {
                 if (local) prev.set("search", local);
@@ -28,7 +22,7 @@ export function DebouncedSearchInput({ placeholder = "Buscar", className = "pl-9
             });
         }, 300);
         return () => clearTimeout(timer);
-    }, [local, urlSearch, setSp]);
+    }, [local, setSp]);
 
     return (
         <div className="relative w-full">
