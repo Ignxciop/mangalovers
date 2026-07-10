@@ -922,50 +922,32 @@ export default function FriendsPage() {
 
                 <main className="container mx-auto px-4 py-6">
                     <Tabs defaultValue="activity" className="w-full">
-                        <TabsList className="w-full h-auto p-1 bg-muted/50 rounded-2xl flex-wrap mb-6 gap-0.5">
-                            <TabsTrigger
-                                value="activity"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <Sparkles className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Actividad</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="friends"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <HeartHandshake className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Amigos</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="requests"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <UserPlus className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Solicitudes</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="sent"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <Send className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Enviadas</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="search"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <Search className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Buscar</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="blocked"
-                                className="flex-1 gap-1.5 rounded-xl text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm py-2 min-w-0"
-                            >
-                                <Ban className="size-3.5 shrink-0" />{" "}
-                                <span className="truncate">Bloqueados</span>
-                            </TabsTrigger>
-                        </TabsList>
+                    <TabsList variant="line" className="w-full justify-start gap-0 border-b border-border rounded-none h-auto pb-1.5 bg-transparent overflow-x-auto flex-nowrap">
+                        <TabsTrigger value="activity" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Sparkles className="size-4 shrink-0" />
+                            <span className="truncate">Actividad</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="friends" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <HeartHandshake className="size-4 shrink-0" />
+                            <span className="truncate">Amigos</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="requests" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <UserPlus className="size-4 shrink-0" />
+                            <span className="truncate">Solicitudes</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="sent" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Send className="size-4 shrink-0" />
+                            <span className="truncate">Enviadas</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="search" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Search className="size-4 shrink-0" />
+                            <span className="truncate">Buscar</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="blocked" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">
+                            <Ban className="size-4 shrink-0" />
+                            <span className="truncate">Bloqueados</span>
+                        </TabsTrigger>
+                    </TabsList>
 
                         <TabsContent value="activity">
                             <ActivityFeed />
