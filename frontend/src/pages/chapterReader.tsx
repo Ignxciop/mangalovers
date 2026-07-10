@@ -502,7 +502,7 @@ export default function ChapterReader() {
                     className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group truncate"
                 >
                     <ChevronLeft className="h-4 w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
-                    <span className="truncate max-w-[240px] md:max-w-[250px]">
+                    <span className="truncate max-w-[200px] md:max-w-[205px]">
                         {chapter?.series.name ?? "Cargando..."}
                     </span>
                 </button>
