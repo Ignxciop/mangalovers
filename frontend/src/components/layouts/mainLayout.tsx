@@ -37,7 +37,7 @@ function GlobalHeader({ hidden }: { hidden: boolean }) {
     }
 
     return (
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16 px-4 gap-4">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center h-16 px-4 gap-4">
             <div className="flex items-center gap-2.5 min-w-0 justify-self-start">
                 <SidebarTrigger />
                 <Link to="/" className="flex items-center gap-2 shrink-0">

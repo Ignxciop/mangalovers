@@ -499,10 +499,10 @@ export default function ChapterReader() {
             center: (
                 <button
                     onClick={() => navigate(`/manga/${slug}`, { state: { from } })}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group truncate"
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group truncate max-w-full"
                 >
                     <ChevronLeft className="h-4 w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
-                    <span className="truncate max-w-[200px] md:max-w-[205px]">
+                    <span className="truncate">
                         {chapter?.series.name ?? "Cargando..."}
                     </span>
                 </button>
