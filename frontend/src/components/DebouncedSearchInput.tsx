@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -6,15 +6,12 @@ import { Search } from "lucide-react";
 export function DebouncedSearchInput({ placeholder = "Buscar", className = "pl-9 w-full bg-secondary/50" }: { placeholder?: string; className?: string }) {
     const [sp, setSp] = useSearchParams();
     const [local, setLocal] = useState(() => sp.get("search") ?? "");
-    const mounted = useRef(false);
 
     useEffect(() => {
-        if (!mounted.current) {
-            mounted.current = true;
-            return;
-        }
         const timer = setTimeout(() => {
             setSp((prev) => {
+                const currentSearch = prev.get("search") ?? "";
+                if (local === currentSearch) return prev;
                 if (local) prev.set("search", local);
                 else prev.delete("search");
                 prev.set("page", "1");
