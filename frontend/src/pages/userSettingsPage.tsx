@@ -43,7 +43,10 @@ import {
     EyeOff,
     MessageSquare,
     Plus,
+    Search,
 } from "lucide-react";
+import { SearchBar } from "@/components/search-bar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/api/axios";
@@ -991,25 +994,33 @@ export default function UserSettingsPage() {
         return stateTab === "soporte" ? "soporte" : "perfil";
     });
     const { setContent } = useHeader();
+    const isMobile = useIsMobile();
 
     useEffect(() => {
         setContent({
-            center: (
-                <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-sm font-semibold">Configuración</span>
-                </div>
-            ),
+            center: <SearchBar />,
+            right: isMobile ? (
+                <button
+                    type="button"
+                    onClick={() => {
+                        const el = document.querySelector<HTMLInputElement>('[data-search-input]');
+                        el?.focus();
+                    }}
+                    className="flex items-center justify-center size-9 rounded-lg hover:bg-accent transition-colors"
+                >
+                    <Search className="h-5 w-5" />
+                </button>
+            ) : undefined,
         });
         return () => setContent({});
-    }, [setContent]);
+    }, [setContent, isMobile]);
 
     return (
         <>
             <SEO title="Configuración" description="Administra tu perfil, cambia tu contraseña y gestiona las notificaciones en Mangalovers." canonicalPath="/configuracion" />
-            <div className="min-h-screen bg-background">
+            <div className="min-h-full bg-background">
 
-                <main className="container mx-auto px-4 py-8 space-y-8">
+                <main className="w-full px-4 lg:px-6 py-8 space-y-8">
                     <ProfileHero />
 
                     <Tabs value={tab} onValueChange={setTab} className="w-full">
