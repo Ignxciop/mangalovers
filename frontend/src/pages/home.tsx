@@ -292,8 +292,9 @@ export default function Home() {
     const [recActivityMap, setRecActivityMap] = useState<Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>>({});
     const { favoriteIds } = useFavoriteIds();
     const { columns, latestItems, isMobile } = useViewportGrid();
+    const gridColumns = isMobile ? 2 : columns;
     const latestGridRef = useRef<HTMLDivElement | null>(null);
-    const actualColumns = useGridColumnCount(latestGridRef, columns);
+    const actualColumns = useGridColumnCount(latestGridRef, gridColumns);
     const displayCount = actualColumns * (isMobile ? 6 : 3);
     const { setContent, setSearchMode } = useHeader();
 
@@ -434,7 +435,7 @@ export default function Home() {
                             basedOn={basedOn}
                             loading={loadingRecommended}
                             friendActivity={recActivityMap}
-                            columns={columns}
+                            columns={gridColumns}
                         />
                     )}
 
@@ -459,7 +460,7 @@ export default function Home() {
                         <div
                             ref={latestGridRef}
                             className="grid gap-3"
-                            style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, contentVisibility: "auto" }}
+                            style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, contentVisibility: "auto" }}
                             aria-live="polite"
                             aria-atomic="true"
                         >

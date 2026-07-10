@@ -284,6 +284,8 @@ export default function FavoritesList() {
         return 3;
     });
 
+    const gridColumns = isMobile ? 2 : columns;
+
     useEffect(() => {
         const onResize = () => {
             const w = window.innerWidth;
@@ -696,7 +698,7 @@ export default function FavoritesList() {
                     )}
 
                     {loading && (
-                        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+                        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
                             {Array.from({ length: columns * 2 }).map((_, i) => (
                                 <div key={i} className="space-y-2">
                                     <Skeleton className="aspect-[2/3] rounded-xl" />
@@ -734,7 +736,7 @@ export default function FavoritesList() {
 
                     {!loading && filtered.length > 0 && (
                         <>
-                            <div ref={favGridRef} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+                            <div ref={favGridRef} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
                                 {paginatedFavorites.map((fav) => (
                                     <FavoriteListItem
                                         key={fav.id}

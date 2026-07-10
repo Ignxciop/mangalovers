@@ -297,6 +297,8 @@ export default function MangaList() {
         return 3;
     });
 
+    const gridColumns = isMobile ? 2 : columns;
+
     useEffect(() => {
         const onResize = () => {
             const w = window.innerWidth;
@@ -544,7 +546,7 @@ export default function MangaList() {
                         setPage={setPage}
                     />
                 </div>
-                <div ref={mangaGridRef} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+                <div ref={mangaGridRef} className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}>
                     {loading &&
                         Array.from({ length: limit }).map((_, i) => (
                             <div
