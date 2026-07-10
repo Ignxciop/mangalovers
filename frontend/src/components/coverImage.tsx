@@ -153,21 +153,22 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
                 </div>
             )}
 
-            <img
-                ref={imgRef}
-                src={currentUrl}
-                alt={alt}
-                loading={priority ? "eager" : "lazy"}
-                {...(priority ? { fetchPriority: "high" } : {})}
-                className={`w-full h-full object-cover ${
-                    status === "loaded" ? "opacity-100" : "opacity-0"
-                } transition-opacity duration-300`}
-                onLoad={(e) => {
-                    const img = e.currentTarget;
-                    if (img.naturalWidth < MIN_IMAGE_SIZE || img.naturalHeight < MIN_IMAGE_SIZE) {
-                        return;
-                    }
-                    if (loadedRef.current) return;
+            {currentUrl ? (
+                <img
+                    ref={imgRef}
+                    src={currentUrl}
+                    alt={alt}
+                    loading={priority ? "eager" : "lazy"}
+                    {...(priority ? { fetchPriority: "high" } : {})}
+                    className={`w-full h-full object-cover ${
+                        status === "loaded" ? "opacity-100" : "opacity-0"
+                    } transition-opacity duration-300`}
+                    onLoad={(e) => {
+                        const img = e.currentTarget;
+                        if (img.naturalWidth < MIN_IMAGE_SIZE || img.naturalHeight < MIN_IMAGE_SIZE) {
+                            return;
+                        }
+                        if (loadedRef.current) return;
                     setStatus("loaded");
                     loadedRef.current = true;
                 }}
@@ -188,6 +189,7 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
                     }
                 }}
             />
+            ) : null}
         </div>
     );
 }

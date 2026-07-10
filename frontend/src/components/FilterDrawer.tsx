@@ -54,7 +54,7 @@ export function FilterDrawer({
                     </Button>
                 </SheetTrigger>
             )}
-            <SheetContent className="flex flex-col gap-0 p-0">
+            <SheetContent aria-describedby={undefined} className="flex flex-col gap-0 p-0">
                 <SheetHeader className="px-6 py-5 border-b border-border">
                     <SheetTitle className="text-base">{title}</SheetTitle>
                 </SheetHeader>
