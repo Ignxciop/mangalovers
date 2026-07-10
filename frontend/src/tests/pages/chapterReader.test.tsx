@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { HeaderProvider, useHeader } from "@/context/headerContext";
 import ChapterReader from "@/pages/chapterReader";
 
 const mockNavigate = vi.fn();
@@ -82,19 +83,33 @@ const MOCK_CHAPTER = {
     ],
 };
 
+function TestHeader() {
+    const { content } = useHeader();
+    return (
+        <>
+            <div data-testid="header-left">{content.left}</div>
+            <div data-testid="header-center">{content.center}</div>
+            <div data-testid="header-right">{content.right}</div>
+        </>
+    );
+}
+
 function renderPage() {
     return render(
         <HelmetProvider>
-            <SidebarProvider>
-                <MemoryRouter initialEntries={["/manga/test-serie/capitulo/2"]}>
-                    <Routes>
-                        <Route
-                            path="/manga/:slug/capitulo/:chapterId"
-                            element={<ChapterReader />}
-                        />
-                    </Routes>
-                </MemoryRouter>
-            </SidebarProvider>
+            <HeaderProvider>
+                <SidebarProvider>
+                    <MemoryRouter initialEntries={["/manga/test-serie/capitulo/2"]}>
+                        <TestHeader />
+                        <Routes>
+                            <Route
+                                path="/manga/:slug/capitulo/:chapterId"
+                                element={<ChapterReader />}
+                            />
+                        </Routes>
+                    </MemoryRouter>
+                </SidebarProvider>
+            </HeaderProvider>
         </HelmetProvider>,
     );
 }
@@ -138,7 +153,7 @@ describe("ChapterReader", () => {
 
         it("renderiza nombre de la serie", () => {
             renderPage();
-            expect(screen.getAllByText("Test Serie").length).toBeGreaterThanOrEqual(1);
+            expect(screen.getByText("Test Serie")).toBeInTheDocument();
         });
 
         it("renderiza botones prev y next (ChapterNav aparece 2 veces)", () => {
