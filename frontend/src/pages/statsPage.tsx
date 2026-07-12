@@ -313,7 +313,7 @@ function TopGenres({ genres }: { genres: { name: string; count: number }[] }) {
                                     {g.name}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">
-                                    {g.count} caps
+                                    {g.count} series
                                 </span>
                             </div>
                             <div className="h-1.5 bg-muted rounded-full overflow-hidden">

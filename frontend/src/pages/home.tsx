@@ -436,6 +436,8 @@ export default function Home() {
                             loading={loadingRecommended}
                             friendActivity={recActivityMap}
                             columns={gridColumns}
+                            isMobile={isMobile}
+                            limit={8}
                         />
                     )}
 
