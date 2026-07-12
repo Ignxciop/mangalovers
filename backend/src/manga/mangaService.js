@@ -567,10 +567,18 @@ export async function getRecommendedSeries(userId, limit = 14) {
 
   const genreCount = new Map();
   const readSeriesSet = new Set();
+  const seriesGenres = new Map();
   for (const r of reads) {
-    readSeriesSet.add(r.chapter.seriesId);
-    for (const g of r.chapter.series.genres) {
-      const name = g.genre.name;
+    const seriesId = r.chapter.seriesId;
+    if (!readSeriesSet.has(seriesId)) {
+      readSeriesSet.add(seriesId);
+      seriesGenres.set(seriesId, r.chapter.series.genres.map((g) => g.genre.name));
+    }
+  }
+
+  for (const genres of seriesGenres.values()) {
+    const unique = new Set(genres);
+    for (const name of unique) {
       genreCount.set(name, (genreCount.get(name) ?? 0) + 1);
     }
   }

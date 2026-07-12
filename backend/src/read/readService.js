@@ -658,9 +658,14 @@ export async function getFullStats(userId) {
   const completionRate = startedSeries > 0 ? Math.round((completedSeries / startedSeries) * 100) : 0;
 
   const genreCount = new Map();
+  const countedGenre = new Set();
   for (const r of reads) {
+    const primaryId = seriesToPrimary.get(r.chapter.seriesId) ?? r.chapter.seriesId;
     const genres = seriesGenreMap.get(r.chapter.seriesId) ?? [];
     for (const name of genres) {
+      const key = `${primaryId}:${name}`;
+      if (countedGenre.has(key)) continue;
+      countedGenre.add(key);
       genreCount.set(name, (genreCount.get(name) ?? 0) + 1);
     }
   }
