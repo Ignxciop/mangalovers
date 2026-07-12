@@ -75,30 +75,36 @@ function RecommendedSkeleton() {
     );
 }
 
-export function RecommendedSection({
-    items,
-    basedOn,
-    loading,
-    friendActivity,
-    columns = 6,
+function SkeletonSection({
+    isMobile,
+    limit,
+    columns,
 }: {
-    items: RecommendedSeries[];
-    basedOn: string[];
-    loading: boolean;
-    friendActivity: Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>;
-    columns?: number;
+    isMobile?: boolean;
+    limit?: number;
+    columns: number;
 }) {
-    if (loading) {
-        return (
-            <section>
-                <div className="flex items-center gap-2 mb-4">
-                    <span className="relative flex items-center justify-center size-6 rounded-md bg-brand-amber/15 text-brand-amber">
-                        <Sparkles className="h-3.5 w-3.5" />
-                    </span>
-                    <h2 className="text-sm font-semibold tracking-wide">
-                        Recomendados para ti
-                    </h2>
+    return (
+        <section>
+            <div className="flex items-center gap-2 mb-4">
+                <span className="relative flex items-center justify-center size-6 rounded-md bg-brand-amber/15 text-brand-amber">
+                    <Sparkles className="h-3.5 w-3.5" />
+                </span>
+                <h2 className="text-sm font-semibold tracking-wide">
+                    Recomendados para ti
+                </h2>
+            </div>
+            {isMobile ? (
+                <div className="overflow-x-auto flex gap-3 pb-1">
+                    {Array.from({ length: limit ?? 8 }).map((_, i) => (
+                        <div key={i} className="w-[calc(50%-6px)] shrink-0 space-y-2">
+                            <Skeleton className="aspect-[2/3] rounded-xl w-full" />
+                            <Skeleton className="h-3 w-3/4 rounded" />
+                            <Skeleton className="h-2 w-1/2 rounded" />
+                        </div>
+                    ))}
                 </div>
+            ) : (
                 <div
                     className="grid gap-3"
                     style={{ gridTemplateColumns: `repeat(${Math.max(columns, 1)}, minmax(0, 1fr))` }}
@@ -107,11 +113,33 @@ export function RecommendedSection({
                         <RecommendedSkeleton key={i} />
                     ))}
                 </div>
-            </section>
-        );
-    }
+            )}
+        </section>
+    );
+}
+
+export function RecommendedSection({
+    items,
+    basedOn,
+    loading,
+    friendActivity,
+    columns = 6,
+    isMobile,
+    limit,
+}: {
+    items: RecommendedSeries[];
+    basedOn: string[];
+    loading: boolean;
+    friendActivity: Record<number, { userId: string; name: string; lastname: string; alias: string | null; avatarUrl: string | null }[]>;
+    columns?: number;
+    isMobile?: boolean;
+    limit?: number;
+}) {
+    if (loading) return <SkeletonSection isMobile={isMobile} limit={limit} columns={columns} />;
 
     if (items.length === 0) return null;
+
+    const displayItems = items.slice(0, isMobile ? (limit ?? 8) : columns);
 
     return (
         <section>
@@ -138,17 +166,27 @@ export function RecommendedSection({
                 </Link>
             </div>
 
-            <div
-                className="grid gap-3"
-                style={{
-                    gridTemplateColumns: `repeat(${Math.max(columns, 1)}, minmax(0, 1fr))`,
-                    contentVisibility: "auto",
-                }}
-            >
-                {items.slice(0, columns).map((item, i) => (
-                    <RecommendedCard key={item.id} item={item} index={i} friends={friendActivity[item.id] ?? []} />
-                ))}
-            </div>
+            {isMobile ? (
+                <div className="overflow-x-auto flex gap-3 pb-1 snap-x snap-mandatory scrollbar-thin">
+                    {displayItems.map((item, i) => (
+                        <div key={item.id} className="w-[calc(50%-6px)] shrink-0 snap-start">
+                            <RecommendedCard item={item} index={i} friends={friendActivity[item.id] ?? []} />
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div
+                    className="grid gap-3"
+                    style={{
+                        gridTemplateColumns: `repeat(${Math.max(columns, 1)}, minmax(0, 1fr))`,
+                        contentVisibility: "auto",
+                    }}
+                >
+                    {displayItems.map((item, i) => (
+                        <RecommendedCard key={item.id} item={item} index={i} friends={friendActivity[item.id] ?? []} />
+                    ))}
+                </div>
+            )}
         </section>
     );
 }
