@@ -9,7 +9,8 @@ import { notifyNewChapter } from "../../../notifications/pushService.js";
 const limit = pLimit(3);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const BASE_URL = "https://leermangaesp.net";
+const BASE_URL = "https://mangalect.org";
+const CDN_HOST = "https://images.mangalect.org";
 
 function buildPagesFromRutas(data) {
     const scriptMatch = data.match(/paginasRutas\s*=\s*\[([^\]]+)\]/);
@@ -18,14 +19,14 @@ function buildPagesFromRutas(data) {
     if (!urls) return [];
     return urls.map((u) => {
         const path = u.replace(/"/g, "");
-        return path.startsWith("http") ? path : `${BASE_URL}${path}`;
+        return path.startsWith("http") ? path : `${CDN_HOST}${path}`;
     });
 }
 
 async function fetchReaderPages(originalSlug, chapterNumber, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
-            const url = `${BASE_URL}/leer-m/${originalSlug}/${chapterNumber}/`;
+            const url = `${BASE_URL}/lectura/${originalSlug}/${chapterNumber}/`;
             logger.debug({ url }, "Fetching reader page leermangaesp");
             const { data } = await axios.get(url, { timeout: 30000 });
             const $ = cheerio.load(data);

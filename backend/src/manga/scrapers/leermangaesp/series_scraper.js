@@ -16,8 +16,8 @@ import {
 const limit = pLimit(1);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const BASE_URL = "https://leermangaesp.net";
-const CDN_URL = "https://images.leermangaesp.net/file/leermangaesp";
+const BASE_URL = "https://mangalect.org";
+const CDN_URL = "https://images.mangalect.org/file/leermangaesp";
 
 const TYPE_MAP = {
     manga: "manga",

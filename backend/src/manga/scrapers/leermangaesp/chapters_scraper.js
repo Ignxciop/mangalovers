@@ -12,12 +12,12 @@ const limit = pLimit(2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MAX_CONSECUTIVE_EXISTING = 10;
 
-const BASE_URL = "https://leermangaesp.net";
+const BASE_URL = "https://mangalect.org";
 
 async function fetchPage(originalSlug, before = null, retries = 3) {
     const url = before
-        ? `${BASE_URL}/manga/${originalSlug}/?before=${before}`
-        : `${BASE_URL}/manga/${originalSlug}/`;
+        ? `${BASE_URL}/info/${originalSlug}/?before=${before}`
+        : `${BASE_URL}/info/${originalSlug}/`;
 
     for (let i = 0; i < retries; i++) {
         try {
