@@ -19,8 +19,14 @@ RUN mkdir -p /app/uploads/avatars && chown -R nodejs:nodejs /app/uploads
 
 COPY --chown=nodejs:nodejs . .
 
+COPY docker-entrypoint.sh .
+RUN chmod +x docker-entrypoint.sh
+
 USER nodejs
 
 EXPOSE 4008
 
-CMD ["sh", "-c", "pnpm prisma migrate deploy && node index.js"]
+HEALTHCHECK --interval=15s --timeout=10s --start-period=120s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:4008/api/health || exit 1
+
+ENTRYPOINT ["./docker-entrypoint.sh"]

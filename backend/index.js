@@ -160,8 +160,13 @@ app.use("/api/comments/:id/like", commentLikeLimiter);
 
 app.use("/uploads", express.static("uploads"));
 
-app.get("/api/health", (req, res) => {
-    res.status(200).json({ status: "OK", message: "Server está activo" });
+app.get("/api/health", async (req, res) => {
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        res.status(200).json({ status: "OK", db: "connected" });
+    } catch {
+        res.status(503).json({ status: "error", db: "disconnected" });
+    }
 });
 app.get("/api/debug/log-test", async (req, res) => {
     try {
