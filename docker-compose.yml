@@ -37,7 +37,8 @@ services:
         ports:
             - "4007:4007"
         depends_on:
-            - backend
+            backend:
+                condition: service_healthy
         networks:
             - mangalovers-network
 
@@ -52,9 +53,6 @@ services:
             - tunnel
             - --no-autoupdate
             - run
-        depends_on:
-            - frontend
-            - backend
 
 networks:
     mangalovers-network:
