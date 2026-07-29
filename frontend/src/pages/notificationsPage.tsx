@@ -67,8 +67,12 @@ function NotificationItem({ notification, index, onRead }: { notification: AppNo
             navigate("/configuracion", { state: { tab: "soporte" } });
         } else if (notification.type === "FRIEND_REQUEST" || notification.type === "FRIEND_ACCEPTED") {
             navigate("/amigos");
-        } else if (notification.type === "COMMENT_REPLY" && notification.data?.seriesSlug && notification.data?.chapterId && notification.data?.replyId) {
-            navigate(`/manga/${notification.data.seriesSlug}/capitulo/${notification.data.chapterId}#comment-${notification.data.replyId}`);
+        } else if (notification.type === "COMMENT_REPLY" && notification.data?.replyId && notification.data?.seriesSlug) {
+            if (notification.data.chapterId) {
+                navigate(`/manga/${notification.data.seriesSlug}/capitulo/${notification.data.chapterId}#comment-${notification.data.replyId}`);
+            } else {
+                navigate(`/manga/${notification.data.seriesSlug}#comment-${notification.data.replyId}`);
+            }
         }
     };
 

@@ -13,8 +13,11 @@ export interface Comment {
     parentId: number | null;
     createdAt: string;
     updatedAt: string;
+    isEdited: boolean;
     user: CommentUser | null;
     likeCount: number;
+    replyCount: number;
+    totalReplyCount: number;
     isLikedByMe: boolean;
     replies: Comment[];
 }
@@ -49,6 +52,44 @@ export async function createComment(
         { content, isSpoiler },
     );
     return data.data;
+}
+
+export type SeriesCommentsResponse = ChapterCommentsResponse;
+
+export async function getSeriesComments(
+    seriesId: number,
+    page = 1,
+    limit = 20,
+): Promise<SeriesCommentsResponse> {
+    const { data } = await api.get<SeriesCommentsResponse>(
+        `/comments/series/${seriesId}`,
+        { params: { page, limit } },
+    );
+    return data;
+}
+
+export async function createSeriesComment(
+    seriesId: number,
+    content: string,
+    isSpoiler = false,
+): Promise<Comment> {
+    const { data } = await api.post<{ success: boolean; data: Comment }>(
+        `/comments/series/${seriesId}`,
+        { content, isSpoiler },
+    );
+    return data.data;
+}
+
+export async function getCommentReplies(
+    commentId: number,
+    offset = 0,
+    limit = 5,
+): Promise<ChapterCommentsResponse> {
+    const { data } = await api.get<ChapterCommentsResponse>(
+        `/comments/${commentId}/replies`,
+        { params: { offset, limit } },
+    );
+    return data;
 }
 
 export async function replyToComment(
@@ -88,4 +129,12 @@ export async function toggleCommentLike(
         `/comments/${commentId}/like`,
     );
     return { liked: data.liked };
+}
+
+export async function reportComment(
+    commentId: number,
+    reason: string,
+    description?: string,
+): Promise<void> {
+    await api.post(`/comments/${commentId}/report`, { reason, description });
 }

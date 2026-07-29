@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { createNotification } from "../notifications/notificationService.js";
@@ -12,7 +13,28 @@ const COMMENT_USER_SELECT = {
   avatarUrl: true,
 };
 
-function formatComment(c, currentUserId) {
+function baseCommentInclude(currentUserId, includeRepliesCount = false) {
+  return {
+    user: { select: COMMENT_USER_SELECT },
+    _count: {
+      select: {
+        likes: true,
+        ...(includeRepliesCount && { replies: true }),
+      },
+    },
+    likes: currentUserId
+      ? { where: { userId: currentUserId }, select: { userId: true } }
+      : false,
+  };
+}
+
+function topLevelInclude(currentUserId) {
+  return {
+    ...baseCommentInclude(currentUserId, true),
+  };
+}
+
+function formatComment(c, currentUserId, totalReplyCountOverride) {
   return {
     id: c.id,
     content: c.content,
@@ -20,6 +42,7 @@ function formatComment(c, currentUserId) {
     parentId: c.parentId,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
+    isEdited: new Date(c.updatedAt) > new Date(c.createdAt),
     user: c.user
       ? {
           id: c.user.id,
@@ -28,10 +51,12 @@ function formatComment(c, currentUserId) {
         }
       : null,
     likeCount: c._count?.likes ?? 0,
+    replyCount: c._count?.replies ?? 0,
+    totalReplyCount: totalReplyCountOverride ?? c._count?.replies ?? 0,
     isLikedByMe: currentUserId
       ? c.likes?.some((l) => l.userId === currentUserId) ?? false
       : false,
-    replies: [],
+    replies: c.replies?.map((r) => formatComment(r, currentUserId)) ?? [],
   };
 }
 
@@ -55,8 +80,30 @@ function buildCommentTree(comments, currentUserId) {
   return roots;
 }
 
-export async function getChapterComments(chapterId, currentUserId, page = 1, limit = 20) {
-  const where = { chapterId };
+async function computeTotalReplyCounts(commentIds) {
+  if (!commentIds.length) return new Map();
+
+  const rows = await prisma.$queryRaw`
+    WITH RECURSIVE reply_tree AS (
+      SELECT id, "parentId" AS root_id FROM "comments"
+      WHERE "parentId" IN (${Prisma.join(commentIds)}) AND visible = true
+      UNION ALL
+      SELECT c.id, rt.root_id FROM "comments" c
+      INNER JOIN reply_tree rt ON c."parentId" = rt.id
+      WHERE c.visible = true
+    )
+    SELECT root_id, COUNT(*)::int AS total FROM reply_tree GROUP BY root_id
+  `;
+
+  const map = new Map();
+  for (const row of rows) {
+    map.set(Number(row.root_id), Number(row.total));
+  }
+  return map;
+}
+
+export async function getChapterComments(chapterId, currentUserId, page = 1, limit = 10) {
+  const where = { chapterId, visible: true };
   const skip = (page - 1) * limit;
 
   const [topLevel, total] = await Promise.all([
@@ -65,51 +112,15 @@ export async function getChapterComments(chapterId, currentUserId, page = 1, lim
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,
-      include: {
-        user: { select: COMMENT_USER_SELECT },
-        _count: { select: { likes: true } },
-        likes: currentUserId
-          ? { where: { userId: currentUserId }, select: { userId: true } }
-          : false,
-      },
+      include: topLevelInclude(currentUserId),
     }),
     prisma.comment.count({ where: { ...where, parentId: null } }),
   ]);
 
-  const topLevelIds = topLevel.map((c) => c.id);
-
-  const allReplies = topLevelIds.length > 0
-    ? await prisma.comment.findMany({
-        where: { parentId: { in: topLevelIds } },
-        orderBy: { createdAt: "asc" },
-        include: {
-          user: { select: COMMENT_USER_SELECT },
-          _count: { select: { likes: true } },
-          likes: currentUserId
-            ? { where: { userId: currentUserId }, select: { userId: true } }
-            : false,
-        },
-      })
-    : [];
-
-  const nestedReplies = allReplies.length > 0
-    ? await prisma.comment.findMany({
-        where: { parentId: { in: allReplies.map((c) => c.id) } },
-        orderBy: { createdAt: "asc" },
-        include: {
-          user: { select: COMMENT_USER_SELECT },
-          _count: { select: { likes: true } },
-          likes: currentUserId
-            ? { where: { userId: currentUserId }, select: { userId: true } }
-            : false,
-        },
-      })
-    : [];
-
-  const flat = [...topLevel, ...allReplies, ...nestedReplies];
+  const totalReplyCounts = await computeTotalReplyCounts(topLevel.map((c) => c.id));
 
   return {
-    data: buildCommentTree(flat, currentUserId),
+    data: topLevel.map((c) => formatComment(c, currentUserId, totalReplyCounts.get(c.id) ?? 0)),
     total,
     page,
     limit,
@@ -144,23 +155,104 @@ export async function createComment(userId, chapterId, content, isSpoiler = fals
   return formatComment(comment, userId);
 }
 
+export async function getSeriesComments(seriesId, currentUserId, page = 1, limit = 10) {
+  const where = { seriesId, visible: true };
+  const skip = (page - 1) * limit;
+
+  const [topLevel, total] = await Promise.all([
+    prisma.comment.findMany({
+      where: { ...where, parentId: null },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      include: topLevelInclude(currentUserId),
+    }),
+    prisma.comment.count({ where: { ...where, parentId: null } }),
+  ]);
+
+  const totalReplyCounts = await computeTotalReplyCounts(topLevel.map((c) => c.id));
+
+  return {
+    data: topLevel.map((c) => formatComment(c, currentUserId, totalReplyCounts.get(c.id) ?? 0)),
+    total,
+    page,
+    limit,
+  };
+}
+
+export async function getCommentReplies(parentId, currentUserId, offset = 0, limit = 5) {
+  const [replies, total] = await Promise.all([
+    prisma.comment.findMany({
+      where: { parentId, visible: true },
+      orderBy: { createdAt: "asc" },
+      skip: offset,
+      take: limit,
+      include: baseCommentInclude(currentUserId, true),
+    }),
+    prisma.comment.count({ where: { parentId, visible: true } }),
+  ]);
+
+  const totalReplyCounts = await computeTotalReplyCounts(replies.map((r) => r.id));
+  const data = replies.map((c) => {
+    const formatted = formatComment(c, currentUserId);
+    formatted.totalReplyCount = totalReplyCounts.get(c.id) ?? 0;
+    return formatted;
+  });
+
+  return { data, total, offset, limit };
+}
+
+export async function createSeriesComment(userId, seriesId, content, isSpoiler = false) {
+  const series = await prisma.series.findUnique({
+    where: { id: seriesId },
+    select: { id: true, name: true, slug: true },
+  });
+  if (!series) throw new NotFoundError("Serie no encontrada");
+
+  const comment = await prisma.comment.create({
+    data: { userId, seriesId, content, isSpoiler },
+    include: {
+      user: { select: COMMENT_USER_SELECT },
+      _count: { select: { likes: true } },
+      likes: { where: { userId }, select: { userId: true } },
+    },
+  });
+
+  ActivityLogService.logEvent(userId, "CREATE_COMMENT", {
+    seriesId,
+    commentId: comment.id,
+    content: comment.content.slice(0, 100),
+    seriesName: series.name,
+    seriesSlug: series.slug,
+  }).catch((err) => logger.warn({ err }, "Error logging create series comment activity"));
+
+  return formatComment(comment, userId);
+}
+
 export async function replyToComment(userId, commentId, content, isSpoiler = false) {
   const parent = await prisma.comment.findUnique({
     where: { id: commentId },
     select: {
       id: true,
+      visible: true,
+      userId: true,
+      id: true,
       userId: true,
       chapterId: true,
+      seriesId: true,
       chapter: { select: { name: true, series: { select: { slug: true, name: true } } } },
+      series: { select: { name: true, slug: true } },
       user: { select: { alias: true, name: true, lastname: true } },
     },
   });
   if (!parent) throw new NotFoundError("Comentario no encontrado");
+  if (!parent.visible) throw new NotFoundError("Comentario no encontrado");
 
   const reply = await prisma.comment.create({
     data: {
       userId,
       chapterId: parent.chapterId,
+      seriesId: parent.seriesId,
       parentId: commentId,
       content,
       isSpoiler,
@@ -174,29 +266,33 @@ export async function replyToComment(userId, commentId, content, isSpoiler = fal
 
   if (parent.userId !== userId) {
     const replierAlias = reply.user?.alias ?? "Alguien";
-    const chapterName = parent.chapter?.name ?? "";
+    const label = parent.chapter
+      ? `Cap. ${parent.chapter.name}`
+      : parent.series?.name ?? "";
     createNotification({
       userId: parent.userId,
       type: "COMMENT_REPLY",
       title: "Nueva respuesta",
-      body: `${replierAlias} te respondió en el Cap. ${chapterName}`,
+      body: `${replierAlias} te respondió en ${label}`,
       data: {
         chapterId: parent.chapterId,
+        seriesId: parent.seriesId,
         commentId,
         replyId: reply.id,
-        seriesSlug: parent.chapter?.series?.slug ?? null,
-        chapterName,
+        seriesSlug: parent.chapter?.series?.slug ?? parent.series?.slug ?? null,
+        chapterName: parent.chapter?.name ?? null,
       },
     }).catch((err) => logger.warn({ err }, "Error creando notificación de reply"));
   }
 
   ActivityLogService.logEvent(userId, "CREATE_COMMENT", {
     chapterId: parent.chapterId,
+    seriesId: parent.seriesId,
     commentId: reply.id,
     parentId: commentId,
     content: reply.content.slice(0, 100),
-    seriesName: parent.chapter?.series?.name ?? null,
-    seriesSlug: parent.chapter?.series?.slug ?? null,
+    seriesName: parent.chapter?.series?.name ?? parent.series?.name ?? null,
+    seriesSlug: parent.chapter?.series?.slug ?? parent.series?.slug ?? null,
     chapterName: parent.chapter?.name ?? null,
   }).catch((err) => logger.warn({ err }, "Error logging reply activity"));
 
@@ -206,9 +302,9 @@ export async function replyToComment(userId, commentId, content, isSpoiler = fal
 export async function updateComment(userId, commentId, content, isSpoiler, userRole) {
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
-    select: { userId: true },
+    select: { userId: true, visible: true },
   });
-  if (!comment) throw new NotFoundError("Comentario no encontrado");
+  if (!comment || !comment.visible) throw new NotFoundError("Comentario no encontrado");
   if (comment.userId !== userId && userRole !== "ADMIN") {
     throw new ForbiddenError("No puedes editar este comentario");
   }
@@ -244,7 +340,10 @@ export async function deleteComment(userId, commentId, userRole) {
     throw new ForbiddenError("No puedes eliminar este comentario");
   }
 
-  await prisma.comment.delete({ where: { id: commentId } });
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: { visible: false },
+  });
 
   ActivityLogService.logEvent(userId, "DELETE_COMMENT", {
     chapterId: comment.chapterId,
@@ -259,9 +358,9 @@ export async function deleteComment(userId, commentId, userRole) {
 export async function toggleLike(userId, commentId) {
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
-    select: { id: true },
+    select: { id: true, visible: true },
   });
-  if (!comment) throw new NotFoundError("Comentario no encontrado");
+  if (!comment || !comment.visible) throw new NotFoundError("Comentario no encontrado");
 
   const existing = await prisma.commentLike.findUnique({
     where: { userId_commentId: { userId, commentId } },

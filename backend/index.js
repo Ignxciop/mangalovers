@@ -29,6 +29,7 @@ import activityLogRoutes from "./src/activityLog/activityLogRoutes.js";
 import scraperAdminRoutes from "./src/admin/scraperAdminRoutes.js";
 import announcementRoutes from "./src/routes/announcementRoutes.js";
 import commentRoutes from "./src/comments/commentRoutes.js";
+import commentReportRoutes, { adminReportRoutes } from "./src/comments/commentReportRoutes.js";
 import userRoutes from "./src/users/userRoutes.js";
 import proxyRoutes from "./src/proxy/proxyRoutes.js";
 import { ActivityLogService } from "./src/activityLog/activityLogService.js";
@@ -157,6 +158,7 @@ app.use("/api/friends/request", friendLimiter);
 app.use("/api/friends/block", friendLimiter);
 app.use("/api/friends/search", friendLimiter);
 app.use("/api/comments/chapter", commentLimiter);
+app.use("/api/comments/series", commentLimiter);
 app.use("/api/comments/:id/like", commentLikeLimiter);
 
 app.use("/uploads", express.static("uploads"));
@@ -195,6 +197,8 @@ app.use("/api/admin", scraperAdminRoutes);
 app.use("/api", sitemapRoutes);
 app.use("/api", announcementRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/comments", commentReportRoutes);
+app.use("/api/admin", adminReportRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api", proxyRoutes);
 

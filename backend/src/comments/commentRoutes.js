@@ -2,6 +2,9 @@ import { Router } from "express";
 import {
   handleGetChapterComments,
   handleCreateComment,
+  handleGetSeriesComments,
+  handleCreateSeriesComment,
+  handleGetCommentReplies,
   handleReplyToComment,
   handleUpdateComment,
   handleDeleteComment,
@@ -12,6 +15,7 @@ import { authorize } from "../middlewares/authorize.js";
 import { validate } from "../utils/validate.js";
 import {
   chapterIdParamValidator,
+  seriesIdParamValidator,
   commentIdParamValidator,
   createCommentValidator,
   replyCommentValidator,
@@ -34,6 +38,28 @@ router.post(
   createCommentValidator,
   validate,
   handleCreateComment,
+);
+router.get(
+  "/series/:seriesId",
+  optionalAuthenticate,
+  seriesIdParamValidator,
+  validate,
+  handleGetSeriesComments,
+);
+router.post(
+  "/series/:seriesId",
+  authenticate,
+  seriesIdParamValidator,
+  createCommentValidator,
+  validate,
+  handleCreateSeriesComment,
+);
+router.get(
+  "/:id/replies",
+  optionalAuthenticate,
+  commentIdParamValidator,
+  validate,
+  handleGetCommentReplies,
 );
 router.post(
   "/:id/reply",

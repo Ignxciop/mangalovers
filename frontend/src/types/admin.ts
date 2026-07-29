@@ -408,3 +408,60 @@ export interface ScraperRunResponse {
     message: string;
 }
 
+export type ReportReason = "OFFENSIVE_LANGUAGE" | "UNMARKED_SPOILER" | "OTHER";
+export type ReportStatus = "PENDING" | "REVIEWED" | "DISMISSED" | "RESOLVED";
+
+export interface CommentReport {
+    id: number;
+    commentId: number | null;
+    reason: ReportReason;
+    description: string | null;
+    status: ReportStatus;
+    createdAt: string;
+    resolvedAt: string | null;
+    adminNote: string | null;
+    reporter: {
+        id: string;
+        name: string;
+        lastname: string;
+        alias: string | null;
+        avatarUrl: string | null;
+    } | null;
+    resolvedBy: {
+        id: string;
+        name: string;
+        lastname: string;
+    } | null;
+    comment: {
+        id: number;
+        content: string;
+        isSpoiler: boolean;
+        chapterId: number | null;
+        seriesId: number | null;
+        series: { slug: string; name: string } | null;
+        chapter: { name: string } | null;
+        user: { id: string; alias: string | null } | null;
+    } | null;
+}
+
+export interface ReportsListResponse {
+    success: boolean;
+    data: CommentReport[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+
+export interface ReportCreateResponse {
+    success: boolean;
+    data: CommentReport;
+}
+
+export interface PendingCountResponse {
+    success: boolean;
+    count: number;
+}
+

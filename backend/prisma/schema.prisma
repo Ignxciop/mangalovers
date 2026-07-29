@@ -77,6 +77,8 @@ model User {
   seenAnnouncements UserAnnouncement[]
   comments          Comment[]
   commentLikes      CommentLike[]
+  reportedComments  CommentReport[] @relation("ReportedBy")
+  resolvedReports   CommentReport[] @relation("ReportResolvedBy")
 
   @@map("users")
 }
@@ -140,6 +142,8 @@ model Series {
   aliases          SeriesAlias[]
   primaryRelations SeriesRelation[] @relation("PrimarySeries")
   fallbackRelations SeriesRelation[] @relation("FallbackSeries")
+
+  comments          Comment[]
 
   lastChaptersCheck DateTime?
   createdAt         DateTime  @default(now())
@@ -210,19 +214,24 @@ model Comment {
   id        Int      @id @default(autoincrement())
   content   String
   isSpoiler Boolean  @default(false) @map("is_spoiler")
+  visible   Boolean  @default(true)
   userId    String
-  chapterId Int
+  chapterId Int?
+  seriesId  Int?
   parentId  Int?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  series  Series?  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   parent  Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies Comment[] @relation("CommentReplies")
   likes   CommentLike[]
+  reports CommentReport[]
 
   @@index([chapterId, createdAt])
+  @@index([seriesId, createdAt])
   @@index([parentId])
   @@map("comments")
 }
@@ -238,6 +247,41 @@ model CommentLike {
 
   @@unique([userId, commentId])
   @@map("comment_likes")
+}
+
+enum ReportReason {
+  OFFENSIVE_LANGUAGE
+  UNMARKED_SPOILER
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  RESOLVED
+}
+
+model CommentReport {
+  id          Int          @id @default(autoincrement())
+  commentId   Int?
+  reporterId  String
+  reason      ReportReason
+  description String?
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  resolvedAt  DateTime?    @map("resolved_at")
+  resolvedById String?
+  adminNote   String?      @map("admin_note")
+
+  comment  Comment? @relation(fields: [commentId], references: [id], onDelete: SetNull)
+  reporter User    @relation("ReportedBy", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy User? @relation("ReportResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([commentId])
+  @@index([reporterId])
+  @@index([status])
+  @@map("comment_reports")
 }
 
 model Provider {

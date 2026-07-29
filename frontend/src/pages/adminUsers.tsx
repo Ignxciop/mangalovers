@@ -81,6 +81,7 @@ const EVENT_LABELS: Record<string, string> = {
     UNBLOCK_USER: "Desbloquear usuario",
     CREATE_COMMENT: "Crear comentario",
     DELETE_COMMENT: "Eliminar comentario",
+    REPORT_COMMENT: "Reportar comentario",
 };
 
 const EVENT_COLORS: Record<string, string> = {
@@ -104,6 +105,7 @@ const EVENT_COLORS: Record<string, string> = {
     UNBLOCK_USER: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     CREATE_COMMENT: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
     DELETE_COMMENT: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+    REPORT_COMMENT: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
 };
 
 const STATUS_LABELS: Record<UserStatus, string> = {
@@ -158,6 +160,12 @@ const SUGGESTION_STATUS_LABELS: Record<string, string> = {
     OPEN: "abierta", REVIEWING: "revisando", RESOLVED: "resuelta", REJECTED: "rechazada", CLOSED: "cerrada",
 };
 
+const REPORT_REASON_LABELS: Record<string, string> = {
+    OFFENSIVE_LANGUAGE: "lenguaje ofensivo",
+    UNMARKED_SPOILER: "spoiler sin marcar",
+    OTHER: "otro",
+};
+
 function formatLogMetadata(event: string, metadata: Record<string, unknown> | null): string {
     if (!metadata) return "";
     switch (event) {
@@ -204,9 +212,15 @@ function formatLogMetadata(event: string, metadata: Record<string, unknown> | nu
         case "UNBLOCK_USER":
             return "Desbloqueó a un usuario";
         case "CREATE_COMMENT":
-            return `Comentó "${String(metadata.content).slice(0, 60)}" en el capítulo ${metadata.chapterName} de "${metadata.seriesName}"`;
+            return metadata.chapterName
+                ? `Comentó "${String(metadata.content).slice(0, 60)}" en el capítulo ${metadata.chapterName} de "${metadata.seriesName}"`
+                : `Comentó "${String(metadata.content).slice(0, 60)}" en "${metadata.seriesName}"`;
         case "DELETE_COMMENT":
-            return `Eliminó un comentario en el capítulo ${metadata.chapterName} de "${metadata.seriesName}"`;
+            return metadata.chapterName
+                ? `Eliminó un comentario en el capítulo ${metadata.chapterName} de "${metadata.seriesName}"`
+                : `Eliminó un comentario en "${metadata.seriesName}"`;
+        case "REPORT_COMMENT":
+            return `Reportó un comentario: "${String(metadata.content).slice(0, 60)}" (${REPORT_REASON_LABELS[String(metadata.reason)] ?? metadata.reason})`;
         case "UPDATE_PROFILE":
             return `Actualizó su perfil: ${metadata.field}`;
         default:

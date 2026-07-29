@@ -10,6 +10,7 @@ import suggestionRoutes from "../../src/suggestions/suggestionRoutes.js";
 import friendRoutes from "../../src/friends/friendRoutes.js";
 import adminRoutes from "../../src/admin/adminUserRoutes.js";
 import activityLogRoutes from "../../src/activityLog/activityLogRoutes.js";
+import commentRoutes from "../../src/comments/commentRoutes.js";
 
 export function buildApp() {
     const app = express();
@@ -28,6 +29,7 @@ export function buildApp() {
     app.use("/api/friends", friendRoutes);
     app.use("/api/admin", adminRoutes);
     app.use("/api/admin", activityLogRoutes);
+    app.use("/api/comments", commentRoutes);
 
     app.use(errorHandler);
 
