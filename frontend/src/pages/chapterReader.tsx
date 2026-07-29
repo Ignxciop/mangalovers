@@ -704,184 +704,175 @@ export default function ChapterReader() {
               )
             : null;
 
-    if (loading) {
-        return (
-            <>
-                <SEO
-                    title={
-                        chapter
-                            ? `${chapter.series.name} — Cap. ${chapter.name}`
-                            : "Cargando..."
-                    }
-                    description={
-                        chapter
-                            ? `Lee el capítulo ${chapter.name} de ${chapter.series.name} en Mangalovers.`
-                            : undefined
-                    }
-                    canonicalPath={
-                        chapter
-                            ? `/manga/${slug}/capitulo/${chapterId}`
-                            : undefined
-                    }
-                />
-                <div className="min-h-screen bg-background flex flex-col items-center py-10 gap-4 px-4">
-                    <Skeleton className="h-5 w-40 mb-6" />
-                    {Array.from({ length: 6 }).map((_, i) => (
-                        <Skeleton
-                            key={i}
-                            className="w-full max-w-2xl h-96 rounded-lg"
-                        />
-                    ))}
-                </div>
-            </>
-        );
-    }
-
-    if (error || !chapter) {
-        return (
-            <>
-                <SEO title="Capítulo no encontrado" noIndex />
-                <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center px-4">
-                    <h2 className="text-xl font-bold">
-                        Capítulo no encontrado
-                    </h2>
-                    <button
-                        onClick={() =>
-                            navigate(`/manga/${slug}`, { state: { from } })
-                        }
-                        className="text-sm text-primary underline underline-offset-4"
-                    >
-                        Volver a la serie
-                    </button>
-                </div>
-            </>
-        );
-    }
+    const chapterTitle = chapter
+        ? `${chapter.series.name} — Cap. ${chapter.name}`
+        : "Cargando...";
+    const chapterDescription = chapter
+        ? `Lee el capítulo ${chapter.name} de ${chapter.series.name} en Mangalovers.`
+        : undefined;
 
     return (
         <>
             <SEO
-                title={`${chapter.series.name} — Cap. ${chapter.name}`}
-                description={`Lee el capítulo ${chapter.name} de ${chapter.series.name} en Mangalovers.`}
-                canonicalPath={`/manga/${slug}/capitulo/${chapterId}`}
+                title={error ? "Capítulo no encontrado" : chapterTitle}
+                description={error ? undefined : chapterDescription}
+                canonicalPath={
+                    chapter
+                        ? `/manga/${slug}/capitulo/${chapterId}`
+                        : undefined
+                }
+                noIndex={!!error}
             />
-            <JsonLd
-                schema={{
-                    "@context": "https://schema.org",
-                    "@type": "BreadcrumbList",
-                    itemListElement: [
-                        {
-                            "@type": "ListItem",
-                            position: 1,
-                            name: "Inicio",
-                            item: "https://mangalovers.josenunez.cl/",
-                        },
-                        {
-                            "@type": "ListItem",
-                            position: 2,
-                            name: chapter.series.name,
-                            item: `https://mangalovers.josenunez.cl/manga/${slug}`,
-                        },
-                        {
-                            "@type": "ListItem",
-                            position: 3,
-                            name: `Cap. ${chapter.name}`,
-                            item: `https://mangalovers.josenunez.cl/manga/${slug}/capitulo/${chapterId}`,
-                        },
-                    ],
-                }}
-            />
+            {!error && chapter && (
+                <JsonLd
+                    schema={{
+                        "@context": "https://schema.org",
+                        "@type": "BreadcrumbList",
+                        itemListElement: [
+                            {
+                                "@type": "ListItem",
+                                position: 1,
+                                name: "Inicio",
+                                item: "https://mangalovers.josenunez.cl/",
+                            },
+                            {
+                                "@type": "ListItem",
+                                position: 2,
+                                name: chapter.series.name,
+                                item: `https://mangalovers.josenunez.cl/manga/${slug}`,
+                            },
+                            {
+                                "@type": "ListItem",
+                                position: 3,
+                                name: `Cap. ${chapter.name}`,
+                                item: `https://mangalovers.josenunez.cl/manga/${slug}/capitulo/${chapterId}`,
+                            },
+                        ],
+                    }}
+                />
+            )}
             <PullToRefresh pull={pull} refreshing={refreshing} />
 
             <div className="min-h-screen bg-background">
-                <ReaderControls
-                    prefs={prefs}
-                    onModeChange={updateMode}
-                    onZoomChange={updateZoom}
-                />
-
-                <ChapterNav
-                    slug={slug!}
-                    prev={chapter.prev}
-                    next={chapter.next}
-                    from={from}
-                    onNext={markUntil}
-                />
-
-                {prefs.mode === "cascade" ? (
-                    <div
-                        className="flex flex-col items-center gap-0 mx-auto"
-                        style={{ maxWidth: `${prefs.zoom}px`, width: "100%" }}
-                    >
-                        {activePages.map((page, index) => (
-                            <div key={page.id} data-chapter-image={index} className="w-full scroll-mt-16">
-                                <ChapterImage
-                                    src={page.url}
-                                    alt={`Página ${index + 1}`}
-                                />
-                            </div>
+                {loading ? (
+                    <div className="min-h-screen bg-background flex flex-col items-center py-10 gap-4 px-4">
+                        <Skeleton className="h-5 w-40 mb-6" />
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <Skeleton
+                                key={i}
+                                className="w-full max-w-2xl h-96 rounded-lg"
+                            />
                         ))}
                     </div>
-                ) : (
-                    <PaginationReader
-                        key={activePages[0]?.id ?? chapterId}
-                        ref={paginationRef}
-                        pages={activePages}
-                        zoom={prefs.zoom}
-                        onChapterChange={handleChapterChange}
-                        hasPrevChapter={!!chapter.prev}
-                        hasNextChapter={!!chapter.next}
-                        onPageChange={setPaginationPage}
-                    />
-                )}
-
-                {progressPercent !== null && chaptersLeft !== null && (
-                    <div className="w-full max-w-2xl mx-auto px-4 py-6">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-muted-foreground">
-                                Progreso{" "}
-                                <span className="font-semibold text-foreground">
-                                    {progressPercent}%
-                                </span>
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                                {chaptersLeft === 0
-                                    ? "¡Serie completada!"
-                                    : `Faltan ${chaptersLeft} ${chaptersLeft === 1 ? "capítulo" : "capítulos"}`}
-                            </span>
-                        </div>
-                        <Progress
-                            value={progressPercent}
-                            className="h-1.5 [&>div]:bg-gradient-to-r [&>div]:from-brand [&>div]:to-brand-cyan"
-                        />
+                ) : error || !chapter ? (
+                    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center px-4">
+                        <h2 className="text-xl font-bold">
+                            Capítulo no encontrado
+                        </h2>
+                        <button
+                            onClick={() =>
+                                navigate(`/manga/${slug}`, { state: { from } })
+                            }
+                            className="text-sm text-primary underline underline-offset-4"
+                        >
+                            Volver a la serie
+                        </button>
                     </div>
+                ) : (
+                    <>
+                        <ReaderControls
+                            prefs={prefs}
+                            onModeChange={updateMode}
+                            onZoomChange={updateZoom}
+                        />
+
+                        <ChapterNav
+                            slug={slug!}
+                            prev={chapter.prev}
+                            next={chapter.next}
+                            from={from}
+                            onNext={markUntil}
+                        />
+
+                        {prefs.mode === "cascade" ? (
+                            <div
+                                className="flex flex-col items-center gap-0 mx-auto"
+                                style={{ maxWidth: `${prefs.zoom}px`, width: "100%" }}
+                            >
+                                {activePages.map((page, index) => (
+                                    <div key={page.id} data-chapter-image={index} className="w-full scroll-mt-16">
+                                        <ChapterImage
+                                            src={page.url}
+                                            alt={`Página ${index + 1}`}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <PaginationReader
+                                key={activePages[0]?.id ?? chapterId}
+                                ref={paginationRef}
+                                pages={activePages}
+                                zoom={prefs.zoom}
+                                onChapterChange={handleChapterChange}
+                                hasPrevChapter={!!chapter.prev}
+                                hasNextChapter={!!chapter.next}
+                                onPageChange={setPaginationPage}
+                            />
+                        )}
+
+                        {progressPercent !== null && chaptersLeft !== null && (
+                            <div className="w-full max-w-2xl mx-auto px-4 py-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs text-muted-foreground">
+                                        Progreso{" "}
+                                        <span className="font-semibold text-foreground">
+                                            {progressPercent}%
+                                        </span>
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {chaptersLeft === 0
+                                            ? "¡Serie completada!"
+                                            : `Faltan ${chaptersLeft} ${chaptersLeft === 1 ? "capítulo" : "capítulos"}`}
+                                    </span>
+                                </div>
+                                <Progress
+                                    value={progressPercent}
+                                    className="h-1.5 [&>div]:bg-gradient-to-r [&>div]:from-brand [&>div]:to-brand-cyan"
+                                />
+                            </div>
+                        )}
+
+                        <ChapterNav
+                            slug={slug!}
+                            prev={chapter.prev}
+                            next={chapter.next}
+                            from={from}
+                            onNext={markUntil}
+                        />
+
+                        <div className="text-center py-6 text-muted-foreground text-sm">
+                            Fin del capítulo —{" "}
+                            <button
+                                onClick={() =>
+                                    navigate(`/manga/${slug}`, { state: { from } })
+                                }
+                                className="text-primary underline underline-offset-4"
+                            >
+                                volver a la serie
+                            </button>
+                        </div>
+                    </>
                 )}
 
-                <ChapterNav
-                    slug={slug!}
-                    prev={chapter.prev}
-                    next={chapter.next}
-                    from={from}
-                    onNext={markUntil}
-                />
-
-                <div className="text-center py-6 text-muted-foreground text-sm">
-                    Fin del capítulo —{" "}
-                    <button
-                        onClick={() =>
-                            navigate(`/manga/${slug}`, { state: { from } })
-                        }
-                        className="text-primary underline underline-offset-4"
-                    >
-                        volver a la serie
-                    </button>
-                </div>
-
-                <Separator className="max-w-2xl mx-auto my-4" />
-
-                <div className="max-w-2xl mx-auto px-4">
-                    <CommentSection chapterId={chapter.chapterId} />
-                </div>
+                {chapter && (
+                    <>
+                        <Separator className="max-w-2xl mx-auto my-4" />
+                        <div className="max-w-2xl mx-auto px-4">
+                            <CommentSection chapterId={chapter.chapterId} />
+                        </div>
+                    </>
+                )}
             </div>
         </>
     );
