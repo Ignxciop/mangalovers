@@ -32,7 +32,7 @@ export function ReportDialog({ commentId }: ReportDialogProps) {
             setReason("");
             setDescription("");
         } catch (err) {
-            const msg = (err as any)?.response?.data?.message;
+            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
             toast.error(msg || "Error al enviar reporte");
         } finally {
             setLoading(false);
