@@ -247,19 +247,33 @@ export function CommentCard({
 
             {(comment.replies.length > 0 || comment.replyCount > 0) && (
                 <div>
-                    {comment.replies.map((reply) => (
-                        <CommentCard
-                            key={reply.id}
-                            comment={reply}
-                            onLikeToggle={onLikeToggle}
-                            onUpdate={onUpdate}
-                            onDelete={onDelete}
-                            onReply={onReply}
-                            onLoadMoreReplies={onLoadMoreReplies}
-                            depth={depth + 1}
-                        />
-                    ))}
-                    {onLoadMoreReplies && comment.replies.length < comment.replyCount && (
+                    {comment.replies.length > 0 ? (
+                        <>
+                            {comment.replies.map((reply) => (
+                                <CommentCard
+                                    key={reply.id}
+                                    comment={reply}
+                                    onLikeToggle={onLikeToggle}
+                                    onUpdate={onUpdate}
+                                    onDelete={onDelete}
+                                    onReply={onReply}
+                                    onLoadMoreReplies={onLoadMoreReplies}
+                                    depth={depth + 1}
+                                />
+                            ))}
+                            {onLoadMoreReplies && comment.replies.length < comment.replyCount && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onLoadMoreReplies(comment.id)}
+                                    className="ml-8 pl-4 mt-1"
+                                >
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                    Cargar más respuestas ({comment.replyCount - comment.replies.length})
+                                </Button>
+                            )}
+                        </>
+                    ) : onLoadMoreReplies ? (
                         <Button
                             variant="ghost"
                             size="sm"
@@ -267,9 +281,9 @@ export function CommentCard({
                             className="ml-8 pl-4 mt-1"
                         >
                             <ChevronDown className="h-3.5 w-3.5" />
-                            Cargar más respuestas ({comment.replyCount - comment.replies.length})
+                            Mostrar respuestas ({comment.totalReplyCount})
                         </Button>
-                    )}
+                    ) : null}
                 </div>
             )}
         </div>

@@ -30,7 +30,6 @@ export function CommentSection({ context, id }: CommentSectionProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [replyOffsets, setReplyOffsets] = useState<Map<number, number>>(new Map());
 
     const fetchComments = useCallback(async (pageNum: number) => {
         const res = context === "chapter"
@@ -108,11 +107,22 @@ export function CommentSection({ context, id }: CommentSectionProps) {
     }
 
     async function handleLoadMoreReplies(commentId: number) {
-        const offset = replyOffsets.get(commentId) ?? 2;
+        const parent = findInTree(comments, commentId);
+        if (!parent) return;
+        const offset = parent.replies.length;
         try {
             const res = await getCommentReplies(commentId, offset, 5);
-            setComments((prev) => appendRepliesToTree(prev, commentId, res.data));
-            setReplyOffsets((prev) => new Map(prev).set(commentId, offset + res.data.length));
+            setComments((prev) => {
+                const updated = appendRepliesToTree(prev, commentId, res.data);
+                return updateInTree(updated, commentId, (c) => ({
+                    ...c,
+                    replyCount: res.total,
+                    totalReplyCount: res.total + res.data.reduce(
+                        (sum, child) => sum + child.totalReplyCount - child.replyCount,
+                        0,
+                    ),
+                }));
+            });
         } catch {
             // silenciar
         }
@@ -128,7 +138,21 @@ export function CommentSection({ context, id }: CommentSectionProps) {
 
     async function handleReply(parentId: number, content: string, isSpoiler?: boolean) {
         const reply = await replyToComment(parentId, content, isSpoiler);
-        setComments((prev) => addReplyToTree(prev, parentId, reply));
+        setComments((prev) => {
+            const parentMap = buildParentMap(prev);
+            let updated = addReplyToTree(prev, parentId, reply);
+            let current = parentId;
+            while (parentMap.has(current)) {
+                const ancestorId = parentMap.get(current)!;
+                updated = updateInTree(updated, ancestorId, (c) => ({
+                    ...c,
+                    replyCount: c.replyCount + 1,
+                    totalReplyCount: c.totalReplyCount + 1,
+                }));
+                current = ancestorId;
+            }
+            return updated;
+        });
     }
 
     function handleLikeToggle(commentId: number, liked: boolean) {
@@ -147,7 +171,24 @@ export function CommentSection({ context, id }: CommentSectionProps) {
     }
 
     function handleDelete(commentId: number) {
-        setComments((prev) => removeFromTree(prev, commentId));
+        setComments((prev) => {
+            const deleted = findInTree(prev, commentId);
+            if (!deleted || !deleted.parentId) return removeFromTree(prev, commentId);
+            const parentMap = buildParentMap(prev);
+            const dec = 1 + countDescendants(deleted);
+            let updated = removeFromTree(prev, commentId);
+            let current = deleted.parentId;
+            while (parentMap.has(current)) {
+                const ancestorId = parentMap.get(current)!;
+                updated = updateInTree(updated, ancestorId, (c) => ({
+                    ...c,
+                    replyCount: c.replyCount - 1,
+                    totalReplyCount: c.totalReplyCount - dec,
+                }));
+                current = ancestorId;
+            }
+            return updated;
+        });
         setTotal((t) => t - 1);
     }
 
@@ -240,6 +281,15 @@ export function CommentSection({ context, id }: CommentSectionProps) {
     );
 }
 
+function findInTree(comments: Comment[], commentId: number): Comment | undefined {
+    for (const c of comments) {
+        if (c.id === commentId) return c;
+        const found = findInTree(c.replies, commentId);
+        if (found) return found;
+    }
+    return undefined;
+}
+
 function addReplyToTree(
     comments: Comment[],
     parentId: number,
@@ -247,12 +297,14 @@ function addReplyToTree(
 ): Comment[] {
     return comments.map((c) => {
         if (c.id === parentId) {
-            return { ...c, replies: [...c.replies, reply] };
+            return {
+                ...c,
+                replyCount: c.replyCount + 1,
+                totalReplyCount: c.totalReplyCount + 1,
+                replies: [...c.replies, reply],
+            };
         }
-        if (c.replies.length > 0) {
-            return { ...c, replies: addReplyToTree(c.replies, parentId, reply) };
-        }
-        return c;
+        return { ...c, replies: addReplyToTree(c.replies, parentId, reply) };
     });
 }
 
@@ -263,10 +315,7 @@ function updateInTree(
 ): Comment[] {
     return comments.map((c) => {
         if (c.id === commentId) return updater(c);
-        if (c.replies.length > 0) {
-            return { ...c, replies: updateInTree(c.replies, commentId, updater) };
-        }
-        return c;
+        return { ...c, replies: updateInTree(c.replies, commentId, updater) };
     });
 }
 
@@ -275,9 +324,7 @@ function removeFromTree(comments: Comment[], commentId: number): Comment[] {
         .filter((c) => c.id !== commentId)
         .map((c) => ({
             ...c,
-            replies: c.replies.length > 0
-                ? removeFromTree(c.replies, commentId)
-                : c.replies,
+            replies: removeFromTree(c.replies, commentId),
         }));
 }
 
@@ -288,11 +335,30 @@ function appendRepliesToTree(
 ): Comment[] {
     return comments.map((c) => {
         if (c.id === parentId) {
-            return { ...c, replies: [...c.replies, ...newReplies] };
+            const existingIds = new Set(c.replies.map((r) => r.id));
+            const unique = newReplies.filter((r) => !existingIds.has(r.id));
+            return { ...c, replies: [...c.replies, ...unique] };
         }
-        if (c.replies.length > 0) {
-            return { ...c, replies: appendRepliesToTree(c.replies, parentId, newReplies) };
-        }
-        return c;
+        return { ...c, replies: appendRepliesToTree(c.replies, parentId, newReplies) };
     });
+}
+
+function buildParentMap(comments: Comment[]): Map<number, number> {
+    const map = new Map<number, number>();
+    function walk(list: Comment[]) {
+        for (const c of list) {
+            if (c.parentId) map.set(c.id, c.parentId);
+            walk(c.replies);
+        }
+    }
+    walk(comments);
+    return map;
+}
+
+function countDescendants(comment: Comment): number {
+    let count = 0;
+    for (const r of comment.replies) {
+        count += 1 + countDescendants(r);
+    }
+    return count;
 }

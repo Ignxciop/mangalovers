@@ -46,8 +46,7 @@ describe("GET /api/comments/chapter/:chapterId", () => {
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].content).toBe("Top comment");
     expect(res.body.data[0].replyCount).toBe(2);
-    expect(res.body.data[0].replies).toHaveLength(2);
-    expect(res.body.data[0].replies[0].replies).toEqual([]);
+    expect(res.body.data[0].totalReplyCount).toBe(3);
     expect(res.body.total).toBe(1);
     expect(res.body.limit).toBe(10);
   });
@@ -119,7 +118,7 @@ describe("GET /api/comments/:id/replies", () => {
     expect(res.body.data).toHaveLength(2);
     expect(res.body.total).toBe(2);
     expect(res.body.offset).toBe(0);
-    expect(res.body.data[0].replies).toHaveLength(1);
+    expect(res.body.data[0].totalReplyCount).toBe(1);
   });
 });
 

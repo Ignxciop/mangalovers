@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ForbiddenError } from "../utils/errors.js";
 import { createNotification } from "../notifications/notificationService.js";
@@ -12,36 +13,28 @@ const COMMENT_USER_SELECT = {
   avatarUrl: true,
 };
 
-const REPLIES_PER_COMMENT = 2;
-
 function baseCommentInclude(currentUserId, includeRepliesCount = false) {
   return {
     user: { select: COMMENT_USER_SELECT },
-    _count: { select: { likes: true, ...(includeRepliesCount && { replies: true }) } },
+    _count: {
+      select: {
+        likes: true,
+        ...(includeRepliesCount && { replies: true }),
+      },
+    },
     likes: currentUserId
       ? { where: { userId: currentUserId }, select: { userId: true } }
       : false,
   };
 }
 
-function nestedReplyInclude(currentUserId) {
-  return {
-    ...baseCommentInclude(currentUserId),
-  };
-}
-
 function topLevelInclude(currentUserId) {
   return {
     ...baseCommentInclude(currentUserId, true),
-    replies: {
-      take: REPLIES_PER_COMMENT,
-      orderBy: { createdAt: "asc" },
-      include: nestedReplyInclude(currentUserId),
-    },
   };
 }
 
-function formatComment(c, currentUserId) {
+function formatComment(c, currentUserId, totalReplyCountOverride) {
   return {
     id: c.id,
     content: c.content,
@@ -59,6 +52,7 @@ function formatComment(c, currentUserId) {
       : null,
     likeCount: c._count?.likes ?? 0,
     replyCount: c._count?.replies ?? 0,
+    totalReplyCount: totalReplyCountOverride ?? c._count?.replies ?? 0,
     isLikedByMe: currentUserId
       ? c.likes?.some((l) => l.userId === currentUserId) ?? false
       : false,
@@ -86,6 +80,28 @@ function buildCommentTree(comments, currentUserId) {
   return roots;
 }
 
+async function computeTotalReplyCounts(commentIds) {
+  if (!commentIds.length) return new Map();
+
+  const rows = await prisma.$queryRaw`
+    WITH RECURSIVE reply_tree AS (
+      SELECT id, "parentId" AS root_id FROM "comments"
+      WHERE "parentId" IN (${Prisma.join(commentIds)}) AND visible = true
+      UNION ALL
+      SELECT c.id, rt.root_id FROM "comments" c
+      INNER JOIN reply_tree rt ON c."parentId" = rt.id
+      WHERE c.visible = true
+    )
+    SELECT root_id, COUNT(*)::int AS total FROM reply_tree GROUP BY root_id
+  `;
+
+  const map = new Map();
+  for (const row of rows) {
+    map.set(Number(row.root_id), Number(row.total));
+  }
+  return map;
+}
+
 export async function getChapterComments(chapterId, currentUserId, page = 1, limit = 10) {
   const where = { chapterId, visible: true };
   const skip = (page - 1) * limit;
@@ -101,8 +117,10 @@ export async function getChapterComments(chapterId, currentUserId, page = 1, lim
     prisma.comment.count({ where: { ...where, parentId: null } }),
   ]);
 
+  const totalReplyCounts = await computeTotalReplyCounts(topLevel.map((c) => c.id));
+
   return {
-    data: topLevel.map((c) => formatComment(c, currentUserId)),
+    data: topLevel.map((c) => formatComment(c, currentUserId, totalReplyCounts.get(c.id) ?? 0)),
     total,
     page,
     limit,
@@ -152,8 +170,10 @@ export async function getSeriesComments(seriesId, currentUserId, page = 1, limit
     prisma.comment.count({ where: { ...where, parentId: null } }),
   ]);
 
+  const totalReplyCounts = await computeTotalReplyCounts(topLevel.map((c) => c.id));
+
   return {
-    data: topLevel.map((c) => formatComment(c, currentUserId)),
+    data: topLevel.map((c) => formatComment(c, currentUserId, totalReplyCounts.get(c.id) ?? 0)),
     total,
     page,
     limit,
@@ -169,27 +189,17 @@ export async function getCommentReplies(parentId, currentUserId, offset = 0, lim
       take: limit,
       include: baseCommentInclude(currentUserId, true),
     }),
-    prisma.comment.count({ where: { parentId } }),
+    prisma.comment.count({ where: { parentId, visible: true } }),
   ]);
 
-  const replyIds = replies.map((c) => c.id);
+  const totalReplyCounts = await computeTotalReplyCounts(replies.map((r) => r.id));
+  const data = replies.map((c) => {
+    const formatted = formatComment(c, currentUserId);
+    formatted.totalReplyCount = totalReplyCounts.get(c.id) ?? 0;
+    return formatted;
+  });
 
-  const nestedReplies = replyIds.length > 0
-    ? await prisma.comment.findMany({
-        where: { parentId: { in: replyIds }, visible: true },
-        orderBy: { createdAt: "asc" },
-        include: baseCommentInclude(currentUserId),
-      })
-    : [];
-
-  const flat = [...replies, ...nestedReplies];
-
-  return {
-    data: buildCommentTree(flat, currentUserId),
-    total,
-    offset,
-    limit,
-  };
+  return { data, total, offset, limit };
 }
 
 export async function createSeriesComment(userId, seriesId, content, isSpoiler = false) {

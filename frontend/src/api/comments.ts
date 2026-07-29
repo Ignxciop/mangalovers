@@ -17,6 +17,7 @@ export interface Comment {
     user: CommentUser | null;
     likeCount: number;
     replyCount: number;
+    totalReplyCount: number;
     isLikedByMe: boolean;
     replies: Comment[];
 }

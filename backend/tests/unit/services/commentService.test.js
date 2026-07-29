@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../../../src/config/prisma.js", () => ({
   prisma: {
+    $queryRaw: vi.fn().mockResolvedValue([]),
     comment: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
@@ -183,21 +184,15 @@ describe("commentService.getCommentReplies", () => {
     const replies = [
       makeComment(2, { parentId: 1, _count: { likes: 0, replies: 1 } }),
     ];
-    const nested = [
-      makeComment(3, { parentId: 2, _count: { likes: 0 } }),
-    ];
 
-    prisma.comment.findMany
-      .mockResolvedValueOnce(replies)
-      .mockResolvedValueOnce(nested);
+    prisma.comment.findMany.mockResolvedValue(replies);
     prisma.comment.count.mockResolvedValue(1);
 
     const result = await getCommentReplies(1, null);
 
     expect(result.data).toHaveLength(1);
     expect(result.data[0].id).toBe(2);
-    expect(result.data[0].replies).toHaveLength(1);
-    expect(result.data[0].replies[0].id).toBe(3);
+    expect(result.data[0].replies).toEqual([]);
     expect(result.total).toBe(1);
     expect(result.offset).toBe(0);
     expect(result.limit).toBe(5);
