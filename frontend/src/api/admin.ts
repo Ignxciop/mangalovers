@@ -8,6 +8,7 @@ import type {
     AdminSeriesListResponse, AdminSeriesDetailResponse,
     AdminChaptersResponse, AdminBulkDeleteResponse, AdminToggleProviderResponse,
     ScraperConfigResponse, ScraperStatusResponse, ScraperRunResponse,
+    ReportsListResponse, PendingCountResponse, ReportStatus,
 } from "@/types/admin";
 
 export async function getUsers(params?: {
@@ -200,5 +201,25 @@ export async function bulkDeleteChapters(ids: number[]) {
 
 export async function toggleProviderSeries(seriesId: number, psId: number) {
     const { data } = await api.patch<AdminToggleProviderResponse>(`/admin/series/${seriesId}/provider-series/${psId}/toggle`);
+    return data;
+}
+
+export async function getReports(params?: {
+    page?: number;
+    limit?: number;
+    status?: ReportStatus;
+    reason?: string;
+}) {
+    const { data } = await api.get<ReportsListResponse>("/admin/reports", { params });
+    return data;
+}
+
+export async function getPendingReportCount() {
+    const { data } = await api.get<PendingCountResponse>("/admin/reports/pending-count");
+    return data;
+}
+
+export async function resolveReport(reportId: number, status: ReportStatus, adminNote?: string) {
+    const { data } = await api.patch(`/admin/reports/${reportId}`, { status, adminNote });
     return data;
 }

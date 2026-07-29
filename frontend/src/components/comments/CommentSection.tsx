@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import {
     getChapterComments,
+    getSeriesComments,
+    getCommentReplies,
     createComment,
+    createSeriesComment,
     replyToComment,
 } from "@/api/comments";
 import type { Comment } from "@/api/comments";
@@ -14,10 +17,11 @@ import { useAuthStore } from "@/store/authStore";
 import { MessageSquare } from "lucide-react";
 
 interface CommentSectionProps {
-    chapterId: number;
+    context: "chapter" | "series";
+    id: number;
 }
 
-export function CommentSection({ chapterId }: CommentSectionProps) {
+export function CommentSection({ context, id }: CommentSectionProps) {
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
     const [comments, setComments] = useState<Comment[]>([]);
@@ -26,11 +30,14 @@ export function CommentSection({ chapterId }: CommentSectionProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [replyOffsets, setReplyOffsets] = useState<Map<number, number>>(new Map());
 
     const fetchComments = useCallback(async (pageNum: number) => {
-        const res = await getChapterComments(chapterId, pageNum);
+        const res = context === "chapter"
+            ? await getChapterComments(id, pageNum, 10)
+            : await getSeriesComments(id, pageNum, 10);
         return res;
-    }, [chapterId]);
+    }, [context, id]);
 
     useEffect(() => {
         setLoading(true);
@@ -100,8 +107,21 @@ export function CommentSection({ chapterId }: CommentSectionProps) {
         }
     }
 
+    async function handleLoadMoreReplies(commentId: number) {
+        const offset = replyOffsets.get(commentId) ?? 2;
+        try {
+            const res = await getCommentReplies(commentId, offset, 5);
+            setComments((prev) => appendRepliesToTree(prev, commentId, res.data));
+            setReplyOffsets((prev) => new Map(prev).set(commentId, offset + res.data.length));
+        } catch {
+            // silenciar
+        }
+    }
+
     async function handleCreateComment(content: string, isSpoiler: boolean) {
-        const newComment = await createComment(chapterId, content, isSpoiler);
+        const newComment = context === "chapter"
+            ? await createComment(id, content, isSpoiler)
+            : await createSeriesComment(id, content, isSpoiler);
         setComments((prev) => [newComment, ...prev]);
         setTotal((t) => t + 1);
     }
@@ -195,6 +215,7 @@ export function CommentSection({ chapterId }: CommentSectionProps) {
                             onUpdate={handleUpdate}
                             onDelete={handleDelete}
                             onReply={handleReply}
+                            onLoadMoreReplies={handleLoadMoreReplies}
                             depth={0}
                         />
                     ))}
@@ -202,7 +223,7 @@ export function CommentSection({ chapterId }: CommentSectionProps) {
                     {comments.length < total && (
                         <div className="text-center pt-4">
                             <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 onClick={handleLoadMore}
                                 disabled={loadingMore}
@@ -258,4 +279,20 @@ function removeFromTree(comments: Comment[], commentId: number): Comment[] {
                 ? removeFromTree(c.replies, commentId)
                 : c.replies,
         }));
+}
+
+function appendRepliesToTree(
+    comments: Comment[],
+    parentId: number,
+    newReplies: Comment[],
+): Comment[] {
+    return comments.map((c) => {
+        if (c.id === parentId) {
+            return { ...c, replies: [...c.replies, ...newReplies] };
+        }
+        if (c.replies.length > 0) {
+            return { ...c, replies: appendRepliesToTree(c.replies, parentId, newReplies) };
+        }
+        return c;
+    });
 }

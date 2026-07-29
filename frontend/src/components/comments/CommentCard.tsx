@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import { toggleCommentLike, updateComment, deleteComment } from "@/api/comments";
 import type { Comment } from "@/api/comments";
 import { CommentForm } from "./CommentForm";
+import { ReportDialog } from "./ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { timeAgo } from "@/lib/date";
-import { Heart, MessageCircle, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Heart, MessageCircle, Pencil, Trash2, AlertTriangle, ChevronDown } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 interface CommentCardProps {
@@ -14,6 +16,7 @@ interface CommentCardProps {
     onUpdate: (commentId: number, content: string) => void;
     onDelete: (commentId: number) => void;
     onReply: (parentId: number, content: string, isSpoiler?: boolean) => Promise<void>;
+    onLoadMoreReplies?: (commentId: number) => Promise<void>;
     depth: number;
 }
 
@@ -23,9 +26,11 @@ export function CommentCard({
     onUpdate,
     onDelete,
     onReply,
+    onLoadMoreReplies,
     depth,
 }: CommentCardProps) {
     const currentUser = useAuthStore((s) => s.user);
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const isOwner = currentUser?.id === comment.user?.id;
     const isAdmin = currentUser?.role === "ADMIN";
 
@@ -125,6 +130,11 @@ export function CommentCard({
                         )}
                         <span className="text-xs text-muted-foreground">
                             {timeAgo(comment.createdAt)}
+                            {comment.isEdited && (
+                                <span className="ml-1.5 text-muted-foreground/60 italic">
+                                    (editado)
+                                </span>
+                            )}
                         </span>
                     </div>
 
@@ -189,6 +199,10 @@ export function CommentCard({
                                 Responder
                             </button>
 
+                            {isAuthenticated && !isOwner && (
+                                <ReportDialog commentId={comment.id} />
+                            )}
+
                             {isOwner && (
                                 <>
                                     <button
@@ -221,6 +235,7 @@ export function CommentCard({
                         <div className="mt-2">
                             <CommentForm
                                 onSubmit={handleReply}
+                                initialValue={`@${comment.user?.alias ?? "anónimo"} `}
                                 placeholder="Escribe una respuesta..."
                                 onCancel={() => setReplying(false)}
                                 submitLabel="Responder"
@@ -230,7 +245,7 @@ export function CommentCard({
                 </div>
             </div>
 
-            {comment.replies.length > 0 && (
+            {(comment.replies.length > 0 || comment.replyCount > 0) && (
                 <div>
                     {comment.replies.map((reply) => (
                         <CommentCard
@@ -240,9 +255,21 @@ export function CommentCard({
                             onUpdate={onUpdate}
                             onDelete={onDelete}
                             onReply={onReply}
+                            onLoadMoreReplies={onLoadMoreReplies}
                             depth={depth + 1}
                         />
                     ))}
+                    {onLoadMoreReplies && comment.replies.length < comment.replyCount && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onLoadMoreReplies(comment.id)}
+                            className="ml-8 pl-4 mt-1"
+                        >
+                            <ChevronDown className="h-3.5 w-3.5" />
+                            Cargar más respuestas ({comment.replyCount - comment.replies.length})
+                        </Button>
+                    )}
                 </div>
             )}
         </div>

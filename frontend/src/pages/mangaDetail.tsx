@@ -41,6 +41,7 @@ import { SearchBar } from "@/components/search-bar";
 import { useAuthStore } from "@/store/authStore";
 import { getFriendReadsForSeries, type FriendSeriesRead, type SimpleFriend } from "@/api/friends";
 import { FriendAvatars } from "@/components/FriendAvatars";
+import { CommentSection } from "@/components/comments/CommentSection";
 import { toast } from "sonner";
 
 const AVATAR_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
@@ -722,6 +723,8 @@ export default function MangaDetail() {
                                     </ScrollArea>
                                 )}
                             </div>
+
+                            <CommentSection context="series" id={series.id} />
                         </div>
                     </div>
                 </div>

@@ -869,7 +869,7 @@ export default function ChapterReader() {
                     <>
                         <Separator className="max-w-2xl mx-auto my-4" />
                         <div className="max-w-2xl mx-auto px-4">
-                            <CommentSection chapterId={chapter.chapterId} />
+                            <CommentSection context="chapter" id={chapter.chapterId} />
                         </div>
                     </>
                 )}

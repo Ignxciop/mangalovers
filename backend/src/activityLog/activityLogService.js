@@ -12,6 +12,7 @@ const VALID_EVENTS = new Set([
   "SEND_FRIEND_REQUEST", "ACCEPT_FRIEND", "REJECT_FRIEND",
   "BLOCK_USER", "UNBLOCK_USER",
   "CREATE_COMMENT", "DELETE_COMMENT",
+  "REPORT_COMMENT",
 ]);
 
 export class ActivityLogService {

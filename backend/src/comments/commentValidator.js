@@ -6,6 +6,12 @@ export const chapterIdParamValidator = [
     .withMessage("ID de capítulo inválido"),
 ];
 
+export const seriesIdParamValidator = [
+  param("seriesId")
+    .isInt({ min: 1 })
+    .withMessage("ID de serie inválido"),
+];
+
 export const commentIdParamValidator = [
   param("id")
     .isInt({ min: 1 })
