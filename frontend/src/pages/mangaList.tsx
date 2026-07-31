@@ -1,9 +1,10 @@
 import { SEO } from "@/components/seo";
 import { JsonLd } from "@/components/jsonld";
-import { Search, BookOpen, Eye, Heart, SlidersHorizontal } from "lucide-react";
+import { Search, BookOpen, Eye, Heart, SlidersHorizontal, Ban, X } from "lucide-react";
 import { CoverImage } from "@/components/coverImage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { FilterDrawer } from "@/components/FilterDrawer";
 import {
     Select,
@@ -132,6 +133,8 @@ export default function MangaList() {
     const [genresList, setGenresList] = useState<
         { id: number; name: string }[]
     >([]);
+    const [genreSearch, setGenreSearch] = useState("");
+    const [excludeGenreSearch, setExcludeGenreSearch] = useState("");
 
     const page = Number(searchParams.get("page") ?? "1");
     const search = searchParams.get("search") ?? "";
@@ -140,8 +143,10 @@ export default function MangaList() {
     const sort = searchParams.get("sort") ?? "updated";
     const order = searchParams.get("order") ?? "desc";
     const genres = searchParams.get("genres") ?? "";
+    const excludeGenres = searchParams.get("excludeGenres") ?? "";
     const read = searchParams.get("read") ?? "";
     const selectedGenres = genres.split(",").filter(Boolean);
+    const selectedExcludedGenres = excludeGenres.split(",").filter(Boolean);
     const provider = "";
     const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
     const { setContent, setSearchMode, setSearchContent } = useHeader();
@@ -151,6 +156,7 @@ export default function MangaList() {
         status,
         type,
         genres,
+        excludeGenres,
         read,
         sort !== "updated" ? sort : "",
     ].filter(Boolean).length;
@@ -231,6 +237,18 @@ export default function MangaList() {
         fetchGenres().then(setGenresList);
     }, []);
 
+    const filteredGenres = useMemo(() => {
+        const q = genreSearch.trim().toLowerCase();
+        if (!q) return genresList;
+        return genresList.filter((g) => g.name.toLowerCase().includes(q));
+    }, [genresList, genreSearch]);
+
+    const filteredExcludedGenres = useMemo(() => {
+        const q = excludeGenreSearch.trim().toLowerCase();
+        if (!q) return genresList;
+        return genresList.filter((g) => g.name.toLowerCase().includes(q));
+    }, [genresList, excludeGenreSearch]);
+
     function setPage(newPage: number) {
         setSearchParams((prev) => {
             prev.set("page", String(newPage));
@@ -282,6 +300,30 @@ export default function MangaList() {
                 : [...current, name];
             if (updated.length > 0) prev.set("genres", updated.join(","));
             else prev.delete("genres");
+            const excluded =
+                prev.get("excludeGenres")?.split(",").filter(Boolean) ?? [];
+            const excludedUpdated = excluded.filter((g) => g !== name);
+            if (excludedUpdated.length > 0) prev.set("excludeGenres", excludedUpdated.join(","));
+            else prev.delete("excludeGenres");
+            prev.set("page", "1");
+            return prev;
+        });
+    }
+
+    function toggleExcludeGenre(name: string) {
+        setSearchParams((prev) => {
+            const current =
+                prev.get("excludeGenres")?.split(",").filter(Boolean) ?? [];
+            const updated = current.includes(name)
+                ? current.filter((g) => g !== name)
+                : [...current, name];
+            if (updated.length > 0) prev.set("excludeGenres", updated.join(","));
+            else prev.delete("excludeGenres");
+            const included =
+                prev.get("genres")?.split(",").filter(Boolean) ?? [];
+            const includedUpdated = included.filter((g) => g !== name);
+            if (includedUpdated.length > 0) prev.set("genres", includedUpdated.join(","));
+            else prev.delete("genres");
             prev.set("page", "1");
             return prev;
         });
@@ -324,6 +366,7 @@ export default function MangaList() {
         sort,
         order,
         genres,
+        excludeGenres,
         read,
         limit,
     });
@@ -366,6 +409,7 @@ export default function MangaList() {
                             prev.delete("status");
                             prev.delete("type");
                             prev.delete("genres");
+                            prev.delete("excludeGenres");
                             prev.delete("read");
                             prev.delete("sort");
                             prev.set("page", "1");
@@ -493,26 +537,38 @@ export default function MangaList() {
                                 Géneros
                             </p>
                             {selectedGenres.length > 0 && (
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => setSearchParams((prev) => {
                                         prev.delete("genres");
                                         prev.set("page", "1");
                                         return prev;
                                     })}
-                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    className="h-7 px-2.5 text-muted-foreground hover:text-foreground"
                                 >
+                                    <X className="h-3.5 w-3.5 mr-1" />
                                     Limpiar ({selectedGenres.length})
-                                </button>
+                                </Button>
                             )}
                         </div>
+                        <div className="relative mb-2">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                            <Input
+                                placeholder="Buscar géneros..."
+                                value={genreSearch}
+                                onChange={(e) => setGenreSearch(e.target.value)}
+                                className="pl-9 h-9 text-sm bg-secondary/50"
+                            />
+                        </div>
                         <div className="overflow-y-auto max-h-72">
-                            {genresList.map((genre, idx) => (
+                            {filteredGenres.map((genre, idx) => (
                                 <div
                                     key={genre.id}
                                     role="button"
                                     tabIndex={0}
                                     className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
-                                        idx !== genresList.length - 1 ? "border-b border-border/40" : ""
+                                        idx !== filteredGenres.length - 1 ? "border-b border-border/40" : ""
                                     }`}
                                     onClick={() => toggleGenre(genre.name)}
                                     onKeyDown={(e) => {
@@ -531,6 +587,68 @@ export default function MangaList() {
                                     </span>
                                     {selectedGenres.includes(genre.name) && (
                                         <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5 border-t border-border">
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                Excluir géneros
+                            </p>
+                            {selectedExcludedGenres.length > 0 && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setSearchParams((prev) => {
+                                        prev.delete("excludeGenres");
+                                        prev.set("page", "1");
+                                        return prev;
+                                    })}
+                                    className="h-7 px-2.5 text-muted-foreground hover:text-destructive"
+                                >
+                                    <X className="h-3.5 w-3.5 mr-1" />
+                                    Limpiar ({selectedExcludedGenres.length})
+                                </Button>
+                            )}
+                        </div>
+                        <div className="relative mb-2">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                            <Input
+                                placeholder="Buscar géneros a excluir..."
+                                value={excludeGenreSearch}
+                                onChange={(e) => setExcludeGenreSearch(e.target.value)}
+                                className="pl-9 h-9 text-sm bg-secondary/50"
+                            />
+                        </div>
+                        <div className="overflow-y-auto max-h-72">
+                            {filteredExcludedGenres.map((genre, idx) => (
+                                <div
+                                    key={genre.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    className={`flex items-center justify-between py-2.5 cursor-pointer group transition-colors ${
+                                        idx !== filteredExcludedGenres.length - 1 ? "border-b border-border/40" : ""
+                                    }`}
+                                    onClick={() => toggleExcludeGenre(genre.name)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            toggleExcludeGenre(genre.name);
+                                        }
+                                    }}
+                                >
+                                    <span className={`text-sm transition-colors ${
+                                        selectedExcludedGenres.includes(genre.name)
+                                            ? "text-destructive font-medium"
+                                            : "text-muted-foreground group-hover:text-foreground"
+                                    }`}>
+                                        {genre.name}
+                                    </span>
+                                    {selectedExcludedGenres.includes(genre.name) && (
+                                        <Ban className="h-3.5 w-3.5 text-destructive shrink-0" />
                                     )}
                                 </div>
                             ))}

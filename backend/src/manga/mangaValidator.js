@@ -9,6 +9,7 @@ export const listMangaValidator = [
   query("sort").optional().isIn(["updated", "chapters", "az", "za"]),
   query("order").optional().isIn(["asc", "desc"]),
   query("genres").optional().trim(),
+  query("excludeGenres").optional().trim(),
   query("type").optional().trim(),
   query("read").optional().isIn(["", "true", "false"]),
 ];

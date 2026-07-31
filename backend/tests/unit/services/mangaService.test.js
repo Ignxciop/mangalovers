@@ -96,6 +96,29 @@ describe("mangaService.getAllManga", () => {
     expect(whereArg.genres.some.genre.name.in).toEqual(["Acción", "Aventura"]);
   });
 
+  it("excluye géneros (comma-separated)", async () => {
+    prisma.series.findMany.mockResolvedValue([baseSeries]);
+    prisma.chapter.groupBy.mockResolvedValue([{ seriesId: 1, _max: { number: 1100 } }]);
+    prisma.series.count.mockResolvedValue(1);
+
+    await getAllManga({ excludeGenres: "Romance, Drama" });
+
+    const whereArg = prisma.series.findMany.mock.calls[0][0].where;
+    expect(whereArg.AND[0].genres.none.genre.name.in).toEqual(["Romance", "Drama"]);
+  });
+
+  it("combina géneros incluidos y excluidos", async () => {
+    prisma.series.findMany.mockResolvedValue([baseSeries]);
+    prisma.chapter.groupBy.mockResolvedValue([{ seriesId: 1, _max: { number: 1100 } }]);
+    prisma.series.count.mockResolvedValue(1);
+
+    await getAllManga({ genres: "Acción", excludeGenres: "Romance" });
+
+    const whereArg = prisma.series.findMany.mock.calls[0][0].where;
+    expect(whereArg.genres.some.genre.name.in).toEqual(["Acción"]);
+    expect(whereArg.AND[0].genres.none.genre.name.in).toEqual(["Romance"]);
+  });
+
   it("ordena por chapters asc", async () => {
     prisma.series.findMany.mockResolvedValue([baseSeries]);
     prisma.chapter.groupBy.mockResolvedValue([{ seriesId: 1, _max: { number: 1100 } }]);
