@@ -93,6 +93,35 @@ describe("GET /api/manga", () => {
         expect(res.body.data[0].name).toBe("Action Only");
     });
 
+    it("excluye géneros", async () => {
+        const action = await createGenre("Acción");
+        const comedy = await createGenre("Comedia");
+        const s1 = await createSeries({ name: "Action Only", slug: "action-only-2", lastChapterPublishedAt: new Date() });
+        const s2 = await createSeries({ name: "Comedy Only", slug: "comedy-only-2", lastChapterPublishedAt: new Date() });
+        await prisma.seriesGenre.create({ data: { seriesId: s1.id, genreId: action.id } });
+        await prisma.seriesGenre.create({ data: { seriesId: s2.id, genreId: comedy.id } });
+
+        const res = await request(app).get("/api/manga?excludeGenres=Comedia").expect(200);
+
+        expect(res.body.data).toHaveLength(1);
+        expect(res.body.data[0].name).toBe("Action Only");
+    });
+
+    it("combina géneros incluidos y excluidos", async () => {
+        const action = await createGenre("Acción");
+        const romance = await createGenre("Romance");
+        const actionRomance = await createSeries({ name: "Action Romance", slug: "action-romance", lastChapterPublishedAt: new Date() });
+        const actionOnly = await createSeries({ name: "Action Only", slug: "action-only-3", lastChapterPublishedAt: new Date() });
+        await prisma.seriesGenre.create({ data: { seriesId: actionRomance.id, genreId: action.id } });
+        await prisma.seriesGenre.create({ data: { seriesId: actionRomance.id, genreId: romance.id } });
+        await prisma.seriesGenre.create({ data: { seriesId: actionOnly.id, genreId: action.id } });
+
+        const res = await request(app).get("/api/manga?genres=Acción&excludeGenres=Romance").expect(200);
+
+        expect(res.body.data).toHaveLength(1);
+        expect(res.body.data[0].name).toBe("Action Only");
+    });
+
     it("ordena por chapters asc", async () => {
         await createSeries({ name: "Few", slug: "few", chapterCount: 1, lastChapterPublishedAt: new Date() });
         await createSeries({ name: "Many", slug: "many", chapterCount: 10, lastChapterPublishedAt: new Date() });
