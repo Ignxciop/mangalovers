@@ -430,6 +430,8 @@ export default function ChapterReader() {
         refetch: refetchChapter,
     } = useChapterPages(slug ?? null, chapterId ? Number(chapterId) : null);
 
+    const seriesSlug = chapter?.series.slug ?? slug;
+
     const { series, refetch: refetchSeries } = useSeriesDetail(slug ?? "");
     const chapters = useMemo(() => series?.chapters ?? [], [series]);
     const { readIds, markUntil, refetch } = useReadChapters(
@@ -498,7 +500,9 @@ export default function ChapterReader() {
         setContent({
             center: (
                 <button
-                    onClick={() => navigate(`/manga/${slug}`, { state: { from } })}
+                    onClick={() =>
+                        navigate(`/manga/${seriesSlug}`, { state: { from } })
+                    }
                     className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group truncate max-w-full"
                 >
                     <ChevronLeft className="h-4 w-4 shrink-0 group-hover:-translate-x-0.5 transition-transform" />
@@ -512,12 +516,12 @@ export default function ChapterReader() {
                     ref={chapterSelectRef}
                     chapters={chapters}
                     currentChapterId={chapterId}
-                    slug={slug!}
+                    slug={seriesSlug!}
                 />
             ) : undefined,
         });
         return () => setContent({});
-    }, [setContent, chapter, slug, from, navigate, chapters, chapterId]);
+    }, [setContent, chapter, seriesSlug, from, navigate, chapters, chapterId]);
 
     const markUntilRef = useRef(markUntil);
     useEffect(() => {
@@ -594,17 +598,17 @@ export default function ChapterReader() {
     const handleChapterChange = useCallback(
         (direction: "prev" | "next") => {
             if (direction === "prev" && chapter?.prev) {
-                navigate(`/manga/${slug}/capitulo/${chapter.prev.id}`, {
+                navigate(`/manga/${seriesSlug}/capitulo/${chapter.prev.id}`, {
                     state: { from },
                 });
             } else if (direction === "next" && chapter?.next) {
                 markUntilRef.current(chapter.next.id);
-                navigate(`/manga/${slug}/capitulo/${chapter.next.id}`, {
+                navigate(`/manga/${seriesSlug}/capitulo/${chapter.next.id}`, {
                     state: { from },
                 });
             }
         },
-        [chapter, slug, navigate, from],
+        [chapter, seriesSlug, navigate, from],
     );
 
     useKeyboardReader(
@@ -718,7 +722,7 @@ export default function ChapterReader() {
                 description={error ? undefined : chapterDescription}
                 canonicalPath={
                     chapter
-                        ? `/manga/${slug}/capitulo/${chapterId}`
+                        ? `/manga/${seriesSlug}/capitulo/${chapterId}`
                         : undefined
                 }
                 noIndex={!!error}
@@ -739,13 +743,13 @@ export default function ChapterReader() {
                                 "@type": "ListItem",
                                 position: 2,
                                 name: chapter.series.name,
-                                item: `https://mangalovers.josenunez.cl/manga/${slug}`,
+                                item: `https://mangalovers.josenunez.cl/manga/${seriesSlug}`,
                             },
                             {
                                 "@type": "ListItem",
                                 position: 3,
                                 name: `Cap. ${chapter.name}`,
-                                item: `https://mangalovers.josenunez.cl/manga/${slug}/capitulo/${chapterId}`,
+                                item: `https://mangalovers.josenunez.cl/manga/${seriesSlug}/capitulo/${chapterId}`,
                             },
                         ],
                     }}
@@ -771,7 +775,7 @@ export default function ChapterReader() {
                         </h2>
                         <button
                             onClick={() =>
-                                navigate(`/manga/${slug}`, { state: { from } })
+                                navigate(`/manga/${seriesSlug}`, { state: { from } })
                             }
                             className="text-sm text-primary underline underline-offset-4"
                         >
@@ -787,7 +791,7 @@ export default function ChapterReader() {
                         />
 
                         <ChapterNav
-                            slug={slug!}
+                            slug={seriesSlug!}
                             prev={chapter.prev}
                             next={chapter.next}
                             from={from}
@@ -844,7 +848,7 @@ export default function ChapterReader() {
                         )}
 
                         <ChapterNav
-                            slug={slug!}
+                            slug={seriesSlug!}
                             prev={chapter.prev}
                             next={chapter.next}
                             from={from}
@@ -855,7 +859,9 @@ export default function ChapterReader() {
                             Fin del capítulo —{" "}
                             <button
                                 onClick={() =>
-                                    navigate(`/manga/${slug}`, { state: { from } })
+                                    navigate(`/manga/${seriesSlug}`, {
+                                        state: { from },
+                                    })
                                 }
                                 className="text-primary underline underline-offset-4"
                             >

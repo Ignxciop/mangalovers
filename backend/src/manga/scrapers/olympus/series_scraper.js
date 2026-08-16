@@ -54,7 +54,7 @@ async function fetchMetadata(slug) {
     }
 }
 
-async function processSeries(seriesData, providerId) {
+export async function processSeries(seriesData, providerId) {
     const slug = seriesData.slug;
     const externalId = String(seriesData.id);
 
@@ -80,7 +80,6 @@ async function processSeries(seriesData, providerId) {
                 where: { id: seriesId },
                 data: {
                     name: seriesData.name,
-                    slug,
                     cover: metadata?.cover ?? seriesData.cover ?? undefined,
                     chapterCount: seriesData.chapter_count,
                     status:
@@ -104,7 +103,10 @@ async function processSeries(seriesData, providerId) {
         });
 
         if (oldSlug !== slug) {
-            logger.info({ oldSlug, slug }, "Slug actualizado");
+            logger.info(
+                { oldSlug, slug },
+                "Slug del proveedor actualizado (series.slug permanece estable)",
+            );
         }
         return;
     }

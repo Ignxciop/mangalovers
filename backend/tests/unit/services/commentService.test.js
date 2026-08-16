@@ -29,6 +29,15 @@ vi.mock("../../../src/activityLog/activityLogService.js", () => ({
   ActivityLogService: { logEvent: vi.fn().mockResolvedValue({}) },
 }));
 
+vi.mock("../../../src/manga/seriesCluster.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    resolveCanonicalChapterId: vi.fn(),
+    resolveCanonicalSeriesId: vi.fn(),
+  };
+});
+
 vi.mock("../../../src/config/logger.js", () => ({
   default: { warn: vi.fn() },
   warn: vi.fn(),
@@ -37,6 +46,7 @@ vi.mock("../../../src/config/logger.js", () => ({
 const { prisma } = await import("../../../src/config/prisma.js");
 const { createNotification } = await import("../../../src/notifications/notificationService.js");
 const { ActivityLogService } = await import("../../../src/activityLog/activityLogService.js");
+const { resolveCanonicalChapterId, resolveCanonicalSeriesId } = await import("../../../src/manga/seriesCluster.js");
 
 const {
   getChapterComments,
@@ -69,8 +79,32 @@ function makeComment(id, overrides = {}) {
   };
 }
 
+// Por defecto los resolvers de cluster son identidad: sin cluster (o sin duplicado)
+// el id canónico es el mismo id de entrada. Cada describe puede sobrescribirlos.
+beforeEach(() => {
+  resolveCanonicalChapterId.mockImplementation(async (id) => id);
+  resolveCanonicalSeriesId.mockImplementation(async (id) => id);
+});
+
 describe("commentService.getChapterComments", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("usa el chapterId canónico (primary) cuando el pedido es de un fallback", async () => {
+    resolveCanonicalChapterId.mockResolvedValue(11);
+    const topLevel = makeComment(1, { chapterId: 11 });
+
+    prisma.comment.findMany.mockResolvedValue([topLevel]);
+    prisma.comment.count.mockResolvedValue(1);
+
+    await getChapterComments(21, null);
+
+    expect(resolveCanonicalChapterId).toHaveBeenCalledWith(21);
+    expect(prisma.comment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ chapterId: 11 }),
+      }),
+    );
+  });
 
   it("retorna top-level comments con hasta 5 replies anidadas", async () => {
     const topLevel = makeComment(1, {
@@ -175,6 +209,23 @@ describe("commentService.getSeriesComments", () => {
     expect(result.data[0].replies).toHaveLength(1);
     expect(result.total).toBe(1);
   });
+
+  it("usa el seriesId canónico (primary) cuando el pedido es de un fallback", async () => {
+    resolveCanonicalSeriesId.mockResolvedValue(1);
+    const topLevel = makeComment(1, { seriesId: 1 });
+
+    prisma.comment.findMany.mockResolvedValue([topLevel]);
+    prisma.comment.count.mockResolvedValue(1);
+
+    await getSeriesComments(2, null);
+
+    expect(resolveCanonicalSeriesId).toHaveBeenCalledWith(2);
+    expect(prisma.comment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ seriesId: 1 }),
+      }),
+    );
+  });
 });
 
 describe("commentService.getCommentReplies", () => {
@@ -233,6 +284,31 @@ describe("commentService.createComment", () => {
     expect(ActivityLogService.logEvent).toHaveBeenCalled();
   });
 
+  it("guarda el comentario con el chapterId canónico cuando el pedido es de un fallback", async () => {
+    resolveCanonicalChapterId.mockResolvedValue(11);
+    prisma.chapter.findUnique.mockResolvedValue({
+      id: 11,
+      name: "Cap 1",
+      series: { slug: "my-series", name: "My Series" },
+    });
+    prisma.comment.create.mockResolvedValue(makeComment(1, {
+      chapterId: 11,
+      _count: { likes: 0 },
+    }));
+
+    await createComment("user-1", 21, "Hola mundo");
+
+    expect(resolveCanonicalChapterId).toHaveBeenCalledWith(21);
+    expect(prisma.chapter.findUnique).toHaveBeenCalledWith({
+      where: { id: 11 },
+      select: expect.any(Object),
+    });
+    expect(prisma.comment.create).toHaveBeenCalledWith({
+      data: { userId: "user-1", chapterId: 11, content: "Hola mundo", isSpoiler: false },
+      include: expect.any(Object),
+    });
+  });
+
   it("lanza NotFoundError si el capitulo no existe", async () => {
     prisma.chapter.findUnique.mockResolvedValue(null);
 
@@ -259,6 +335,27 @@ describe("commentService.createSeriesComment", () => {
       include: expect.any(Object),
     });
     expect(ActivityLogService.logEvent).toHaveBeenCalled();
+  });
+
+  it("guarda el comentario con el seriesId canónico cuando el pedido es de un fallback", async () => {
+    resolveCanonicalSeriesId.mockResolvedValue(1);
+    prisma.series.findUnique.mockResolvedValue({ id: 1, name: "Mi Serie", slug: "mi-serie" });
+    prisma.comment.create.mockResolvedValue(makeComment(1, {
+      seriesId: 1,
+      _count: { likes: 0 },
+    }));
+
+    await createSeriesComment("user-1", 2, "Buen manga");
+
+    expect(resolveCanonicalSeriesId).toHaveBeenCalledWith(2);
+    expect(prisma.series.findUnique).toHaveBeenCalledWith({
+      where: { id: 1 },
+      select: expect.any(Object),
+    });
+    expect(prisma.comment.create).toHaveBeenCalledWith({
+      data: { userId: "user-1", seriesId: 1, content: "Buen manga", isSpoiler: false },
+      include: expect.any(Object),
+    });
   });
 
   it("lanza NotFoundError si la serie no existe", async () => {
@@ -296,6 +393,43 @@ describe("commentService.replyToComment", () => {
     expect(prisma.comment.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ chapterId: 10, seriesId: null, parentId: 1 }),
+      }),
+    );
+  });
+
+  it("canonicaliza el chapterId/seriesId heredados cuando el padre es de un fallback", async () => {
+    resolveCanonicalChapterId.mockResolvedValue(11);
+    resolveCanonicalSeriesId.mockResolvedValue(1);
+    prisma.comment.findUnique.mockResolvedValue({
+      id: 1,
+      userId: "parent-user",
+      visible: true,
+      chapterId: 21,
+      seriesId: 2,
+      chapter: { name: "Cap 1", series: { slug: "s", name: "S" } },
+      series: null,
+      user: { alias: "Parent", name: "P", lastname: "U" },
+    });
+    prisma.comment.create.mockResolvedValue(makeComment(2, {
+      parentId: 1,
+      chapterId: 11,
+      seriesId: 1,
+      userId: "user-1",
+      _count: { likes: 0 },
+    }));
+
+    await replyToComment("user-1", 1, "Respuesta");
+
+    expect(resolveCanonicalChapterId).toHaveBeenCalledWith(21);
+    expect(resolveCanonicalSeriesId).toHaveBeenCalledWith(2);
+    expect(prisma.comment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ chapterId: 11, seriesId: 1, parentId: 1 }),
+      }),
+    );
+    expect(createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ chapterId: 11, seriesId: 1 }),
       }),
     );
   });

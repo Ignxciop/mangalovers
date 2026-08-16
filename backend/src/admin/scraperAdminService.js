@@ -116,7 +116,6 @@ export class ScraperAdminService {
               where: { id: seriesId },
               data: {
                 name: d.name,
-                slug: d.slug,
                 cover: d.cover ?? undefined,
                 status: d.status?.name ?? undefined,
                 summary: d.summary ?? undefined,
