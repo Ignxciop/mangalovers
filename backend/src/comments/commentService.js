@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { NotFoundError, ForbiddenError } from "../utils/errors.js";
+import { resolveCanonicalChapterId, resolveCanonicalSeriesId } from "../manga/seriesCluster.js";
 import { createNotification } from "../notifications/notificationService.js";
 import { ActivityLogService } from "../activityLog/activityLogService.js";
 import logger from "../config/logger.js";
@@ -103,7 +104,8 @@ async function computeTotalReplyCounts(commentIds) {
 }
 
 export async function getChapterComments(chapterId, currentUserId, page = 1, limit = 10) {
-  const where = { chapterId, visible: true };
+  const canonicalChapterId = await resolveCanonicalChapterId(chapterId);
+  const where = { chapterId: canonicalChapterId, visible: true };
   const skip = (page - 1) * limit;
 
   const [topLevel, total] = await Promise.all([
@@ -128,14 +130,15 @@ export async function getChapterComments(chapterId, currentUserId, page = 1, lim
 }
 
 export async function createComment(userId, chapterId, content, isSpoiler = false) {
+  const canonicalChapterId = await resolveCanonicalChapterId(chapterId);
   const chapter = await prisma.chapter.findUnique({
-    where: { id: chapterId },
+    where: { id: canonicalChapterId },
     select: { id: true, name: true, series: { select: { slug: true, name: true } } },
   });
   if (!chapter) throw new NotFoundError("Capítulo no encontrado");
 
   const comment = await prisma.comment.create({
-    data: { userId, chapterId, content, isSpoiler },
+    data: { userId, chapterId: canonicalChapterId, content, isSpoiler },
     include: {
       user: { select: COMMENT_USER_SELECT },
       _count: { select: { likes: true } },
@@ -144,7 +147,7 @@ export async function createComment(userId, chapterId, content, isSpoiler = fals
   });
 
   ActivityLogService.logEvent(userId, "CREATE_COMMENT", {
-    chapterId,
+    chapterId: canonicalChapterId,
     commentId: comment.id,
     content: comment.content.slice(0, 100),
     seriesName: chapter.series?.name ?? null,
@@ -156,7 +159,8 @@ export async function createComment(userId, chapterId, content, isSpoiler = fals
 }
 
 export async function getSeriesComments(seriesId, currentUserId, page = 1, limit = 10) {
-  const where = { seriesId, visible: true };
+  const canonicalSeriesId = await resolveCanonicalSeriesId(seriesId);
+  const where = { seriesId: canonicalSeriesId, visible: true };
   const skip = (page - 1) * limit;
 
   const [topLevel, total] = await Promise.all([
@@ -203,14 +207,15 @@ export async function getCommentReplies(parentId, currentUserId, offset = 0, lim
 }
 
 export async function createSeriesComment(userId, seriesId, content, isSpoiler = false) {
+  const canonicalSeriesId = await resolveCanonicalSeriesId(seriesId);
   const series = await prisma.series.findUnique({
-    where: { id: seriesId },
+    where: { id: canonicalSeriesId },
     select: { id: true, name: true, slug: true },
   });
   if (!series) throw new NotFoundError("Serie no encontrada");
 
   const comment = await prisma.comment.create({
-    data: { userId, seriesId, content, isSpoiler },
+    data: { userId, seriesId: canonicalSeriesId, content, isSpoiler },
     include: {
       user: { select: COMMENT_USER_SELECT },
       _count: { select: { likes: true } },
@@ -219,7 +224,7 @@ export async function createSeriesComment(userId, seriesId, content, isSpoiler =
   });
 
   ActivityLogService.logEvent(userId, "CREATE_COMMENT", {
-    seriesId,
+    seriesId: canonicalSeriesId,
     commentId: comment.id,
     content: comment.content.slice(0, 100),
     seriesName: series.name,
@@ -248,11 +253,18 @@ export async function replyToComment(userId, commentId, content, isSpoiler = fal
   if (!parent) throw new NotFoundError("Comentario no encontrado");
   if (!parent.visible) throw new NotFoundError("Comentario no encontrado");
 
+  const canonicalChapterId = parent.chapterId
+    ? await resolveCanonicalChapterId(parent.chapterId)
+    : null;
+  const canonicalSeriesId = parent.seriesId
+    ? await resolveCanonicalSeriesId(parent.seriesId)
+    : null;
+
   const reply = await prisma.comment.create({
     data: {
       userId,
-      chapterId: parent.chapterId,
-      seriesId: parent.seriesId,
+      chapterId: canonicalChapterId,
+      seriesId: canonicalSeriesId,
       parentId: commentId,
       content,
       isSpoiler,
@@ -275,8 +287,8 @@ export async function replyToComment(userId, commentId, content, isSpoiler = fal
       title: "Nueva respuesta",
       body: `${replierAlias} te respondió en ${label}`,
       data: {
-        chapterId: parent.chapterId,
-        seriesId: parent.seriesId,
+        chapterId: canonicalChapterId,
+        seriesId: canonicalSeriesId,
         commentId,
         replyId: reply.id,
         seriesSlug: parent.chapter?.series?.slug ?? parent.series?.slug ?? null,
@@ -286,8 +298,8 @@ export async function replyToComment(userId, commentId, content, isSpoiler = fal
   }
 
   ActivityLogService.logEvent(userId, "CREATE_COMMENT", {
-    chapterId: parent.chapterId,
-    seriesId: parent.seriesId,
+    chapterId: canonicalChapterId,
+    seriesId: canonicalSeriesId,
     commentId: reply.id,
     parentId: commentId,
     content: reply.content.slice(0, 100),

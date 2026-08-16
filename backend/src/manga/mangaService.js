@@ -1,6 +1,11 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
-import { resolveSeriesCluster, batchResolveFallbackCovers, resolveCanonicalNeighbor } from "./seriesCluster.js";
+import {
+  resolveSeriesCluster,
+  batchResolveFallbackCovers,
+  resolveCanonicalNeighbor,
+  resolveCanonicalChapterIdInCluster,
+} from "./seriesCluster.js";
 import axios from "axios";
 import { proxyUrl } from "../proxy/imageProxy.js";
 
@@ -456,8 +461,24 @@ export async function getChapterPages(slug, chapterId, _userId = null) {
   const searchIds = cluster ? cluster.allIds : [series.id];
   const primarySeriesId = cluster?.primary.id ?? series.id;
 
+  // Defensa en profundidad: normaliza el chapterId al id canónico (primary del
+  // cluster) ANTES del findFirst principal, para que el chapterId devuelto al
+  // frontend sea siempre el mismo en todo el cluster y los threads de
+  // comentarios se unifiquen. No afecta el fallback de páginas (findFallbackChapter
+  // / probeFirstPage), que sigue operando sobre el capítulo ya resuelto.
+  let canonicalChapterId = Number(chapterId);
+  if (cluster) {
+    const requestedChapter = await prisma.chapter.findUnique({
+      where: { id: canonicalChapterId },
+      select: { id: true, number: true, seriesId: true },
+    });
+    if (requestedChapter && cluster.allIds.includes(requestedChapter.seriesId)) {
+      canonicalChapterId = await resolveCanonicalChapterIdInCluster(requestedChapter, cluster);
+    }
+  }
+
   const chapter = await prisma.chapter.findFirst({
-    where: { id: Number(chapterId), seriesId: { in: searchIds } },
+    where: { id: canonicalChapterId, seriesId: { in: searchIds } },
     include: {
       pages: { orderBy: { id: "asc" } },
       series: { select: { id: true, name: true, slug: true } },

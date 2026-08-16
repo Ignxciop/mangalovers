@@ -10,6 +10,7 @@ vi.mock("../../../src/config/prisma.js", () => ({
     chapter: {
       groupBy: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
     userChapterRead: {
       findMany: vi.fn(),
@@ -251,6 +252,20 @@ describe("mangaService.getChapterPages", () => {
     });
   }
 
+  function mockChapterFindUnique() {
+    prisma.chapter.findUnique.mockImplementation(({ where }) => {
+      const requestedId = Number(where.id);
+      for (const sid of Object.keys(chaptersBySeries)) {
+        for (const [number, entry] of Object.entries(chaptersBySeries[sid])) {
+          if (entry.id === requestedId) {
+            return { id: requestedId, number: Number(number), seriesId: Number(sid) };
+          }
+        }
+      }
+      return null;
+    });
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     chaptersBySeries = {
@@ -264,6 +279,7 @@ describe("mangaService.getChapterPages", () => {
       fallbacks: [{ id: 2 }],
     });
     mockChapterFindFirst();
+    mockChapterFindUnique();
   });
 
   it("prev/next devuelven el id del primary cuando ambos providers tienen el mismo number", async () => {
@@ -293,5 +309,36 @@ describe("mangaService.getChapterPages", () => {
 
     expect(result.prev).toEqual({ id: 11, name: "44" });
     expect(result.next).toEqual({ id: 13, name: "46" });
+  });
+
+  it("devuelve el chapterId canónico (primary) cuando se pide el id de un fallback duplicado", async () => {
+    const result = await getChapterPages("primary", "22");
+
+    expect(result.chapterId).toBe(12);
+  });
+
+  it("mantiene el chapterId pedido cuando no hay duplicado en el primary (hueco real)", async () => {
+    // Fallback #50 (id 24) no existe en el primary: se devuelve tal cual.
+    chaptersBySeries[2][50] = { id: 24, name: "50" };
+    prisma.chapter.findUnique.mockImplementation(() =>
+      Promise.resolve({ id: 24, number: 50, seriesId: 2 }),
+    );
+    prisma.chapter.findFirst.mockImplementation(({ where }) => {
+      if (where.id !== undefined) {
+        return {
+          ...chaptersBySeries[2][50],
+          number: 50,
+          seriesId: 2,
+          publishedAt: new Date(),
+          pages: [],
+          series: { id: 2, name: "Fallback", slug: "fallback" },
+        };
+      }
+      return null;
+    });
+
+    const result = await getChapterPages("primary", "24");
+
+    expect(result.chapterId).toBe(24);
   });
 });

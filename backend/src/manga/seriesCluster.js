@@ -125,6 +125,60 @@ export async function resolveSeriesCluster(seriesId) {
 }
 
 /**
+ * Busca la fila de Chapter del primary para un `number` dado.
+ * Usado por resolveCanonicalNeighbor y resolveCanonicalChapterId para no duplicar
+ * la consulta "primary por número".
+ */
+async function findPrimaryChapterByNumber(primarySeriesId, number, select = { id: true, name: true }) {
+  return prisma.chapter.findFirst({
+    where: { seriesId: primarySeriesId, number },
+    select,
+  });
+}
+
+/**
+ * Dado un capítulo ya resuelto y su cluster, retorna el chapterId canónico:
+ * si el capítulo pertenece a un fallback y el primary tiene una fila con el
+ * mismo `number`, el id canónico es el del primary (unificación de duplicados).
+ * Si no hay cluster, el capítulo es del primary o el primary no tiene ese
+ * number (hueco real), retorna el id de entrada tal cual.
+ */
+export async function resolveCanonicalChapterIdInCluster(chapter, cluster) {
+  if (!cluster || chapter.seriesId === cluster.primary.id) return chapter.id;
+  const primaryChapter = await findPrimaryChapterByNumber(
+    cluster.primary.id,
+    chapter.number,
+    { id: true },
+  );
+  return primaryChapter ? primaryChapter.id : chapter.id;
+}
+
+/**
+ * Resuelve el chapterId canónico (id del primary) para un chapterId dado.
+ * Retorna el id de entrada si el capítulo no existe, no hay cluster,
+ * pertenece al primary o el primary no tiene ese number (hueco real).
+ */
+export async function resolveCanonicalChapterId(chapterId) {
+  const chapter = await prisma.chapter.findUnique({
+    where: { id: chapterId },
+    select: { id: true, number: true, seriesId: true },
+  });
+  if (!chapter) return chapterId;
+
+  const cluster = await resolveSeriesCluster(chapter.seriesId);
+  return resolveCanonicalChapterIdInCluster(chapter, cluster);
+}
+
+/**
+ * Resuelve el seriesId canónico (id del primary del cluster) para un seriesId dado.
+ * Retorna el id de entrada si no hay cluster.
+ */
+export async function resolveCanonicalSeriesId(seriesId) {
+  const cluster = await resolveSeriesCluster(seriesId);
+  return cluster ? cluster.primary.id : seriesId;
+}
+
+/**
  * Resuelve el vecino canónico (prev/next) de un capítulo dentro de un cluster,
  * aplicando la MISMA regla de prioridad que usa getSeriesDetailBySlug para la
  * lista de capítulos: si el primary tiene una fila para el number más cercano,
@@ -158,10 +212,7 @@ export async function resolveCanonicalNeighbor(
 
     if (!closest) return null;
 
-    const primaryChapter = await prisma.chapter.findFirst({
-        where: { seriesId: primarySeriesId, number: closest.number },
-        select: { id: true, name: true },
-    });
+    const primaryChapter = await findPrimaryChapterByNumber(primarySeriesId, closest.number);
     if (primaryChapter) return primaryChapter;
 
     const fallbackIds = searchIds.filter((id) => id !== primarySeriesId);
