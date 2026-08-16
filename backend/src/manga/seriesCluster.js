@@ -125,6 +125,55 @@ export async function resolveSeriesCluster(seriesId) {
 }
 
 /**
+ * Resuelve el vecino canónico (prev/next) de un capítulo dentro de un cluster,
+ * aplicando la MISMA regla de prioridad que usa getSeriesDetailBySlug para la
+ * lista de capítulos: si el primary tiene una fila para el number más cercano,
+ * esa gana (los capítulos duplicados entre providers se resuelven al primary).
+ *
+ * Pasos:
+ *  1. Encuentra el `number` más cercano en la dirección pedida (sin filtrar
+ *     por provider todavía).
+ *  2. Dado ese number, busca PRIMERO la fila de Chapter del primary.
+ *  3. Solo si el primary no tiene fila para ese number (hueco real, no
+ *     duplicado), cae a buscar en el resto del cluster.
+ *
+ * Retorna { id, name } del capítulo vecino, o null si no existe.
+ */
+export async function resolveCanonicalNeighbor(
+    searchIds,
+    primarySeriesId,
+    currentNumber,
+    direction,
+) {
+    const isPrev = direction === "prev";
+
+    const closest = await prisma.chapter.findFirst({
+        where: {
+            seriesId: { in: searchIds },
+            number: isPrev ? { lt: currentNumber } : { gt: currentNumber },
+        },
+        orderBy: { number: isPrev ? "desc" : "asc" },
+        select: { number: true },
+    });
+
+    if (!closest) return null;
+
+    const primaryChapter = await prisma.chapter.findFirst({
+        where: { seriesId: primarySeriesId, number: closest.number },
+        select: { id: true, name: true },
+    });
+    if (primaryChapter) return primaryChapter;
+
+    const fallbackIds = searchIds.filter((id) => id !== primarySeriesId);
+    if (fallbackIds.length === 0) return null;
+
+    return prisma.chapter.findFirst({
+        where: { seriesId: { in: fallbackIds }, number: closest.number },
+        select: { id: true, name: true },
+    });
+}
+
+/**
  * Batch-resuelve fallbackCovers para un array de seriesIds.
  * Retorna Map<seriesId, coverUrl | null>.
  */

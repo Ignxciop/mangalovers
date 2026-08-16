@@ -3,11 +3,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../../../src/config/prisma.js", () => ({
   prisma: {
     series: {
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
     },
     chapter: {
       groupBy: vi.fn(),
+      findFirst: vi.fn(),
     },
     userChapterRead: {
       findMany: vi.fn(),
@@ -18,8 +20,17 @@ vi.mock("../../../src/config/prisma.js", () => ({
   },
 }));
 
+vi.mock("../../../src/manga/seriesCluster.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    resolveSeriesCluster: vi.fn(),
+  };
+});
+
 import { prisma } from "../../../src/config/prisma.js";
-import { getAllManga } from "../../../src/manga/mangaService.js";
+import { getAllManga, getChapterPages } from "../../../src/manga/mangaService.js";
+import { resolveSeriesCluster } from "../../../src/manga/seriesCluster.js";
 
 const baseSeries = {
   id: 1, name: "One Piece", slug: "one-piece", cover: "https://example.com/cover.jpg",
@@ -193,5 +204,94 @@ describe("mangaService.getAllManga", () => {
     const result = await getAllManga({ page: 1 });
 
     expect(result.data[0].cover).toBeNull();
+  });
+});
+
+describe("mangaService.getChapterPages", () => {
+  const primarySeries = { id: 1, name: "Primary", slug: "primary" };
+
+  // Dataset simulado por test (recreado en beforeEach): capítulos por
+  // seriesId y number. primary: #44(id11), #45(id12), #46(id13);
+  // fallback: #44(id21), #45(id22), #46(id23).
+  let chaptersBySeries;
+
+  function mockChapterFindFirst() {
+    prisma.chapter.findFirst.mockImplementation(({ where }) => {
+      // Capítulo actual (lookup por id)
+      if (where.id !== undefined) {
+        const entry = chaptersBySeries[1][45];
+        return {
+          ...entry,
+          number: 45,
+          seriesId: 1,
+          publishedAt: new Date(),
+          pages: [],
+          series: primarySeries,
+        };
+      }
+
+      // findFallbackChapter: sin capítulos con páginas en fallback
+      if (where.pages) return null;
+
+      // Closest number (prev/next)
+      if (where.number && typeof where.number === "object") {
+        const { lt, gt } = where.number;
+        const allNumbers = [44, 45, 46];
+        if (lt !== undefined) return { number: Math.max(...allNumbers.filter((n) => n < lt)) };
+        return { number: Math.min(...allNumbers.filter((n) => n > gt)) };
+      }
+
+      // Lookup exacto por seriesId + number (primary o fallback)
+      const ids = Array.isArray(where.seriesId.in) ? where.seriesId.in : [where.seriesId];
+      for (const sid of ids) {
+        const entry = chaptersBySeries[sid]?.[where.number];
+        if (entry) return entry;
+      }
+      return null;
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    chaptersBySeries = {
+      1: { 44: { id: 11, name: "44" }, 45: { id: 12, name: "45" }, 46: { id: 13, name: "46" } },
+      2: { 44: { id: 21, name: "44" }, 45: { id: 22, name: "45" }, 46: { id: 23, name: "46" } },
+    };
+    prisma.series.findUnique.mockResolvedValue({ id: 1 });
+    resolveSeriesCluster.mockResolvedValue({
+      primary: { id: 1 },
+      allIds: [1, 2],
+      fallbacks: [{ id: 2 }],
+    });
+    mockChapterFindFirst();
+  });
+
+  it("prev/next devuelven el id del primary cuando ambos providers tienen el mismo number", async () => {
+    const result = await getChapterPages("primary", "12");
+
+    expect(result.prev).toEqual({ id: 11, name: "44" });
+    expect(result.next).toEqual({ id: 13, name: "46" });
+  });
+
+  it("next cae al fallback cuando el primary no tiene ese number (hueco real)", async () => {
+    // Simular hueco: el primary NO tiene #46
+    delete chaptersBySeries[1][46];
+
+    const result = await getChapterPages("primary", "12");
+
+    expect(result.next).toEqual({ id: 23, name: "46" });
+    expect(result.prev).toEqual({ id: 11, name: "44" });
+  });
+
+  it("resuelve prev/next sin cluster usando el propio series.id como primary", async () => {
+    resolveSeriesCluster.mockResolvedValue(null);
+    delete chaptersBySeries[2][44];
+    delete chaptersBySeries[2][45];
+    delete chaptersBySeries[2][46];
+
+    const result = await getChapterPages("primary", "12");
+
+    expect(result.prev).toEqual({ id: 11, name: "44" });
+    expect(result.next).toEqual({ id: 13, name: "46" });
   });
 });

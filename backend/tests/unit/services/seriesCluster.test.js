@@ -6,6 +6,9 @@ vi.mock("../../../src/config/prisma.js", () => ({
       findUnique: vi.fn(),
       findMany: vi.fn(),
     },
+    chapter: {
+      findFirst: vi.fn(),
+    },
     seriesRelation: {
       findMany: vi.fn(),
     },
@@ -13,7 +16,7 @@ vi.mock("../../../src/config/prisma.js", () => ({
 }));
 
 import { prisma } from "../../../src/config/prisma.js";
-import { resolveSeriesCluster, resolvePrimaryBySlug, batchResolveFallbackCovers } from "../../../src/manga/seriesCluster.js";
+import { resolveSeriesCluster, resolvePrimaryBySlug, batchResolveFallbackCovers, resolveCanonicalNeighbor } from "../../../src/manga/seriesCluster.js";
 
 function makeSeries(id, overrides = {}) {
   return {
@@ -244,5 +247,107 @@ describe("batchResolveFallbackCovers", () => {
     const result = await batchResolveFallbackCovers([1]);
 
     expect(result.has(1)).toBe(false);
+  });
+});
+
+describe("resolveCanonicalNeighbor", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("retorna null si no hay capítulo vecino en la dirección", async () => {
+    prisma.chapter.findFirst.mockResolvedValue(null);
+
+    const result = await resolveCanonicalNeighbor([1, 2], 1, 45, "next");
+    expect(result).toBeNull();
+  });
+
+  it("prev: primary gana el empate cuando ambos providers tienen el mismo number", async () => {
+    // current = 45; prev más cercano = 44, presente en primary (id 11) y fallback (id 21)
+    prisma.chapter.findFirst
+      .mockResolvedValueOnce({ number: 44 })
+      .mockResolvedValueOnce({ id: 11, name: "44" });
+
+    const result = await resolveCanonicalNeighbor([1, 2], 1, 45, "prev");
+
+    expect(result).toEqual({ id: 11, name: "44" });
+    // El primer findFirst busca el number más cercano sin filtrar por provider
+    expect(prisma.chapter.findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: {
+          seriesId: { in: [1, 2] },
+          number: { lt: 45 },
+        },
+        orderBy: { number: "desc" },
+        select: { number: true },
+      }),
+    );
+    // El segundo busca PRIMERO en el primary
+    expect(prisma.chapter.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: { seriesId: 1, number: 44 },
+      }),
+    );
+  });
+
+  it("next: primary gana el empate cuando ambos providers tienen el mismo number", async () => {
+    // current = 45; next más cercano = 46, presente en primary (id 13) y fallback (id 23)
+    prisma.chapter.findFirst
+      .mockResolvedValueOnce({ number: 46 })
+      .mockResolvedValueOnce({ id: 13, name: "46" });
+
+    const result = await resolveCanonicalNeighbor([1, 2], 1, 45, "next");
+
+    expect(result).toEqual({ id: 13, name: "46" });
+    expect(prisma.chapter.findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: {
+          seriesId: { in: [1, 2] },
+          number: { gt: 45 },
+        },
+        orderBy: { number: "asc" },
+        select: { number: true },
+      }),
+    );
+    expect(prisma.chapter.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: { seriesId: 1, number: 46 },
+      }),
+    );
+  });
+
+  it("cae al fallback cuando el primary no tiene ese number (hueco real)", async () => {
+    // current = 45; prev más cercano = 44. El primary (id 1) NO tiene el 44,
+    // solo el fallback (id 2) lo tiene (id 21).
+    prisma.chapter.findFirst
+      .mockResolvedValueOnce({ number: 44 })
+      .mockResolvedValueOnce(null) // primary no tiene el 44
+      .mockResolvedValueOnce({ id: 21, name: "44" }); // fallback sí
+
+    const result = await resolveCanonicalNeighbor([1, 2], 1, 45, "prev");
+
+    expect(result).toEqual({ id: 21, name: "44" });
+    expect(prisma.chapter.findFirst).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        where: {
+          seriesId: { in: [2] },
+          number: 44,
+        },
+      }),
+    );
+  });
+
+  it("retorna null si el primary no tiene el number y no hay fallbacks", async () => {
+    prisma.chapter.findFirst
+      .mockResolvedValueOnce({ number: 44 })
+      .mockResolvedValueOnce(null);
+
+    const result = await resolveCanonicalNeighbor([1], 1, 45, "prev");
+    expect(result).toBeNull();
   });
 });

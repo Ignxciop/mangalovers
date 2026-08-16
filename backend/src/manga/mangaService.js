@@ -1,6 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
-import { resolveSeriesCluster, batchResolveFallbackCovers } from "./seriesCluster.js";
+import { resolveSeriesCluster, batchResolveFallbackCovers, resolveCanonicalNeighbor } from "./seriesCluster.js";
 import axios from "axios";
 import { proxyUrl } from "../proxy/imageProxy.js";
 
@@ -454,6 +454,7 @@ export async function getChapterPages(slug, chapterId, _userId = null) {
 
   const cluster = await resolveSeriesCluster(series.id);
   const searchIds = cluster ? cluster.allIds : [series.id];
+  const primarySeriesId = cluster?.primary.id ?? series.id;
 
   const chapter = await prisma.chapter.findFirst({
     where: { id: Number(chapterId), seriesId: { in: searchIds } },
@@ -511,16 +512,8 @@ export async function getChapterPages(slug, chapterId, _userId = null) {
   }
 
   const [prev, next] = await Promise.all([
-    prisma.chapter.findFirst({
-      where: { seriesId: { in: searchIds }, number: { lt: chapter.number } },
-      orderBy: { number: "desc" },
-      select: { id: true, name: true },
-    }),
-    prisma.chapter.findFirst({
-      where: { seriesId: { in: searchIds }, number: { gt: chapter.number } },
-      orderBy: { number: "asc" },
-      select: { id: true, name: true },
-    }),
+    resolveCanonicalNeighbor(searchIds, primarySeriesId, chapter.number, "prev"),
+    resolveCanonicalNeighbor(searchIds, primarySeriesId, chapter.number, "next"),
   ]);
 
   return {
