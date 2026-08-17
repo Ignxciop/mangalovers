@@ -1,27 +1,51 @@
-import cron from "node-cron";
 import { prisma } from "../config/prisma.js";
 import { runAllScrapers } from "../manga/scrapers/scraper.js";
 import logger from "../config/logger.js";
+import { APP_TIMEZONE, startOfDay } from "../utils/time.js";
 
 let isRunning = false;
-let cronTask = null;
-
-function buildSchedule(minutes) {
-  return `*/${minutes} * * * *`;
-}
+let timeoutHandle = null;
 
 function isValidInterval(minutes) {
   return Number.isInteger(minutes) && minutes >= 1 && minutes <= 1440;
 }
 
-function scheduleFromInterval(minutes) {
-  if (minutes === 60) return "0 * * * *";
-  if (60 % minutes === 0) {
-    const perHour = 60 / minutes;
-    const mins = Array.from({ length: perHour }, (_, i) => i * minutes).join(",");
-    return `${mins} * * * *`;
+// Los disparos se alinean contra la medianoche chilena del día actual (dayStart).
+// Los intervalos que dividen 1440 exactamente (60, 120, 240...) forman una grilla
+// continua día tras día; los que no dividen 1440 reinician la grilla en cada
+// medianoche chilena — comportamiento aceptable y predecible.
+export function msUntilNextAligned(intervalMs, referenceDate = new Date()) {
+  const dayStart = startOfDay(referenceDate, APP_TIMEZONE).getTime();
+  const elapsedInDay = referenceDate.getTime() - dayStart;
+  const nextAligned = dayStart + Math.ceil(elapsedInDay / intervalMs) * intervalMs;
+  return nextAligned - referenceDate.getTime();
+}
+
+export async function tick(enabledProviders) {
+  if (isRunning) {
+    logger.warn("Scraper anterior aún en ejecución, saltando esta iteración");
+    return;
   }
-  return buildSchedule(minutes);
+
+  isRunning = true;
+  logger.info({ providers: enabledProviders }, "Ejecutando scraping automático...");
+
+  try {
+    await runAllScrapers("cron", enabledProviders);
+  } catch (error) {
+    logger.error({ err: error }, "Error en scraper cron");
+  } finally {
+    isRunning = false;
+  }
+}
+
+export function scheduleNextTick(intervalMs, enabledProviders) {
+  let delay = msUntilNextAligned(intervalMs);
+  if (delay === 0) delay = intervalMs;
+  timeoutHandle = setTimeout(async () => {
+    await tick(enabledProviders);
+    scheduleNextTick(intervalMs, enabledProviders);
+  }, delay);
 }
 
 export async function initScraperCron() {
@@ -30,9 +54,9 @@ export async function initScraperCron() {
   const autoEnabled = config?.autoEnabled ?? true;
   const enabledProviders = config?.enabledProviders ?? ["olympus", "manhwaweb", "leermangaesp"];
 
-  if (cronTask) {
-    cronTask.stop();
-    cronTask = null;
+  if (timeoutHandle) {
+    clearTimeout(timeoutHandle);
+    timeoutHandle = null;
   }
 
   if (!autoEnabled) {
@@ -40,32 +64,25 @@ export async function initScraperCron() {
     return;
   }
 
-  const schedule = scheduleFromInterval(interval);
-
-  if (!cron.validate(schedule)) {
-    logger.error({ schedule, interval }, "Expressión cron inválida para scraper");
+  if (!isValidInterval(interval)) {
+    logger.error({ interval }, "Intervalo inválido para scraper");
     return;
   }
 
-  cronTask = cron.schedule(schedule, async () => {
-    if (isRunning) {
-      logger.warn("Scraper anterior aún en ejecución, saltando esta iteración");
-      return;
-    }
+  const intervalMs = interval * 60 * 1000;
+  const delay = msUntilNextAligned(intervalMs);
+  const nextRunAt = new Date(Date.now() + delay);
 
-    isRunning = true;
-    logger.info({ schedule, providers: enabledProviders }, "Cron ejecutando scraping automático...");
+  scheduleNextTick(intervalMs, enabledProviders);
 
-    try {
-      await runAllScrapers("cron", enabledProviders);
-    } catch (error) {
-      logger.error({ err: error }, "Error en scraper cron");
-    } finally {
-      isRunning = false;
-    }
-  });
-
-  logger.info({ schedule, interval, providers: enabledProviders }, "Scraper cron inicializado");
+  logger.info(
+    {
+      intervalMinutes: interval,
+      timezone: APP_TIMEZONE,
+      nextRun: nextRunAt.toLocaleString("es-CL", { timeZone: APP_TIMEZONE }),
+    },
+    "Scraper cron inicializado",
+  );
 }
 
 export async function restartScraperCron() {
