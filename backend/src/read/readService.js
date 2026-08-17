@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
+import { getZonedParts } from "../utils/time.js";
 import { batchResolveFallbackCovers, resolveSeriesCluster } from "../manga/seriesCluster.js";
 
 // ─── Streak helpers ────────────────────────────────────────────
@@ -677,7 +678,7 @@ export async function getFullStats(userId) {
   const dayCount = new Array(7).fill(0);
   const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
   for (const r of reads) {
-    dayCount[new Date(r.createdAt).getDay()]++;
+    dayCount[getZonedParts(r.createdAt).weekday]++;
   }
   const mostActiveDay = dayNames[dayCount.indexOf(Math.max(...dayCount))];
   const activityByDay = dayNames.map((name, i) => ({ name: name.slice(0, 3), count: dayCount[i] }));

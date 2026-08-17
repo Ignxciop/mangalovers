@@ -59,3 +59,12 @@ PostgreSQL must be running and `DATABASE_URL` set in `backend/.env`. See `backen
 
 ## Maintenance scripts
 Located in `backend/src/scripts/`: VAPID generation, dedup, manual scrapers, fixes.
+
+## Time boundaries (timezone)
+
+All day/week/month boundaries used in metrics and features are resolved in `America/Santiago` (Lunes 00:00 for the week, día 1 00:00 for the month, 00:00 for the day) through `src/utils/time.js`, which builds instants with `Intl.DateTimeFormat` + `Date.UTC` math. This is deterministic regardless of the container timezone (the backend runs on UTC): no `new Date().getDay()`, `setHours(0,0,0,0)` or rolling windows (`Date.now() - n * 86400000`).
+
+- `getZonedParts(date, tz)`, `startOfDay(date, tz)`, `startOfWeek(date, tz)`, `startOfMonth(date, tz)`, `getWeekSeed(date, tz)`.
+- `APP_TIMEZONE` env var overrides the default zone. See `backend/.env.example`.
+- `AdminMetricsService` uses `startOfDay`/`startOfWeek`/`startOfMonth`; `readService.activityByDay` derives the weekday in the target zone; `mangaService` imports `getWeekSeed` for the recommended rotation.
+- `monthsAgo(12)` for `monthlyRegistrations` remains a rolling range on purpose: it is a 12-month range grouped by calendar month, not a boundary reset.

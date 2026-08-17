@@ -8,6 +8,7 @@ import {
 } from "./seriesCluster.js";
 import axios from "axios";
 import { proxyUrl } from "../proxy/imageProxy.js";
+import { getWeekSeed } from "../utils/time.js";
 
 const HEAD_TIMEOUT_MS = 3000;
 
@@ -549,15 +550,6 @@ export async function getChapterPages(slug, chapterId, _userId = null) {
     fallbackPages:
       fallbackPages?.map((p) => ({ id: p.id, url: proxyUrl(p.url) })) ?? null,
   };
-}
-
-function getWeekSeed() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  const diff = now.getTime() - start.getTime();
-  const dayOfYear = Math.floor(diff / (24 * 60 * 60 * 1000));
-  const week = Math.ceil((dayOfYear + start.getDay() + 1) / 7);
-  return `${now.getFullYear()}-${String(week).padStart(2, "0")}`;
 }
 
 function hashStr(str) {

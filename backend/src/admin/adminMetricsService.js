@@ -1,15 +1,8 @@
 import { prisma } from "../config/prisma.js";
+import { startOfDay, startOfWeek, startOfMonth } from "../utils/time.js";
 
 const STATUSES = ["OPEN", "REVIEWING", "RESOLVED", "REJECTED", "CLOSED"];
 
-const startOfDay = () => new Date(new Date().setHours(0, 0, 0, 0));
-const startOfWeek = () => {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(new Date(d.setDate(diff)).setHours(0, 0, 0, 0));
-};
-const daysAgo = (n) => new Date(Date.now() - n * 86400000);
 const monthsAgo = (n) => {
   const d = new Date();
   d.setMonth(d.getMonth() - n);
@@ -83,7 +76,7 @@ export class AdminMetricsService {
         where: { createdAt: { gte: startOfWeek() } },
       }),
       prisma.series.count({
-        where: { lastChapterPublishedAt: { gte: daysAgo(1) } },
+        where: { lastChapterPublishedAt: { gte: startOfDay() } },
       }),
       prisma.chapter.count({
         where: { createdAt: { gte: startOfDay() } },
@@ -159,7 +152,7 @@ export class AdminMetricsService {
     );
     const weekAggPromises = providers.map((p) =>
       prisma.scraperRun.aggregate({
-        where: { provider: p.name, startedAt: { gte: daysAgo(7) } },
+        where: { provider: p.name, startedAt: { gte: startOfWeek() } },
         _sum: { seriesProcessed: true, chaptersCreated: true, pagesScraped: true, errors: true },
         _count: true,
       }),
@@ -217,12 +210,12 @@ export class AdminMetricsService {
       }),
       prisma.userChapterRead.groupBy({
         by: ["userId"],
-        where: { createdAt: { gte: daysAgo(7) } },
+        where: { createdAt: { gte: startOfWeek() } },
         _count: { chapterId: true },
       }),
       prisma.userChapterRead.groupBy({
         by: ["userId"],
-        where: { createdAt: { gte: daysAgo(30) } },
+        where: { createdAt: { gte: startOfMonth() } },
         _count: { chapterId: true },
       }),
       prisma.userChapterRead.groupBy({
@@ -324,14 +317,14 @@ export class AdminMetricsService {
     const [eventsLast30d, apiErrors, recentRateLimits, topUsers] = await Promise.all([
       prisma.userActivity.groupBy({
         by: ["event"],
-        where: { createdAt: { gte: daysAgo(30) } },
+        where: { createdAt: { gte: startOfMonth() } },
         _count: true,
         orderBy: { _count: { id: "desc" } },
       }),
       prisma.userActivity.findMany({
         where: {
           event: "API_ERROR",
-          createdAt: { gte: daysAgo(7) },
+          createdAt: { gte: startOfWeek() },
         },
         orderBy: { createdAt: "desc" },
         take: 20,
@@ -342,7 +335,7 @@ export class AdminMetricsService {
       prisma.userActivity.count({
         where: {
           event: "RATE_LIMIT",
-          createdAt: { gte: daysAgo(7) },
+          createdAt: { gte: startOfWeek() },
         },
       }),
       prisma.userActivity.groupBy({
@@ -350,7 +343,7 @@ export class AdminMetricsService {
         _count: true,
         orderBy: { _count: { id: "desc" } },
         take: 10,
-        where: { createdAt: { gte: daysAgo(30) } },
+        where: { createdAt: { gte: startOfMonth() } },
       }),
     ]);
 
