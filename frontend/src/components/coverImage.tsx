@@ -123,7 +123,9 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [src, useFallback, fallbackSrc, priority]);
 
-    function handleRetry() {
+    function handleRetry(e: React.MouseEvent<HTMLButtonElement>) {
+        e.preventDefault();
+        e.stopPropagation();
         if (!src && !fallbackSrc) return;
         retryCountRef.current = 0;
         loadedRef.current = false;
@@ -143,6 +145,7 @@ export function CoverImage({ src, alt, priority = false, fallbackSrc }: CoverIma
                     <BookOpen className="h-8 w-8 text-muted-foreground/40" />
                     {currentUrl && (
                         <button
+                            type="button"
                             onClick={handleRetry}
                             className="pointer-events-auto flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md bg-brand/20 text-brand hover:bg-brand/30 transition-colors active:scale-95"
                         >
