@@ -170,11 +170,11 @@ function ScraperTab({ data }: { data: ScraperMetricsData }) {
                                         </span>
                                     </>
                                 )}
-                                <span className="text-muted-foreground">Ejecuciones (7d):</span>
+                                <span className="text-muted-foreground">Ejecuciones esta semana:</span>
                                 <span className="font-medium tabular-nums text-right">{p.weekRuns}</span>
-                                <span className="text-muted-foreground">Capítulos (7d):</span>
+                                <span className="text-muted-foreground">Capítulos esta semana:</span>
                                 <span className="font-medium tabular-nums text-right">{p.weekChaptersCreated}</span>
-                                <span className="text-muted-foreground">Errores (7d):</span>
+                                <span className="text-muted-foreground">Errores esta semana:</span>
                                 <span className={cn("font-medium tabular-nums text-right", p.weekErrors > 0 && "text-rose-500")}>{p.weekErrors}</span>
                             </div>
                         </div>
@@ -253,8 +253,8 @@ function UserTab({ data }: { data: UserMetricsData }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <MiniCard icon={Users} label="Usuarios" value={totalUsers} sub={`${data.byRole.ADMIN ?? 0} admins`} accent="primary" />
                 <MiniCard icon={Activity} label="Activos hoy" value={data.activeUsers.today} accent="emerald" />
-                <MiniCard icon={Flame} label="Activos 7d" value={data.activeUsers.last7d} accent="amber" />
-                <MiniCard icon={Zap} label="Activos 30d" value={data.activeUsers.last30d} accent="sky" />
+                <MiniCard icon={Flame} label="Activos esta semana" value={data.activeUsers.last7d} accent="amber" />
+                <MiniCard icon={Zap} label="Activos este mes" value={data.activeUsers.last30d} accent="sky" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -375,15 +375,15 @@ function SystemTab({ data }: { data: SystemMetricsData }) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <MiniCard icon={Activity} label="Eventos (30d)" value={data.totalEvents} accent="primary" />
+                <MiniCard icon={Activity} label="Eventos (mes)" value={data.totalEvents} accent="primary" />
                 <MiniCard icon={AlertCircle} label="Tasa error" value={`${data.errorRate.toFixed(1)}%`} accent={data.errorRate > 5 ? "rose" : "emerald"} />
-                <MiniCard icon={Zap} label="Rate limits (7d)" value={data.rateLimitsLast7d} accent="amber" />
+                <MiniCard icon={Zap} label="Rate limits (semana)" value={data.rateLimitsLast7d} accent="amber" />
                 <MiniCard icon={Server} label="Tipos de evento" value={data.eventsByType.length} accent="sky" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="rounded-xl border border-border bg-card p-4">
-                    <SectionHeader icon={BarChart3} title="Eventos por tipo (30d)" color="brand" />
+                    <SectionHeader icon={BarChart3} title="Eventos por tipo (mes)" color="brand" />
                     <HorizontalBar
                         data={data.eventsByType.slice(0, 15)}
                         getLabel={(d: unknown) => (d as { event: string }).event}
@@ -392,7 +392,7 @@ function SystemTab({ data }: { data: SystemMetricsData }) {
                     />
                 </div>
                 <div className="rounded-xl border border-border bg-card p-4">
-                    <SectionHeader icon={Activity} title="Top usuarios activos (30d)" color="violet" />
+                    <SectionHeader icon={Activity} title="Top usuarios activos (mes)" color="violet" />
                     {data.topActiveUsers.length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-8">Sin datos</p>
                     ) : (
@@ -407,7 +407,7 @@ function SystemTab({ data }: { data: SystemMetricsData }) {
             </div>
 
             <div className="rounded-xl border border-border bg-card p-4">
-                <SectionHeader icon={AlertCircle} title="Últimos errores de API (7d)" color="rose" />
+                <SectionHeader icon={AlertCircle} title="Últimos errores de API (semana)" color="rose" />
                 {data.recentErrors.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-6">Sin errores recientes</p>
                 ) : (

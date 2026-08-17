@@ -18,6 +18,7 @@ vi.mock("../../../src/manga/seriesCluster.js", () => ({
 
 import { prisma } from "../../../src/config/prisma.js";
 import { resolveSeriesCluster } from "../../../src/manga/seriesCluster.js";
+import { getZonedParts } from "../../../src/utils/time.js";
 import {
   getReadChapterIds,
   toggleChapterRead,
@@ -165,7 +166,7 @@ describe("readService.getFullStats", () => {
 
   it("calcula activityByDay correctamente", async () => {
     const today = new Date();
-    const dayOfWeek = today.getDay();
+    const dayOfWeek = getZonedParts(today).weekday;
     const reads = [makeRead(1, 1, 0)];
     // Force createdAt to today's date
     reads[0].createdAt = today;
