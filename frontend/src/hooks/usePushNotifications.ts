@@ -32,11 +32,25 @@ interface NavigatorWithStandalone extends Navigator {
 
 /**
  * Convierte la clave pública VAPID (base64 url-safe) al formato
- * Uint8Array que requiere PushManager.subscribe()
+ * Uint8Array que requiere PushManager.subscribe().
+ * Sanea comillas/espacios que pueden colarse al copiar la variable
+ * de entorno y valida antes de atob() para dar un error claro.
  */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
+    const clean = base64String
+        .trim()
+        .replace(/\s+/g, "")
+        .replace(/^["']+|["']+$/g, "")
+        .replace(/=+$/, "");
+
+    if (!clean || !/^[A-Za-z0-9_-]+$/.test(clean) || clean.length % 4 === 1) {
+        throw new Error(
+            "La clave pública VAPID del servidor es inválida. Verifica VAPID_PUBLIC_KEY en la configuración del backend.",
+        );
+    }
+
+    const padding = "=".repeat((4 - (clean.length % 4)) % 4);
+    const base64 = (clean + padding)
         .replace(/-/g, "+")
         .replace(/_/g, "/");
     const rawData = atob(base64);
@@ -159,7 +173,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
                     },
                 });
 
-                const isSubscribed = res.data.subscribed;
+                const isSubscribed = res.data.data.subscribed;
                 setSubscribed(isSubscribed);
 
                 if (!isSubscribed) {
@@ -202,7 +216,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
             // 3. Obtener clave pública VAPID del backend
             const vapidRes = await api.get("/notifications/vapid-public-key");
 
-            const { publicKey } = vapidRes.data;
+            const { publicKey } = vapidRes.data.data;
 
             // 4. Suscribirse al PushManager
             const subscription = await registration.pushManager.subscribe({
