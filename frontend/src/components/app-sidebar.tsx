@@ -54,6 +54,9 @@ import { cn } from "@/lib/utils";
 
 import { SidebarMenuBadge } from "@/components/ui/sidebar";
 
+const DONATE_URL =
+    import.meta.env.VITE_DONATE_URL ?? "https://buymeacoffee.com/josenunez";
+
 function NavItem({
     href,
     icon: Icon,
@@ -307,6 +310,19 @@ const SidebarUserSection = memo(function SidebarUserSection({
                             <DropdownMenuSeparator />
 
                             <DropdownMenuGroup className="p-1">
+                                <DropdownMenuItem
+                                    asChild
+                                    className="rounded-lg cursor-pointer gap-2.5 text-rose-500 focus:text-rose-500 focus:bg-rose-500/10"
+                                >
+                                    <a
+                                        href={DONATE_URL}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        <Heart className="h-4 w-4" />
+                                        <span>Apoyar</span>
+                                    </a>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onSelect={() =>
                                         setTheme(
