@@ -47,7 +47,7 @@ function extractChaptersFromHTML(html, externalId) {
         chapters.push({
             rawNumber,
             number: number ?? rawNumber,
-            name: name ?? `Capítulo ${rawNumber}`,
+            name: name ?? rawNumber,
             date: chapterDate || null,
             href: href || null,
             externalId: `${externalId}-${rawNumber}`,

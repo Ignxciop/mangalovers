@@ -12,6 +12,8 @@ import { processChapterPages as processLeermangaespPages } from "../manga/scrape
 import logger from "../config/logger.js";
 
 const ALL_PROVIDERS = ["olympus", "manhwaweb", "leermangaesp"];
+const BASE_URL = "https://mangalect.org";
+const CDN_URL = "https://images.mangalect.org/file/leermangaesp";
 
 export class ScraperAdminService {
   static async getConfig() {
@@ -193,7 +195,7 @@ export class ScraperAdminService {
         } else if (providerName === "leermangaesp") {
           const originalSlug = ps.url ?? ps.slug.replace("leermangaesp-", "");
           const { data: html } = await axios.get(
-            `https://leermangaesp.net/manga/${originalSlug}/`,
+            `${BASE_URL}/info/${originalSlug}/`,
             { timeout: 30000 },
           );
           const $ = cheerio.load(html);
@@ -215,7 +217,6 @@ export class ScraperAdminService {
             if (g) genres.push(g);
           });
 
-          const CDN_URL = "https://images.leermangaesp.net/file/leermangaesp";
           const buildCoverUrl = (url) => {
             if (!url) return null;
             if (url.startsWith("http")) return url;
@@ -404,8 +405,8 @@ export class ScraperAdminService {
 
         for (let page = 0; page < 100; page++) {
           const url = before
-            ? `https://leermangaesp.net/manga/${originalSlug}/?before=${before}`
-            : `https://leermangaesp.net/manga/${originalSlug}/`;
+            ? `${BASE_URL}/info/${originalSlug}/?before=${before}`
+            : `${BASE_URL}/info/${originalSlug}/`;
           const { data: html } = await axios.get(url, { timeout: 30000 });
           const $ = cheerio.load(html);
 
@@ -416,7 +417,7 @@ export class ScraperAdminService {
             const num = parseFloat(rawNumber);
             allChapters.push({
               externalId: `${ps.externalId}-${rawNumber}`,
-              name: `Capítulo ${rawNumber}`,
+              name: rawNumber,
               number: isNaN(num) ? null : num,
               publishedAt: chapterDate ? new Date(chapterDate) : new Date(),
             });
@@ -532,7 +533,7 @@ export class ScraperAdminService {
       const originalSlug = ps.url;
       const chapterNumber = pc.externalId.split("-").slice(1).join("-").replace(/\.0+$/, "");
       const { data: html } = await axios.get(
-        `https://leermangaesp.net/leer-m/${originalSlug}/${chapterNumber}/`,
+        `${BASE_URL}/lectura/${originalSlug}/${chapterNumber}/`,
         { timeout: 30000 },
       );
       const $ = cheerio.load(html);
@@ -547,7 +548,7 @@ export class ScraperAdminService {
           if (urls) {
             pages = urls.map((u) => {
               const path = u.replace(/"/g, "");
-              return path.startsWith("http") ? path : `https://leermangaesp.net${path}`;
+              return path.startsWith("http") ? path : `${CDN_URL}${path}`;
             });
           }
         }
