@@ -465,3 +465,74 @@ export interface PendingCountResponse {
     count: number;
 }
 
+export interface ChatReport {
+    id: number;
+    messageId: number | null;
+    reason: ReportReason;
+    description: string | null;
+    status: ReportStatus;
+    createdAt: string;
+    resolvedAt: string | null;
+    adminNote: string | null;
+    reporter: {
+        id: string;
+        name: string;
+        lastname: string;
+        alias: string | null;
+        avatarUrl: string | null;
+    } | null;
+    resolvedBy: {
+        id: string;
+        name: string;
+        lastname: string;
+    } | null;
+    message: {
+        id: number;
+        content: string;
+        isSpoiler: boolean;
+        visible: boolean;
+        createdAt: string;
+        user: { id: string; alias: string | null } | null;
+    } | null;
+}
+
+export interface ChatReportsListResponse {
+    success: boolean;
+    data: ChatReport[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+
+export interface ChatReportCreateResponse {
+    success: boolean;
+    data: ChatReport;
+}
+
+export interface ChatResolveResponse {
+    success: boolean;
+    data: ChatReport;
+}
+
+export interface ChatDeleteMessageResponse {
+    success: boolean;
+    data: { id: number };
+}
+
+export interface ChatMuteResponse {
+    success: boolean;
+    data: {
+        userId: string;
+        mutedUntil: string | null;
+        reason: string | null;
+    };
+}
+
+export interface ChatUnmuteResponse {
+    success: boolean;
+    data: { userId: string };
+}
+

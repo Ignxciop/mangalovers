@@ -43,7 +43,7 @@ export function waitForSocketEvent(client, event) {
 export async function waitForCondition(fn, timeout = 5000) {
   const start = Date.now();
   while (Date.now() - start < timeout) {
-    const value = fn();
+    const value = await fn();
     if (value) return value;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }

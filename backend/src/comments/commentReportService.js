@@ -116,10 +116,16 @@ export async function createReport(userId, commentId, reason, description = null
   });
 
   for (const admin of admins) {
-    createNotification(admin.id, "NEW_REPORT", {
-      reportId: report.id,
-      commentId: comment.id,
-      reason,
+    createNotification({
+      userId: admin.id,
+      type: "NEW_REPORT",
+      title: "Nuevo reporte de comentario",
+      body: `Se reportó un comentario${commentPreview ? `: "${commentPreview}"` : ""} (${reason})`,
+      data: {
+        reportId: report.id,
+        commentId: comment.id,
+        reason,
+      },
     }).catch((err) => logger.warn({ err }, "Error sending report notification"));
   }
 

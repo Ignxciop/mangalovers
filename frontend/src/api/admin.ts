@@ -9,6 +9,8 @@ import type {
     AdminChaptersResponse, AdminBulkDeleteResponse, AdminToggleProviderResponse,
     ScraperConfigResponse, ScraperStatusResponse, ScraperRunResponse,
     ReportsListResponse, PendingCountResponse, ReportStatus,
+    ChatReportsListResponse, ChatResolveResponse,
+    ChatDeleteMessageResponse, ChatMuteResponse, ChatUnmuteResponse,
 } from "@/types/admin";
 
 export async function getUsers(params?: {
@@ -221,5 +223,43 @@ export async function getPendingReportCount() {
 
 export async function resolveReport(reportId: number, status: ReportStatus, adminNote?: string) {
     const { data } = await api.patch(`/admin/reports/${reportId}`, { status, adminNote });
+    return data;
+}
+
+export async function getChatReports(params?: {
+    page?: number;
+    limit?: number;
+    status?: ReportStatus;
+    reason?: string;
+}) {
+    const { data } = await api.get<ChatReportsListResponse>("/admin/chat/reports", { params });
+    return data;
+}
+
+export async function getPendingChatReportCount() {
+    const { data } = await api.get<PendingCountResponse>("/admin/chat/reports/pending-count");
+    return data;
+}
+
+export async function resolveChatReport(reportId: number, status: ReportStatus, adminNote?: string) {
+    const { data } = await api.patch<ChatResolveResponse>(`/admin/chat/reports/${reportId}`, { status, adminNote });
+    return data;
+}
+
+export async function adminDeleteChatMessage(messageId: number) {
+    const { data } = await api.delete<ChatDeleteMessageResponse>(`/admin/chat/messages/${messageId}`);
+    return data;
+}
+
+export async function adminMuteChatUser(userId: string, durationMinutes?: number | null, reason?: string) {
+    const body: Record<string, unknown> = { userId };
+    if (durationMinutes !== null && durationMinutes !== undefined) body.durationMinutes = durationMinutes;
+    if (reason) body.reason = reason;
+    const { data } = await api.post<ChatMuteResponse>("/admin/chat/mutes", body);
+    return data;
+}
+
+export async function adminUnmuteChatUser(userId: string) {
+    const { data } = await api.delete<ChatUnmuteResponse>(`/admin/chat/mutes/${userId}`);
     return data;
 }

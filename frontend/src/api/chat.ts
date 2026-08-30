@@ -19,6 +19,8 @@ export interface ChatMessagesData {
     nextCursor: number | null;
 }
 
+export type ChatReportReason = "OFFENSIVE_LANGUAGE" | "UNMARKED_SPOILER" | "OTHER";
+
 export async function fetchChatMessages(
     cursor?: number,
     limit = 30,
@@ -30,4 +32,16 @@ export async function fetchChatMessages(
         { params },
     );
     return data.data;
+}
+
+export async function reportChatMessage(
+    messageId: number,
+    reason: ChatReportReason,
+    description?: string,
+) {
+    const { data } = await api.post(`/chat/messages/${messageId}/report`, {
+        reason,
+        description,
+    });
+    return data;
 }

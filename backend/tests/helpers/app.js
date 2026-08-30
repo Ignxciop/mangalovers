@@ -12,6 +12,8 @@ import adminRoutes from "../../src/admin/adminUserRoutes.js";
 import activityLogRoutes from "../../src/activityLog/activityLogRoutes.js";
 import commentRoutes from "../../src/comments/commentRoutes.js";
 import chatRoutes from "../../src/chat/chatRoutes.js";
+import { adminChatReportRoutes } from "../../src/chat/chatReportRoutes.js";
+import { adminChatModerationRoutes } from "../../src/chat/chatModerationRoutes.js";
 
 export function buildApp() {
     const app = express();
@@ -32,6 +34,8 @@ export function buildApp() {
     app.use("/api/admin", activityLogRoutes);
     app.use("/api/comments", commentRoutes);
     app.use("/api/chat", chatRoutes);
+    app.use("/api/admin/chat", adminChatReportRoutes);
+    app.use("/api/admin/chat", adminChatModerationRoutes);
 
     app.use(errorHandler);
 

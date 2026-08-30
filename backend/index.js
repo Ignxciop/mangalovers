@@ -31,6 +31,8 @@ import announcementRoutes from "./src/routes/announcementRoutes.js";
 import commentRoutes from "./src/comments/commentRoutes.js";
 import commentReportRoutes, { adminReportRoutes } from "./src/comments/commentReportRoutes.js";
 import chatRoutes from "./src/chat/chatRoutes.js";
+import { adminChatReportRoutes } from "./src/chat/chatReportRoutes.js";
+import { adminChatModerationRoutes } from "./src/chat/chatModerationRoutes.js";
 import userRoutes from "./src/users/userRoutes.js";
 import proxyRoutes from "./src/proxy/proxyRoutes.js";
 import { ActivityLogService } from "./src/activityLog/activityLogService.js";
@@ -208,6 +210,8 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/comments", commentReportRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/admin", adminReportRoutes);
+  app.use("/api/admin/chat", adminChatReportRoutes);
+  app.use("/api/admin/chat", adminChatModerationRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api", proxyRoutes);
 
