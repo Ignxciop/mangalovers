@@ -67,7 +67,7 @@ function errorMessage(err: unknown, fallback: string): string {
     return fallback;
 }
 
-export default function ChatGlobalPage() {
+export default function ChatPage() {
     const user = useAuthStore((s) => s.user);
     const isAdmin = user?.role === "ADMIN";
     const messages = useChatStore((s) => s.messages);
@@ -208,7 +208,7 @@ export default function ChatGlobalPage() {
             />
             <div className="bg-background min-h-full">
                 <main className="w-full px-4 lg:px-6 py-8">
-                    <div className="mx-auto max-w-2xl flex flex-col h-[calc(100dvh-7rem)] gap-3">
+                    <div className="flex flex-col h-[calc(100dvh-7rem)] gap-3">
                         <div className="flex items-center gap-3 px-1.5">
                             <div className="flex items-center justify-center size-9 rounded-xl shrink-0 bg-gradient-to-br from-brand to-brand-cyan text-white shadow-sm">
                                 <MessageSquare className="size-4" />
