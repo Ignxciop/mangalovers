@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import { socketAuthMiddleware } from "./authMiddleware.js";
 import { registerPresenceOnConnect } from "./presenceHandler.js";
+import { registerChatHandler } from "./chatHandler.js";
 import { registerNotificationNamespace } from "./notificationHandler.js";
 import { registerAdminNamespace } from "./adminHandler.js";
 import { setAdminEmitterIO } from "./adminEmitter.js";
@@ -56,6 +57,7 @@ export function initSocket(server) {
     }
 
     registerPresenceOnConnect(io, socket);
+    registerChatHandler(io, socket);
 
     socket.on("disconnect", (reason) => {
       logger.info(

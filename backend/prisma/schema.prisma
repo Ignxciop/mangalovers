@@ -79,6 +79,11 @@ model User {
   commentLikes      CommentLike[]
   reportedComments  CommentReport[] @relation("ReportedBy")
   resolvedReports   CommentReport[] @relation("ReportResolvedBy")
+  chatMessages      ChatMessage[]
+  chatMessageReports ChatMessageReport[] @relation("ChatReportedBy")
+  resolvedChatReports ChatMessageReport[] @relation("ChatReportResolvedBy")
+  chatMute          ChatMute?        @relation("ChatMuted")
+  chatMutesGiven    ChatMute[]     @relation("ChatMutedBy")
 
   @@map("users")
 }
@@ -282,6 +287,57 @@ model CommentReport {
   @@index([reporterId])
   @@index([status])
   @@map("comment_reports")
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  content   String
+  isSpoiler Boolean  @default(false) @map("is_spoiler")
+  visible   Boolean  @default(true)
+  userId    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports ChatMessageReport[]
+
+  @@index([createdAt])
+  @@map("chat_messages")
+}
+
+model ChatMessageReport {
+  id          Int          @id @default(autoincrement())
+  messageId   Int?
+  reporterId  String
+  reason      ReportReason
+  description String?
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  resolvedAt  DateTime?    @map("resolved_at")
+  resolvedById String?
+  adminNote   String?      @map("admin_note")
+
+  message   ChatMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  reporter  User         @relation("ChatReportedBy", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy User?       @relation("ChatReportResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([messageId])
+  @@index([reporterId])
+  @@index([status])
+  @@map("chat_message_reports")
+}
+
+model ChatMute {
+  id         Int       @id @default(autoincrement())
+  userId     String    @unique
+  mutedUntil DateTime? @map("muted_until")
+  reason     String?
+  mutedById  String
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user    User @relation("ChatMuted", fields: [userId], references: [id], onDelete: Cascade)
+  mutedBy User @relation("ChatMutedBy", fields: [mutedById], references: [id])
+
+  @@map("chat_mutes")
 }
 
 model Provider {

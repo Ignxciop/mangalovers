@@ -11,6 +11,7 @@ import friendRoutes from "../../src/friends/friendRoutes.js";
 import adminRoutes from "../../src/admin/adminUserRoutes.js";
 import activityLogRoutes from "../../src/activityLog/activityLogRoutes.js";
 import commentRoutes from "../../src/comments/commentRoutes.js";
+import chatRoutes from "../../src/chat/chatRoutes.js";
 
 export function buildApp() {
     const app = express();
@@ -30,6 +31,7 @@ export function buildApp() {
     app.use("/api/admin", adminRoutes);
     app.use("/api/admin", activityLogRoutes);
     app.use("/api/comments", commentRoutes);
+    app.use("/api/chat", chatRoutes);
 
     app.use(errorHandler);
 

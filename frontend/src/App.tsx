@@ -23,6 +23,7 @@ const StatsPage = lazy(() => import("./pages/statsPage.tsx"));
 const FriendsPage = lazy(() => import("./pages/friendsPage.tsx"));
 const UserProfilePage = lazy(() => import("./pages/userProfilePage.tsx"));
 const NotificationsPage = lazy(() => import("./pages/notificationsPage.tsx"));
+const ChatGlobalPage = lazy(() => import("./pages/chatGlobal.tsx"));
 const AdminSuggestions = lazy(() => import("./pages/adminSuggestions.tsx"));
 const AdminDashboard = lazy(() => import("./pages/adminDashboard.tsx"));
 const AdminUsers = lazy(() => import("./pages/adminUsers.tsx"));
@@ -123,6 +124,10 @@ function AppRoutes() {
                         <Route
                             path="/notificaciones"
                             element={<NotificationsPage />}
+                        />
+                        <Route
+                            path="/chat"
+                            element={<ChatGlobalPage />}
                         />
                     </Route>
 

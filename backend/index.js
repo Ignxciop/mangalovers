@@ -30,6 +30,7 @@ import scraperAdminRoutes from "./src/admin/scraperAdminRoutes.js";
 import announcementRoutes from "./src/routes/announcementRoutes.js";
 import commentRoutes from "./src/comments/commentRoutes.js";
 import commentReportRoutes, { adminReportRoutes } from "./src/comments/commentReportRoutes.js";
+import chatRoutes from "./src/chat/chatRoutes.js";
 import userRoutes from "./src/users/userRoutes.js";
 import proxyRoutes from "./src/proxy/proxyRoutes.js";
 import { ActivityLogService } from "./src/activityLog/activityLogService.js";
@@ -142,6 +143,12 @@ const commentLimiter = createLimiter({
     handler: rateLimitHandler("Demasiados comentarios, intenta de nuevo más tarde"),
 });
 
+const chatLimiter = createLimiter({
+    windowMs: 60 * 60 * 1000,
+    max: 60,
+    handler: rateLimitHandler("Demasiadas solicitudes, intenta de nuevo más tarde"),
+});
+
 const commentLikeLimiter = createLimiter({
     windowMs: 60 * 60 * 1000,
     max: 60,
@@ -160,6 +167,7 @@ app.use("/api/friends/search", friendLimiter);
 app.use("/api/comments/chapter", commentLimiter);
 app.use("/api/comments/series", commentLimiter);
 app.use("/api/comments/:id/like", commentLikeLimiter);
+app.use("/api/chat", chatLimiter);
 
 app.use("/uploads", express.static("uploads"));
 
@@ -198,6 +206,7 @@ app.use("/api", sitemapRoutes);
 app.use("/api", announcementRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/comments", commentReportRoutes);
+app.use("/api/chat", chatRoutes);
 app.use("/api/admin", adminReportRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api", proxyRoutes);

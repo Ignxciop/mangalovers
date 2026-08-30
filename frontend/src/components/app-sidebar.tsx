@@ -44,6 +44,7 @@ import {
     BarChart3,
     Users,
     MessageCirclePlus,
+    MessageCircle,
     Shield,
     Bell,
     BookHeart,
@@ -483,6 +484,12 @@ export function AppSidebar() {
                                     label="Notificaciones"
                                     disabled={!isAuthenticated}
                                     badge={unreadNotifCount}
+                                />
+                                <NavItem
+                                    href="/chat"
+                                    icon={MessageCircle}
+                                    label="Chat global"
+                                    disabled={!isAuthenticated}
                                 />
                             </SidebarMenuItem>
                         </SidebarMenu>
