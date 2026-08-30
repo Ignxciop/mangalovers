@@ -37,3 +37,11 @@ export class ConflictError extends AppError {
     super(message, 409);
   }
 }
+
+export class MutedError extends AppError {
+  constructor(message = "Estás silenciado en el chat", mutedUntil = null, reason = "chat_mute") {
+    super(message, 403);
+    this.mutedUntil = mutedUntil;
+    this.reason = reason;
+  }
+}

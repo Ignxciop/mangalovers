@@ -5,6 +5,7 @@ import { prisma } from "../helpers/prisma.js";
 import { createUser } from "../helpers/factories.js";
 import { generateAccessToken } from "../helpers/auth.js";
 import { createMessage } from "../../src/chat/chatService.js";
+import { MutedError } from "../../src/utils/errors.js";
 
 const app = buildApp();
 
@@ -92,6 +93,22 @@ describe("GET /api/chat/messages", () => {
     expect(res.body.data.messages[0].content).toBe("visible");
   });
 
+  it("devuelve nextCursor null cuando ya no hay más mensajes", async () => {
+    const user = await createUser();
+    const token = generateAccessToken(user.id);
+    for (let i = 1; i <= 3; i++) {
+      await createRawMessage(user.id, `mensaje ${i}`);
+    }
+
+    const res = await request(app)
+      .get("/api/chat/messages?limit=10")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+
+    expect(res.body.data.messages).toHaveLength(3);
+    expect(res.body.data.nextCursor).toBeNull();
+  });
+
   it("valida query params inválidos con 400", async () => {
     const user = await createUser();
     const token = generateAccessToken(user.id);
@@ -135,5 +152,52 @@ describe("chatService.createMessage", () => {
 
   it("lanza NotFound si el usuario no existe", async () => {
     await expect(createMessage("no-existe", "hola")).rejects.toThrow();
+  });
+
+  it("lanza MutedError si existe un mute activo en el futuro", async () => {
+    const user = await createUser();
+    const admin = await createUser();
+    const mutedUntil = new Date(Date.now() + 60 * 60 * 1000);
+    await prisma.chatMute.create({
+      data: { userId: user.id, mutedById: admin.id, mutedUntil },
+    });
+
+    await expect(createMessage(user.id, "hola")).rejects.toThrow(MutedError);
+  });
+
+  it("lanza MutedError para mute permanente (mutedUntil null)", async () => {
+    const user = await createUser();
+    const admin = await createUser();
+    await prisma.chatMute.create({
+      data: { userId: user.id, mutedById: admin.id, mutedUntil: null },
+    });
+
+    await expect(createMessage(user.id, "hola")).rejects.toThrow(MutedError);
+  });
+
+  it("no bloquea con un mute expirado (mutedUntil en el pasado)", async () => {
+    const user = await createUser();
+    const admin = await createUser();
+    await prisma.chatMute.create({
+      data: { userId: user.id, mutedById: admin.id, mutedUntil: new Date(Date.now() - 1000) },
+    });
+
+    const message = await createMessage(user.id, "puedo hablar");
+    expect(message.content).toBe("puedo hablar");
+  });
+
+  it("lanza MutedError si el usuario está BANNED", async () => {
+    const user = await createUser({ status: "BANNED" });
+
+    await expect(createMessage(user.id, "hola")).rejects.toThrow(MutedError);
+  });
+
+  it("lanza MutedError si el usuario está SUSPENDED hasta el futuro", async () => {
+    const user = await createUser({
+      status: "SUSPENDED",
+      suspendedUntil: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    await expect(createMessage(user.id, "hola")).rejects.toThrow(MutedError);
   });
 });

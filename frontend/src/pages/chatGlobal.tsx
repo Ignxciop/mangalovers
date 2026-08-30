@@ -45,6 +45,17 @@ export default function ChatGlobalPage() {
             setDraft("");
         } else if (result.error === "INVALID_CONTENT") {
             toast.error("Mensaje inválido (máximo 300 caracteres)");
+        } else if (result.error === "RATE_LIMITED") {
+            toast.error("Estás enviando mensajes muy rápido", {
+                description: "Espera unos segundos antes de enviar otro mensaje.",
+            });
+        } else if (result.error === "MUTED") {
+            const description = result.mutedUntil
+                ? `Silenciado hasta el ${new Date(result.mutedUntil).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
+                : "Silenciado permanentemente en el chat.";
+            toast.error("Estás silenciado en el chat", { description });
+        } else if (result.error === "DUPLICATE_MESSAGE") {
+            toast.error("No puedes enviar el mismo mensaje dos veces seguidas");
         } else {
             toast.error("No se pudo enviar el mensaje");
         }

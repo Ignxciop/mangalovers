@@ -7,6 +7,7 @@ interface SendResult {
     ok: boolean;
     message?: ChatMessage;
     error?: string;
+    mutedUntil?: string | null;
 }
 
 export function useChatSocket() {
