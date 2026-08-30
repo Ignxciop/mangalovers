@@ -1,6 +1,7 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { getSocket, subscribeToSocket } from "@/api/socket";
 import { useChatStore } from "@/store/chatStore";
+import { fetchChatMessages } from "@/api/chat";
 import type { ChatMessage } from "@/api/chat";
 
 interface SendResult {
@@ -16,9 +17,20 @@ export function useChatSocket() {
     const markMessageDeleted = useChatStore((s) => s.markMessageDeleted);
     const setUserMuted = useChatStore((s) => s.setUserMuted);
     const setUserUnmuted = useChatStore((s) => s.setUserUnmuted);
+    const connectedCountRef = useRef(0);
 
     useEffect(() => {
         if (!socket) return;
+
+        const handleConnect = () => {
+            connectedCountRef.current += 1;
+            if (connectedCountRef.current === 1) return;
+            fetchChatMessages()
+                .then((data) => {
+                    [...data.messages].reverse().forEach((m) => addMessage(m));
+                })
+                .catch(() => {});
+        };
 
         const handleMessage = (message: ChatMessage) => {
             addMessage(message);
@@ -40,12 +52,14 @@ export function useChatSocket() {
             setUserUnmuted(payload.userId);
         };
 
+        socket.on("connect", handleConnect);
         socket.on("chat:message", handleMessage);
         socket.on("chat:message_deleted", handleMessageDeleted);
         socket.on("chat:user_muted", handleUserMuted);
         socket.on("chat:user_unmuted", handleUserUnmuted);
 
         return () => {
+            socket.off("connect", handleConnect);
             socket.off("chat:message", handleMessage);
             socket.off("chat:message_deleted", handleMessageDeleted);
             socket.off("chat:user_muted", handleUserMuted);

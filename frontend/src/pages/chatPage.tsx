@@ -1,5 +1,5 @@
 import { SEO } from "@/components/seo";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
@@ -36,13 +36,17 @@ import { adminDeleteChatMessage, adminMuteChatUser } from "@/api/admin";
 import { timeAgo } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import {
-    Send,
+    ArrowDown,
+    Ban,
+    Eye,
+    EyeOff,
+    Flag,
+    Loader2,
     MessageSquare,
     MoreVertical,
-    Flag,
-    Trash2,
-    Ban,
+    Send,
     ShieldCheck,
+    Trash2,
 } from "lucide-react";
 
 const REPORT_REASONS: { value: ChatReportReason; label: string }[] = [
@@ -72,13 +76,26 @@ export default function ChatPage() {
     const isAdmin = user?.role === "ADMIN";
     const messages = useChatStore((s) => s.messages);
     const setMessages = useChatStore((s) => s.setMessages);
+    const nextCursor = useChatStore((s) => s.nextCursor);
+    const prependMessages = useChatStore((s) => s.prependMessages);
     const deletedIds = useChatStore((s) => s.deletedIds);
     const mutedUsers = useChatStore((s) => s.mutedUsers);
     const { sendMessage } = useChatSocket();
     const [draft, setDraft] = useState("");
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const [spoilerEnabled, setSpoilerEnabled] = useState(false);
+    const [revealedSpoilers, setRevealedSpoilers] = useState<Set<number>>(new Set());
+    const [newCount, setNewCount] = useState(0);
+    const [loadingOlder, setLoadingOlder] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const stickToBottomRef = useRef(true);
+    const loadingOlderRef = useRef(false);
+    const prevMessagesRef = useRef(messages);
+    const pendingScrollRestoreRef = useRef<{
+        prevScrollHeight: number;
+        prevScrollTop: number;
+    } | null>(null);
 
     const [reportTarget, setReportTarget] = useState<ChatMessage | null>(null);
     const [reportReason, setReportReason] = useState<ChatReportReason>("OFFENSIVE_LANGUAGE");
@@ -102,21 +119,92 @@ export default function ChatPage() {
             .finally(() => setLoading(false));
     }, [setMessages]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+
+        if (pendingScrollRestoreRef.current) {
+            const { prevScrollHeight, prevScrollTop } = pendingScrollRestoreRef.current;
+            pendingScrollRestoreRef.current = null;
+            const delta = el.scrollHeight - prevScrollHeight;
+            el.scrollTop = prevScrollTop + delta;
+            stickToBottomRef.current =
+                el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+            return;
+        }
+
+        const appended = messages !== prevMessagesRef.current;
+        prevMessagesRef.current = messages;
+        if (!appended) return;
+        if (messages.length === 0) return;
+
+        const lastMessage = messages[messages.length - 1];
+        const isOwn = lastMessage.user?.id === user?.id;
+
+        if (isOwn || stickToBottomRef.current) {
+            el.scrollTop = el.scrollHeight;
+            stickToBottomRef.current = true;
+            setNewCount(0);
+        } else {
+            setNewCount((c) => c + 1);
+        }
+    }, [messages, user?.id]);
+
+    const loadMoreOlder = async () => {
+        if (nextCursor === null || loadingOlderRef.current) return;
+        loadingOlderRef.current = true;
+        setLoadingOlder(true);
+        const el = scrollRef.current;
+        const prevScrollHeight = el?.scrollHeight ?? 0;
+        const prevScrollTop = el?.scrollTop ?? 0;
+        try {
+            const data = await fetchChatMessages(nextCursor);
+            prependMessages([...data.messages].reverse(), data.nextCursor);
+            pendingScrollRestoreRef.current = { prevScrollHeight, prevScrollTop };
+        } catch {
+            toast.error("No se pudieron cargar mensajes anteriores");
+        } finally {
+            loadingOlderRef.current = false;
+            setLoadingOlder(false);
+        }
+    };
+
+    const handleScroll = () => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+        stickToBottomRef.current = nearBottom;
+        if (nearBottom) setNewCount(0);
+        if (el.scrollTop <= 40) loadMoreOlder();
+    };
+
+    const jumpToBottom = () => {
         const el = scrollRef.current;
         if (el) el.scrollTop = el.scrollHeight;
-    }, [messages]);
+        stickToBottomRef.current = true;
+        setNewCount(0);
+    };
+
+    const revealSpoiler = (id: number) => {
+        setRevealedSpoilers((s) => {
+            if (s.has(id)) return s;
+            const next = new Set(s);
+            next.add(id);
+            return next;
+        });
+    };
 
     const handleSend = async () => {
         const content = draft.trim();
         if (!content || sending) return;
 
         setSending(true);
-        const result = await sendMessage(content);
+        const result = await sendMessage(content, spoilerEnabled);
         setSending(false);
 
         if (result.ok) {
             setDraft("");
+            setSpoilerEnabled(false);
         } else if (result.error === "INVALID_CONTENT") {
             toast.error("Mensaje inválido (máximo 300 caracteres)");
         } else if (result.error === "RATE_LIMITED") {
@@ -235,12 +323,20 @@ export default function ChatPage() {
                             </div>
                         )}
 
-                        <div
-                            ref={scrollRef}
-                            className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-card/60 flex flex-col gap-3 p-4"
-                            aria-live="polite"
-                        >
-                            {loading ? (
+                        <div className="relative flex-1 min-h-0">
+                            <div
+                                ref={scrollRef}
+                                onScroll={handleScroll}
+                                className="h-full overflow-y-auto rounded-xl border border-border bg-card/60 flex flex-col gap-3 p-4"
+                                aria-live="polite"
+                            >
+                                {loadingOlder && (
+                                    <div className="flex items-center justify-center gap-2 py-1 text-xs text-muted-foreground shrink-0">
+                                        <Loader2 className="size-3.5 animate-spin" />
+                                        Cargando mensajes anteriores...
+                                    </div>
+                                )}
+                                {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <div key={i} className="flex items-start gap-3 animate-pulse">
                                         <div className="size-8 rounded-full bg-muted shrink-0" />
@@ -339,7 +435,7 @@ export default function ChatPage() {
                                                 </div>
                                                 <div
                                                     className={cn(
-                                                        "rounded-2xl px-3 py-2 text-sm leading-relaxed break-words max-w-full",
+                                                        "relative rounded-2xl px-3 py-2 text-sm leading-relaxed break-words max-w-full",
                                                         mine
                                                             ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-tr-sm"
                                                             : "bg-muted text-foreground rounded-bl-sm border border-border",
@@ -350,6 +446,36 @@ export default function ChatPage() {
                                                         <span className="text-muted-foreground italic">
                                                             Mensaje eliminado por moderación
                                                         </span>
+                                                    ) : message.isSpoiler &&
+                                                      !revealedSpoilers.has(message.id) ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => revealSpoiler(message.id)}
+                                                            className="block w-full text-left cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
+                                                            aria-label="Mensaje con spoiler. Hacer clic para revelar el contenido."
+                                                        >
+                                                            <span
+                                                                className={cn(
+                                                                    "block blur-sm",
+                                                                    mine
+                                                                        ? "text-primary-foreground"
+                                                                        : "text-foreground",
+                                                                )}
+                                                            >
+                                                                {message.content}
+                                                            </span>
+                                                            <span
+                                                                className={cn(
+                                                                    "absolute inset-0 flex items-center justify-center gap-1.5 text-xs font-medium italic",
+                                                                    mine
+                                                                        ? "text-primary-foreground/80"
+                                                                        : "text-muted-foreground",
+                                                                )}
+                                                            >
+                                                                <EyeOff className="size-3.5 shrink-0" />
+                                                                Spoiler — clic para ver
+                                                            </span>
+                                                        </button>
                                                     ) : (
                                                         message.content
                                                     )}
@@ -365,9 +491,46 @@ export default function ChatPage() {
                                     );
                                 })
                             )}
+                            </div>
+                            {newCount > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={jumpToBottom}
+                                    aria-label={`Bajar y ver ${newCount} ${newCount === 1 ? "mensaje nuevo" : "mensajes nuevos"}`}
+                                    className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground shadow-lg backdrop-blur transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
+                                >
+                                    <ArrowDown className="size-3.5" />
+                                    {newCount} {newCount === 1 ? "nuevo" : "nuevos"}
+                                </button>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-2">
+                            <button
+                                type="button"
+                                onClick={() => setSpoilerEnabled((v) => !v)}
+                                disabled={!!selfMute}
+                                aria-pressed={spoilerEnabled}
+                                title={
+                                    spoilerEnabled
+                                        ? "Mensaje marcado como spoiler"
+                                        : "Marcar mensaje como spoiler"
+                                }
+                                className={cn(
+                                    "shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                    spoilerEnabled
+                                        ? "border-amber-400/40 bg-amber-400/10 text-amber-600 dark:text-amber-400"
+                                        : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+                                    selfMute && "opacity-50 cursor-not-allowed",
+                                )}
+                            >
+                                {spoilerEnabled ? (
+                                    <EyeOff className="size-3.5" />
+                                ) : (
+                                    <Eye className="size-3.5" />
+                                )}
+                                <span className="hidden sm:inline">Spoiler</span>
+                            </button>
                             <input
                                 value={draft}
                                 onChange={(e) => setDraft(e.target.value)}
