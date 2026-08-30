@@ -281,3 +281,133 @@ describe("DELETE /api/admin/chat/mutes/:userId", () => {
     disconnectAll();
   });
 });
+
+describe("broadcast de eventos de moderación a todos los clientes de chat:global", () => {
+  it("eliminar un mensaje emite chat:message_deleted a todos los clientes conectados", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const author = await createUser();
+    const spectator = await createUser();
+    const authorClient = await connectUser(author.id);
+    const spectatorClient = await connectUser(spectator.id);
+
+    const message = await createMessage(author.id, "mensaje a borrar en broadcast");
+
+    const authorEvent = waitForSocketEvent(authorClient, "chat:message_deleted");
+    const spectatorEvent = waitForSocketEvent(spectatorClient, "chat:message_deleted");
+
+    await request(serverCtx.server)
+      .delete(`/api/admin/chat/messages/${message.id}`)
+      .set("Authorization", `Bearer ${generateAccessToken(admin)}`)
+      .expect(200);
+
+    const [fromAuthor, fromSpectator] = await Promise.all([authorEvent, spectatorEvent]);
+    expect(fromAuthor.id).toBe(message.id);
+    expect(fromSpectator.id).toBe(message.id);
+
+    disconnectAll();
+  });
+
+  it("silenciar temporalmente emite chat:user_muted a todos los clientes conectados", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const victim = await createUser();
+    const spectator = await createUser();
+    const victimClient = await connectUser(victim.id);
+    const spectatorClient = await connectUser(spectator.id);
+
+    const victimEvent = waitForSocketEvent(victimClient, "chat:user_muted");
+    const spectatorEvent = waitForSocketEvent(spectatorClient, "chat:user_muted");
+
+    const res = await request(serverCtx.server)
+      .post("/api/admin/chat/mutes")
+      .set("Authorization", `Bearer ${generateAccessToken(admin)}`)
+      .send({ userId: victim.id, durationMinutes: 45, reason: "broadcast temporal" })
+      .expect(201);
+
+    const [victimPayload, spectatorPayload] = await Promise.all([victimEvent, spectatorEvent]);
+    expect(victimPayload.userId).toBe(victim.id);
+    expect(victimPayload.mutedUntil).toBe(res.body.data.mutedUntil);
+    expect(spectatorPayload.userId).toBe(victim.id);
+    expect(spectatorPayload.mutedUntil).toBe(res.body.data.mutedUntil);
+    expect(spectatorPayload.reason).toBe("broadcast temporal");
+
+    disconnectAll();
+  });
+
+  it("silenciar permanentemente emite chat:user_muted (mutedUntil null) a todos los clientes", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const victim = await createUser();
+    const spectator = await createUser();
+    const victimClient = await connectUser(victim.id);
+    const spectatorClient = await connectUser(spectator.id);
+
+    const victimEvent = waitForSocketEvent(victimClient, "chat:user_muted");
+    const spectatorEvent = waitForSocketEvent(spectatorClient, "chat:user_muted");
+
+    await request(serverCtx.server)
+      .post("/api/admin/chat/mutes")
+      .set("Authorization", `Bearer ${generateAccessToken(admin)}`)
+      .send({ userId: victim.id })
+      .expect(201);
+
+    const [victimPayload, spectatorPayload] = await Promise.all([victimEvent, spectatorEvent]);
+    expect(victimPayload.userId).toBe(victim.id);
+    expect(victimPayload.mutedUntil).toBeNull();
+    expect(spectatorPayload.userId).toBe(victim.id);
+    expect(spectatorPayload.mutedUntil).toBeNull();
+
+    disconnectAll();
+  });
+
+  it("desilenciar emite chat:user_unmuted a todos los clientes conectados", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const victim = await createUser();
+    const spectator = await createUser();
+    const victimClient = await connectUser(victim.id);
+    const spectatorClient = await connectUser(spectator.id);
+
+    await request(serverCtx.server)
+      .post("/api/admin/chat/mutes")
+      .set("Authorization", `Bearer ${generateAccessToken(admin)}`)
+      .send({ userId: victim.id, durationMinutes: 60 });
+
+    const victimEvent = waitForSocketEvent(victimClient, "chat:user_unmuted");
+    const spectatorEvent = waitForSocketEvent(spectatorClient, "chat:user_unmuted");
+
+    await request(serverCtx.server)
+      .delete(`/api/admin/chat/mutes/${victim.id}`)
+      .set("Authorization", `Bearer ${generateAccessToken(admin)}`)
+      .expect(200);
+
+    const [victimPayload, spectatorPayload] = await Promise.all([victimEvent, spectatorEvent]);
+    expect(victimPayload.userId).toBe(victim.id);
+    expect(spectatorPayload.userId).toBe(victim.id);
+
+    disconnectAll();
+  });
+});
+
+describe("múltiples sockets del mismo usuario", () => {
+  it("ambos clientes del mismo usuario reciben chat:user_muted al ser silenciado", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const victim = await createUser();
+    const tabA = await connectUser(victim.id);
+    const tabB = await connectUser(victim.id);
+
+    const eventA = waitForSocketEvent(tabA, "chat:user_muted");
+    const eventB = waitForSocketEvent(tabB, "chat:user_muted");
+
+    const res = await request(serverCtx.server)
+      .post("/api/admin/chat/mutes")
+      .set("Authorization", `Bearer ${generateAccessToken(admin)}`)
+      .send({ userId: victim.id, durationMinutes: 30 })
+      .expect(201);
+
+    const [payloadA, payloadB] = await Promise.all([eventA, eventB]);
+    expect(payloadA.userId).toBe(victim.id);
+    expect(payloadA.mutedUntil).toBe(res.body.data.mutedUntil);
+    expect(payloadB.userId).toBe(victim.id);
+    expect(payloadB.mutedUntil).toBe(res.body.data.mutedUntil);
+
+    disconnectAll();
+  });
+});
