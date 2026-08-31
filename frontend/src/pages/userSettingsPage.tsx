@@ -800,6 +800,7 @@ function PrivacySection() {
         try {
             const { data } = await api.patch("/auth/profile", { profileVisibility: value });
             setAuth(accessToken!, data.data.user);
+            getSocket()?.emit("presence:refresh");
             setSuccess("Visibilidad actualizada");
         } catch (err) {
             setVisibility(user?.profileVisibility ?? "PUBLIC");

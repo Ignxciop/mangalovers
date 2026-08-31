@@ -32,13 +32,21 @@ async function getUserName(userId) {
   return user.alias || `${user.name} ${user.lastname}`;
 }
 
-async function getUserHideOnline(userId) {
+async function getUserPresenceFlags(userId) {
   const { prisma } = await import("../config/prisma.js");
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { hideOnline: true },
+    select: { hideOnline: true, profileVisibility: true },
   });
-  return user?.hideOnline ?? false;
+  if (!user) return { hideOnline: false, profileVisibility: "PUBLIC" };
+  return {
+    hideOnline: user.hideOnline,
+    profileVisibility: user.profileVisibility,
+  };
+}
+
+function isUserVisible({ hideOnline, profileVisibility }) {
+  return !hideOnline && profileVisibility !== "PRIVATE";
 }
 
 async function joinPresence(io, socket, userId) {
@@ -65,10 +73,11 @@ async function joinPresence(io, socket, userId) {
   return friends;
 }
 
-async function leavePresence(io, userId, friends) {
+async function leavePresence(io, userId) {
   const entry = onlineUsers.get(userId);
   if (!entry) return;
   onlineUsers.delete(userId);
+  const friends = await getFriendIds(userId);
   friends.forEach((friendId) => {
     io.to(`user:${friendId}`).emit("friend:offline", {
       userId,
@@ -77,45 +86,49 @@ async function leavePresence(io, userId, friends) {
   });
 }
 
+async function refreshPresence(io, socket) {
+  const flags = await getUserPresenceFlags(socket.data.userId);
+  const visible = isUserVisible(flags);
+
+  if (visible && !socket._presenceVisible) {
+    await joinPresence(io, socket, socket.data.userId);
+  } else if (!visible && socket._presenceVisible) {
+    await leavePresence(io, socket.data.userId);
+  }
+
+  socket._presenceVisible = visible;
+}
+
 export async function registerPresenceOnConnect(io, socket) {
   const userId = socket.data.userId;
   if (!userId) return;
 
-  socket.hideOnline = await getUserHideOnline(userId);
+  socket._presenceVisible = false;
 
-  let friends = [];
-  if (!socket.hideOnline) {
-    friends = await joinPresence(io, socket, userId);
-  }
+  await refreshPresence(io, socket);
 
-  // Escuchar cambio de visibilidad online en vivo
-  socket.on("presence:toggle-visibility", async ({ hideOnline: newValue }) => {
-    if (typeof newValue !== "boolean") return;
-    socket.hideOnline = newValue;
-
-    if (newValue) {
-      friends = await getFriendIds(userId);
-      await leavePresence(io, userId, friends);
-    } else {
-      // Mostrar: entrar a presencia
-      friends = await joinPresence(io, socket, userId);
-    }
+  socket.on("presence:toggle-visibility", () => {
+    refreshPresence(io, socket);
   });
 
-  socket.on("disconnect", () => {
-    if (socket.hideOnline) return;
+  socket.on("presence:refresh", () => {
+    refreshPresence(io, socket);
+  });
+
+  socket.on("disconnect", async () => {
+    if (!socket._presenceVisible) return;
     const entry = onlineUsers.get(userId);
-    if (entry) {
-      entry.sockets.delete(socket.id);
-      if (entry.sockets.size === 0) {
-        onlineUsers.delete(userId);
-        friends.forEach((friendId) => {
-          io.to(`user:${friendId}`).emit("friend:offline", {
-            userId,
-            displayName: entry.displayName,
-          });
+    if (!entry) return;
+    entry.sockets.delete(socket.id);
+    if (entry.sockets.size === 0) {
+      onlineUsers.delete(userId);
+      const friends = await getFriendIds(userId);
+      friends.forEach((friendId) => {
+        io.to(`user:${friendId}`).emit("friend:offline", {
+          userId,
+          displayName: entry.displayName,
         });
-      }
+      });
     }
   });
 }
