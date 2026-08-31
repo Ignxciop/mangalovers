@@ -358,6 +358,68 @@ describe("broadcast de eventos de moderación a todos los clientes de chat:globa
     disconnectAll();
   });
 
+  it("al conectar un usuario ya muteado recibe chat:user_muted con su estado", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const victim = await createUser();
+
+    await request(serverCtx.server)
+      .post("/api/admin/chat/mutes")
+      .set("Authorization", `Bearer ${generateAccessToken(admin)}`)
+      .send({ userId: victim.id, durationMinutes: 45, reason: "mute previo" })
+      .expect(201);
+
+    const { io } = await import("socket.io-client");
+    const victimClient = io(serverCtx.url, {
+      path: "/api/socket.io",
+      auth: { token: generateAccessToken(victim.id) },
+      reconnection: false,
+      timeout: 5000,
+      autoConnect: false,
+    });
+    clients.push(victimClient);
+    const payloadPromise = waitForSocketEvent(victimClient, "chat:user_muted");
+    victimClient.connect();
+    await waitForSocketEvent(victimClient, "connect");
+
+    const payload = await payloadPromise;
+    expect(payload.userId).toBe(victim.id);
+    expect(payload.mutedUntil).toBeTruthy();
+    expect(new Date(payload.mutedUntil).getTime()).toBeGreaterThan(Date.now());
+    expect(payload.reason).toBe("mute previo");
+
+    disconnectAll();
+  });
+
+  it("al conectar un usuario con mute permanente recibe chat:user_muted con mutedUntil null", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const victim = await createUser();
+
+    await request(serverCtx.server)
+      .post("/api/admin/chat/mutes")
+      .set("Authorization", `Bearer ${generateAccessToken(admin)}`)
+      .send({ userId: victim.id })
+      .expect(201);
+
+    const { io } = await import("socket.io-client");
+    const victimClient = io(serverCtx.url, {
+      path: "/api/socket.io",
+      auth: { token: generateAccessToken(victim.id) },
+      reconnection: false,
+      timeout: 5000,
+      autoConnect: false,
+    });
+    clients.push(victimClient);
+    const payloadPromise = waitForSocketEvent(victimClient, "chat:user_muted");
+    victimClient.connect();
+    await waitForSocketEvent(victimClient, "connect");
+
+    const payload = await payloadPromise;
+    expect(payload.userId).toBe(victim.id);
+    expect(payload.mutedUntil).toBeNull();
+
+    disconnectAll();
+  });
+
   it("desilenciar emite chat:user_unmuted a todos los clientes conectados", async () => {
     const admin = await createUser({ role: "ADMIN" });
     const victim = await createUser();

@@ -4,6 +4,7 @@ import {
 } from "../chat/chatService.js";
 import { checkRateLimit } from "../chat/chatRateLimiter.js";
 import { MutedError } from "../utils/errors.js";
+import { prisma } from "../config/prisma.js";
 import logger from "../config/logger.js";
 
 const CHAT_ROOM = "chat:global";
@@ -34,6 +35,8 @@ export function registerChatHandler(io, socket) {
   socket.join(CHAT_ROOM);
   emitOnlineCount(io);
 
+  emitSelfMuteState(socket);
+
   socket.on("chat:send", (payload, ack) => {
     const respond = typeof ack === "function" ? ack : () => {};
 
@@ -55,6 +58,24 @@ export function registerChatHandler(io, socket) {
   socket.on("disconnect", () => {
     emitOnlineCount(io);
   });
+}
+
+async function emitSelfMuteState(socket) {
+  try {
+    const mute = await prisma.chatMute.findUnique({
+      where: { userId: socket.data.userId },
+      select: { mutedUntil: true, reason: true },
+    });
+    if (mute && (mute.mutedUntil === null || new Date(mute.mutedUntil) > new Date())) {
+      socket.emit("chat:user_muted", {
+        userId: socket.data.userId,
+        mutedUntil: mute.mutedUntil ? mute.mutedUntil.toISOString() : null,
+        reason: mute.reason,
+      });
+    }
+  } catch (err) {
+    logger.error({ err }, "Error al emitir estado de mute al conectar");
+  }
 }
 
 async function handleSend(io, userId, content, isSpoiler, respond) {

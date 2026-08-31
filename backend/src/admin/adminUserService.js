@@ -41,6 +41,9 @@ export class AdminUserService {
           lastLoginAt: true,
           createdAt: true,
           avatarUrl: true,
+          chatMute: {
+            select: { mutedUntil: true, reason: true },
+          },
           _count: {
             select: {
               suggestions: true,

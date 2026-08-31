@@ -34,6 +34,18 @@ export async function fetchChatMessages(
     return data.data;
 }
 
+export interface SelfMuteInfo {
+    mutedUntil: string | null;
+    reason: string | null;
+}
+
+export async function fetchSelfMute(): Promise<SelfMuteInfo | null> {
+    const { data } = await api.get<{ success: boolean; data: SelfMuteInfo | null }>(
+        "/chat/me/mute",
+    );
+    return data.data;
+}
+
 export async function reportChatMessage(
     messageId: number,
     reason: ChatReportReason,

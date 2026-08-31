@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { handleGetMessages, handleCreateChatReport } from "./chatController.js";
+import {
+  handleGetMessages,
+  handleGetSelfMute,
+  handleCreateChatReport,
+} from "./chatController.js";
 import { authenticate } from "../middlewares/auth.js";
 import { validate } from "../utils/validate.js";
 import { getMessagesValidator } from "./chatValidator.js";
@@ -13,6 +17,12 @@ router.get(
   getMessagesValidator,
   validate,
   handleGetMessages,
+);
+
+router.get(
+  "/me/mute",
+  authenticate,
+  handleGetSelfMute,
 );
 
 router.post(

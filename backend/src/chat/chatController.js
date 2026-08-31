@@ -1,4 +1,4 @@
-import { getMessages } from "./chatService.js";
+import { getMessages, getSelfMute } from "./chatService.js";
 import { createChatReport } from "./chatReportService.js";
 
 export async function handleGetMessages(req, res, next) {
@@ -9,6 +9,15 @@ export async function handleGetMessages(req, res, next) {
     const limit = Number(req.query.limit) || 30;
     const result = await getMessages(cursor, limit);
     res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleGetSelfMute(req, res, next) {
+  try {
+    const mute = await getSelfMute(req.user.userId);
+    res.json({ success: true, data: mute });
   } catch (error) {
     next(error);
   }

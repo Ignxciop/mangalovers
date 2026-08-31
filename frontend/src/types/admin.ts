@@ -12,6 +12,10 @@ export interface AdminUser {
     lastLoginAt: string | null;
     createdAt: string;
     avatarUrl?: string | null;
+    chatMute?: {
+        mutedUntil: string | null;
+        reason: string | null;
+    } | null;
     _count: {
         suggestions: number;
         favorites: number;

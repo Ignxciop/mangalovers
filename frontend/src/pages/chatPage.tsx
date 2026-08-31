@@ -32,7 +32,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
 import { useFriendStore } from "@/store/friendStore";
 import { useChatSocket } from "@/hooks/useChatSocket";
-import { fetchChatMessages, reportChatMessage } from "@/api/chat";
+import { fetchChatMessages, fetchSelfMute, reportChatMessage } from "@/api/chat";
 import type { ChatMessage, ChatReportReason } from "@/api/chat";
 import { getFriends, type Friend } from "@/api/friends";
 import { adminDeleteChatMessage, adminMuteChatUser } from "@/api/admin";
@@ -307,6 +307,8 @@ export default function ChatPage() {
     const prependMessages = useChatStore((s) => s.prependMessages);
     const deletedIds = useChatStore((s) => s.deletedIds);
     const mutedUsers = useChatStore((s) => s.mutedUsers);
+    const setUserMuted = useChatStore((s) => s.setUserMuted);
+    const setUserUnmuted = useChatStore((s) => s.setUserUnmuted);
     const onlineCount = useChatStore((s) => s.onlineCount);
     const { sendMessage } = useChatSocket();
     const [draft, setDraft] = useState("");
@@ -346,6 +348,19 @@ export default function ChatPage() {
             .catch(() => toast.error("Error al cargar el chat"))
             .finally(() => setLoading(false));
     }, [setMessages]);
+
+    useEffect(() => {
+        if (!user?.id) return;
+        fetchSelfMute()
+            .then((mute) => {
+                if (mute) {
+                    setUserMuted(user.id, mute.mutedUntil, mute.reason);
+                } else {
+                    setUserUnmuted(user.id);
+                }
+            })
+            .catch(() => {});
+    }, [user?.id, setUserMuted, setUserUnmuted]);
 
     useLayoutEffect(() => {
         const el = scrollRef.current;
@@ -525,34 +540,66 @@ export default function ChatPage() {
             <div className="bg-background flex h-[calc(100svh-4rem)] flex-col overflow-hidden">
                 <main className="h-full w-full px-4 lg:px-6 py-8">
                     <div className="flex h-full min-h-0 flex-col gap-3">
-                        <div className="flex items-center gap-3 px-1.5">
-                            <div className="flex items-center justify-center size-9 rounded-xl shrink-0 bg-gradient-to-br from-brand to-brand-cyan text-white shadow-sm">
-                                <MessageSquare className="size-4" />
+                        <div className="flex flex-col gap-2 px-1.5">
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center size-9 rounded-xl shrink-0 bg-gradient-to-br from-brand to-brand-cyan text-white shadow-sm">
+                                    <MessageSquare className="size-4" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h1 className="text-sm font-bold text-foreground truncate">
+                                        Chat global
+                                    </h1>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                        Conversa en tiempo real con la comunidad
+                                    </p>
+                                </div>
+                                <div className="ml-auto shrink-0 flex items-center gap-2">
+                                    {selfMute && (
+                                        <span
+                                            role="status"
+                                            title="Estás silenciado en el chat"
+                                            className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 dark:text-amber-400"
+                                        >
+                                            <Ban className="size-3.5 shrink-0" />
+                                            <span>
+                                                Silenciado hasta el{" "}
+                                                {selfMute.mutedUntil
+                                                    ? new Date(selfMute.mutedUntil).toLocaleString("es-ES", {
+                                                          day: "numeric",
+                                                          month: "short",
+                                                          year: "numeric",
+                                                          hour: "2-digit",
+                                                          minute: "2-digit",
+                                                      })
+                                                    : "— (permanente)"}
+                                            </span>
+                                        </span>
+                                    )}
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                        🟢 {onlineCount} conectados
+                                    </span>
+                                </div>
                             </div>
-                            <div className="min-w-0">
-                                <h1 className="text-sm font-bold text-foreground truncate">
-                                    Chat global
-                                </h1>
-                                <p className="text-xs text-muted-foreground truncate">
-                                    Conversa en tiempo real con la comunidad
-                                </p>
-                            </div>
-                            <span className="ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                                🟢 {onlineCount} conectados
-                            </span>
-                        </div>
-
-                        {selfMute && (
-                            <div className="flex items-center gap-2 shrink-0 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                                <Ban className="size-3.5 shrink-0" />
-                                <span>
-                                    Estás silenciado en el chat
+                            {selfMute && (
+                                <span
+                                    role="status"
+                                    title="Estás silenciado en el chat"
+                                    className="sm:hidden inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 dark:text-amber-400 justify-center"
+                                >
+                                    <Ban className="size-3.5 shrink-0" />
+                                    Silenciado hasta el{" "}
                                     {selfMute.mutedUntil
-                                        ? ` hasta el ${new Date(selfMute.mutedUntil).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}.`
-                                        : " permanentemente."}
+                                        ? new Date(selfMute.mutedUntil).toLocaleString("es-ES", {
+                                              day: "numeric",
+                                              month: "short",
+                                              year: "numeric",
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                          })
+                                        : "— (permanente)"}
                                 </span>
-                            </div>
-                        )}
+                            )}
+                        </div>
 
                         <div className="grid flex-1 min-h-0 gap-3 grid-cols-1 lg:grid-cols-[224px_minmax(0,1fr)] xl:grid-cols-[224px_minmax(0,1fr)_256px] w-full max-w-6xl mx-auto">
                             <aside className="hidden lg:flex flex-col min-h-0">

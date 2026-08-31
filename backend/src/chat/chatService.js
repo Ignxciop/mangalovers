@@ -55,6 +55,17 @@ export async function checkMessageDuplicate(userId, content) {
   return last ? last.content.trim().toLowerCase() === normalized : false;
 }
 
+export async function getSelfMute(userId) {
+  const mute = await prisma.chatMute.findUnique({ where: { userId } });
+  if (!mute || (mute.mutedUntil !== null && new Date(mute.mutedUntil) <= new Date())) {
+    return null;
+  }
+  return {
+    mutedUntil: mute.mutedUntil ? mute.mutedUntil.toISOString() : null,
+    reason: mute.reason,
+  };
+}
+
 async function assertUserCanChat(user) {
   if (user.status !== "ACTIVE") {
     if (

@@ -201,3 +201,59 @@ describe("chatService.createMessage", () => {
     await expect(createMessage(user.id, "hola")).rejects.toThrow(MutedError);
   });
 });
+
+describe("GET /api/chat/me/mute", () => {
+  it("rechaza sin autenticación con 401", async () => {
+    const res = await request(app).get("/api/chat/me/mute").expect(401);
+    expect(res.body.success).toBe(false);
+  });
+
+  it("devuelve null si el usuario no está silenciado", async () => {
+    const user = await createUser();
+    const token = generateAccessToken(user.id);
+
+    const res = await request(app)
+      .get("/api/chat/me/mute")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toBeNull();
+  });
+
+  it("devuelve el mute activo con mutedUntil futuro", async () => {
+    const user = await createUser();
+    const admin = await createUser();
+    const mutedUntil = new Date(Date.now() + 60 * 60 * 1000);
+    await prisma.chatMute.create({
+      data: { userId: user.id, mutedById: admin.id, mutedUntil, reason: "spam" },
+    });
+
+    const res = await request(app)
+      .get("/api/chat/me/mute")
+      .set("Authorization", `Bearer ${generateAccessToken(user.id)}`)
+      .expect(200);
+
+    expect(res.body.data.mutedUntil).toBe(mutedUntil.toISOString());
+    expect(res.body.data.reason).toBe("spam");
+  });
+
+  it("devuelve null para un mute expirado", async () => {
+    const user = await createUser();
+    const admin = await createUser();
+    await prisma.chatMute.create({
+      data: {
+        userId: user.id,
+        mutedById: admin.id,
+        mutedUntil: new Date(Date.now() - 1000),
+      },
+    });
+
+    const res = await request(app)
+      .get("/api/chat/me/mute")
+      .set("Authorization", `Bearer ${generateAccessToken(user.id)}`)
+      .expect(200);
+
+    expect(res.body.data).toBeNull();
+  });
+});
