@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { getUsers, updateUserRole, updateUserStatus, getActivityLogs, getUserStatusHistory } from "@/api/admin";
+import { getUsers, updateUserRole, updateUserStatus, getActivityLogs, getUserStatusHistory, adminMuteChatUser, adminUnmuteChatUser } from "@/api/admin";
 import type { AdminUser, UserRole, UserStatus, ActivityLogEntry, UserStatusHistory } from "@/types/admin";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -56,6 +56,8 @@ import {
     BookOpen,
     ScrollText,
     ArrowLeft,
+    VolumeX,
+    Volume2,
 } from "lucide-react";
 
 const AVATAR_API = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
@@ -122,6 +124,14 @@ const STATUS_COLORS: Record<UserStatus, string> = {
 
 const VALID_ROLES = ["ADMIN", "USER"] as const;
 const VALID_STATUSES = ["ACTIVE", "BANNED", "SUSPENDED"] as const;
+
+const MUTE_DURATIONS = [
+    { value: "permanent", label: "Permanente", minutes: null },
+    { value: "30", label: "30 minutos", minutes: 30 },
+    { value: "60", label: "1 hora", minutes: 60 },
+    { value: "1440", label: "24 horas", minutes: 1440 },
+    { value: "10080", label: "7 días", minutes: 10080 },
+];
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("es-ES", {
@@ -285,10 +295,12 @@ function UserRow({ user, isSelected, onClick }: { user: AdminUser; isSelected: b
     );
 }
 
-function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, statusHistory }: {
+function DetailPanel({ user, onRoleChange, onStatusChange, onMute, onUnmute, logs, logsLoading, statusHistory }: {
     user: AdminUser;
     onRoleChange: (userId: string, role: UserRole) => void;
     onStatusChange: (userId: string, status: UserStatus, suspendedUntil?: string) => void;
+    onMute: (userId: string) => void;
+    onUnmute: (userId: string) => void;
     logs: ActivityLogEntry[];
     logsLoading: boolean;
     statusHistory: UserStatusHistory | null;
@@ -323,7 +335,7 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
                 </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <Select value={user.role} onValueChange={(v) => onRoleChange(user.id, v as UserRole)}>
                     <SelectTrigger className="min-w-[8rem] h-9 text-sm shrink-0">
                         <Shield className="size-4 mr-1 shrink-0" />
@@ -344,6 +356,27 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
                         <SelectItem className="text-sm" value="BANNED">Baneado</SelectItem>
                     </SelectContent>
                 </Select>
+                {user.chatMute ? (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onUnmute(user.id)}
+                        className="h-9 text-sm shrink-0 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                    >
+                        <Volume2 className="size-4 mr-1.5 shrink-0" />
+                        Quitar mute
+                    </Button>
+                ) : (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onMute(user.id)}
+                        className="h-9 text-sm shrink-0 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                    >
+                        <VolumeX className="size-4 mr-1.5 shrink-0" />
+                        Silenciar chat
+                    </Button>
+                )}
             </div>
             {suspendDraft && (
                 <div className="flex items-center gap-2">
@@ -373,6 +406,20 @@ function DetailPanel({ user, onRoleChange, onStatusChange, logs, logsLoading, st
                             day: "numeric", month: "long", year: "numeric",
                             hour: "2-digit", minute: "2-digit",
                         })}
+                    </span>
+                </div>
+            )}
+            {user.chatMute && (
+                <div className="flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                    <VolumeX className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span className="text-amber-700 dark:text-amber-300">
+                        Silenciado en el chat {user.chatMute.mutedUntil
+                            ? `hasta el ${new Date(user.chatMute.mutedUntil).toLocaleString("es-ES", {
+                                  day: "numeric", month: "long", year: "numeric",
+                                  hour: "2-digit", minute: "2-digit",
+                              })}`
+                            : "permanentemente"}
+                        {user.chatMute.reason ? ` (${user.chatMute.reason})` : ""}
                     </span>
                 </div>
             )}
@@ -476,6 +523,9 @@ export default function AdminUsers() {
     const [suspensionDialogUserId, setSuspensionDialogUserId] = useState<string | null>(null);
     const [suspensionDate, setSuspensionDate] = useState("");
     const [banDialogUserId, setBanDialogUserId] = useState<string | null>(null);
+    const [muteDialogUserId, setMuteDialogUserId] = useState<string | null>(null);
+    const [muteDuration, setMuteDuration] = useState("permanent");
+    const [muting, setMuting] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -608,6 +658,35 @@ export default function AdminUsers() {
         }
     };
 
+    const handleMuteUser = async (userId: string) => {
+        setMuting(true);
+        try {
+            const duration = MUTE_DURATIONS.find((d) => d.value === muteDuration)?.minutes ?? null;
+            const res = await adminMuteChatUser(userId, duration);
+            setUsers((prev) => prev.map((u) =>
+                u.id === userId
+                    ? { ...u, chatMute: { mutedUntil: res.data.mutedUntil, reason: res.data.reason } }
+                    : u,
+            ));
+            toast.success("Usuario silenciado en el chat");
+            setMuteDialogUserId(null);
+        } catch {
+            toast.error("Error al silenciar al usuario");
+        } finally {
+            setMuting(false);
+        }
+    };
+
+    const handleUnmuteUser = async (userId: string) => {
+        try {
+            await adminUnmuteChatUser(userId);
+            setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, chatMute: null } : u)));
+            toast.success("Mute del chat eliminado");
+        } catch {
+            toast.error("Error al quitar el mute");
+        }
+    };
+
     const handleSelectUser = (id: string) => {
         setSelectedId(id);
         if (isMobile) setSheetOpen(true);
@@ -717,7 +796,7 @@ export default function AdminUsers() {
                         <div className="hidden lg:flex flex-col flex-1 min-w-0 border-l border-border pl-5 min-h-0">
                             {selected ? (
                                 <div className="flex-1 overflow-y-auto">
-                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />
+                                    <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} onMute={(id) => { setMuteDuration("permanent"); setMuteDialogUserId(id); }} onUnmute={handleUnmuteUser} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center h-full min-h-[200px]">
@@ -793,6 +872,51 @@ export default function AdminUsers() {
                 </AlertDialogContent>
             </AlertDialog>
 
+            <Dialog open={!!muteDialogUserId} onOpenChange={(open) => { if (!open) setMuteDialogUserId(null); }}>
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Silenciar en el chat</DialogTitle>
+                        <DialogDescription>
+                            El usuario no podrá enviar mensajes en el chat global por la duración seleccionada.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-2">
+                        <Label>Duración</Label>
+                        <Select value={muteDuration} onValueChange={setMuteDuration}>
+                            <SelectTrigger aria-label="Duración del silencio" className="text-sm">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {MUTE_DURATIONS.map((d) => (
+                                    <SelectItem key={d.value} value={d.value}>
+                                        {d.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setMuteDialogUserId(null)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            size="sm"
+                            disabled={muting || !muteDialogUserId}
+                            onClick={() => {
+                                if (!muteDialogUserId) return;
+                                handleMuteUser(muteDialogUserId);
+                            }}
+                        >
+                            Silenciar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Sheet open={sheetOpen} onOpenChange={(open) => { setSheetOpen(open); if (!open) setSelectedId(null); }}>
                 <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] flex flex-col gap-0 p-0">
                     <SheetHeader className="px-6 py-5 border-b border-border flex-row items-center gap-2">
@@ -800,7 +924,7 @@ export default function AdminUsers() {
                         <SheetTitle className="text-base">Detalle</SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto px-6 py-5">
-                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />}
+                        {selected && <DetailPanel user={selected} onRoleChange={handleRoleChange} onStatusChange={handleStatusChange} onMute={(id) => { setMuteDuration("permanent"); setMuteDialogUserId(id); }} onUnmute={handleUnmuteUser} logs={userLogs} logsLoading={userLogsLoading} statusHistory={statusHistory} />}
                     </div>
                 </SheetContent>
             </Sheet>

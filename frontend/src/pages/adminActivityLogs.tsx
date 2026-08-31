@@ -37,6 +37,10 @@ const EVENT_LABELS: Record<string, string> = {
     CREATE_COMMENT: "Crear comentario",
     DELETE_COMMENT: "Eliminar comentario",
     REPORT_COMMENT: "Reportar comentario",
+    DELETE_CHAT_MESSAGE: "Eliminar mensaje del chat",
+    REPORT_CHAT_MESSAGE: "Reportar mensaje del chat",
+    MUTE_CHAT_USER: "Silenciar usuario",
+    UNMUTE_CHAT_USER: "Desilenciar usuario",
 };
 
 const EVENT_COLORS: Record<string, string> = {
@@ -61,6 +65,10 @@ const EVENT_COLORS: Record<string, string> = {
     CREATE_COMMENT: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
     DELETE_COMMENT: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
     REPORT_COMMENT: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    DELETE_CHAT_MESSAGE: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+    REPORT_CHAT_MESSAGE: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    MUTE_CHAT_USER: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    UNMUTE_CHAT_USER: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
 };
 
 function formatDateTime(iso: string) {
@@ -151,6 +159,21 @@ function formatMetadata(event: string, metadata: Record<string, unknown> | null)
                 : `Eliminó un comentario en "${metadata.seriesName}"`;
         case "REPORT_COMMENT":
             return `Reportó un comentario: "${String(metadata.content).slice(0, 60)}" (${REPORT_REASON_LABELS[String(metadata.reason)] ?? metadata.reason})`;
+        case "DELETE_CHAT_MESSAGE":
+            return `Eliminó un mensaje del chat: "${String(metadata.content).slice(0, 60)}"`;
+        case "REPORT_CHAT_MESSAGE":
+            return `Reportó un mensaje del chat: "${String(metadata.content).slice(0, 60)}" (${REPORT_REASON_LABELS[String(metadata.reason)] ?? metadata.reason})`;
+        case "MUTE_CHAT_USER": {
+            let text = `Silenció a ${metadata.targetUserName ? `@${metadata.targetUserName}` : "un usuario del chat"}`;
+            if (metadata.mutedUntil) {
+                text += ` hasta el ${new Date(String(metadata.mutedUntil)).toLocaleString("es-ES", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+            } else {
+                text += " permanentemente";
+            }
+            return text;
+        }
+        case "UNMUTE_CHAT_USER":
+            return "Desileneció a un usuario del chat";
         case "UPDATE_PROFILE":
             return `Actualizó su perfil: ${metadata.field}`;
         default:

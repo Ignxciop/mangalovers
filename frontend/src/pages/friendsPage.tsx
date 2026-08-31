@@ -920,7 +920,7 @@ export default function FriendsPage() {
             />
             <div className="min-h-screen bg-background">
 
-                <main className="container mx-auto px-4 py-6">
+                <main className="w-full px-4 lg:px-6 py-8">
                     <Tabs defaultValue="activity" className="w-full">
                     <TabsList variant="line" className="w-full justify-start gap-0 border-b border-border rounded-none h-auto pb-1.5 bg-transparent overflow-x-auto flex-nowrap">
                         <TabsTrigger value="activity" className="shrink-0 px-3 sm:px-5 py-3 text-sm after:bg-brand rounded-none border-0 gap-1.5">

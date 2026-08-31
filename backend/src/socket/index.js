@@ -1,9 +1,11 @@
 import { Server } from "socket.io";
 import { socketAuthMiddleware } from "./authMiddleware.js";
 import { registerPresenceOnConnect } from "./presenceHandler.js";
+import { registerChatHandler } from "./chatHandler.js";
 import { registerNotificationNamespace } from "./notificationHandler.js";
 import { registerAdminNamespace } from "./adminHandler.js";
 import { setAdminEmitterIO } from "./adminEmitter.js";
+import { setChatEmitterIO } from "./chatEmitter.js";
 import { prisma } from "../config/prisma.js";
 import logger from "../config/logger.js";
 
@@ -26,6 +28,7 @@ export function initSocket(server) {
   io.use(socketAuthMiddleware);
 
   setAdminEmitterIO(io);
+  setChatEmitterIO(io);
 
   io.on("connection", (socket) => {
     logger.info(
@@ -56,6 +59,7 @@ export function initSocket(server) {
     }
 
     registerPresenceOnConnect(io, socket);
+    registerChatHandler(io, socket);
 
     socket.on("disconnect", (reason) => {
       logger.info(

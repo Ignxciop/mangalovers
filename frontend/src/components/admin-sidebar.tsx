@@ -45,7 +45,7 @@ import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
-import { getPendingReportCount } from "@/api/admin";
+import { getPendingReportCount, getPendingChatReportCount } from "@/api/admin";
 import { getAllSuggestions } from "@/api/suggestions";
 
 function NavItem({
@@ -309,8 +309,8 @@ function ReportsNavItem() {
     const [pendingCount, setPendingCount] = useState(0);
 
     useEffect(() => {
-        getPendingReportCount()
-            .then((res) => setPendingCount(res.count))
+        Promise.all([getPendingReportCount(), getPendingChatReportCount()])
+            .then(([comments, chat]) => setPendingCount(comments.count + chat.count))
             .catch(() => {});
     }, []);
 
