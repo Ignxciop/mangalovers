@@ -11,12 +11,14 @@ interface ChatState {
     nextCursor: number | null;
     deletedIds: number[];
     mutedUsers: Record<string, ChatMuteInfo>;
+    onlineCount: number;
     setMessages: (messages: ChatMessage[], nextCursor: number | null) => void;
     prependMessages: (older: ChatMessage[], nextCursor: number | null) => void;
     addMessage: (message: ChatMessage) => void;
     markMessageDeleted: (id: number) => void;
     setUserMuted: (userId: string, mutedUntil: string | null, reason?: string | null) => void;
     setUserUnmuted: (userId: string) => void;
+    setOnlineCount: (count: number) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -24,6 +26,7 @@ export const useChatStore = create<ChatState>((set) => ({
     nextCursor: null,
     deletedIds: [],
     mutedUsers: {},
+    onlineCount: 0,
     setMessages: (messages, nextCursor) =>
         set({ messages, nextCursor, deletedIds: [] }),
     prependMessages: (older, nextCursor) =>
@@ -53,4 +56,5 @@ export const useChatStore = create<ChatState>((set) => ({
             delete next[userId];
             return { mutedUsers: next };
         }),
+    setOnlineCount: (count) => set({ onlineCount: count }),
 }));

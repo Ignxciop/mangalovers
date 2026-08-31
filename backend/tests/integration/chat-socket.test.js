@@ -176,6 +176,61 @@ describe("chat:send rate limiting", () => {
   });
 });
 
+describe("chat:online_count", () => {
+  it("emite el conteo de sockets en chat:global al entrar y actualiza al desconectar", async () => {
+    const user1 = await createUser();
+    const client1 = await connectSocketClient(
+      serverCtx.url,
+      generateAccessToken(user1.id),
+    );
+    clients.push(client1);
+    const countForUser1 = waitForSocketEvent(client1, "chat:online_count");
+    await waitForSocketEvent(client1, "connect");
+    expect((await countForUser1).count).toBe(1);
+
+    const user2 = await createUser();
+    const client1ReceivesTwo = waitForSocketEvent(client1, "chat:online_count");
+    const client2 = await connectSocketClient(
+      serverCtx.url,
+      generateAccessToken(user2.id),
+    );
+    clients.push(client2);
+    const countForUser2 = waitForSocketEvent(client2, "chat:online_count");
+    await waitForSocketEvent(client2, "connect");
+    expect((await countForUser2).count).toBe(2);
+    expect((await client1ReceivesTwo).count).toBe(2);
+
+    const countAfterLeave = waitForSocketEvent(client1, "chat:online_count");
+    client2.disconnect();
+    expect((await countAfterLeave).count).toBe(1);
+
+    disconnectAll();
+  });
+
+  it("un mismo usuario con dos sockets cuenta como dos conexiones", async () => {
+    const user = await createUser();
+    const clientA = await connectSocketClient(
+      serverCtx.url,
+      generateAccessToken(user.id),
+    );
+    clients.push(clientA);
+    const countA = waitForSocketEvent(clientA, "chat:online_count");
+    await waitForSocketEvent(clientA, "connect");
+    expect((await countA).count).toBe(1);
+
+    const clientB = await connectSocketClient(
+      serverCtx.url,
+      generateAccessToken(user.id),
+    );
+    clients.push(clientB);
+    const countB = waitForSocketEvent(clientB, "chat:online_count");
+    await waitForSocketEvent(clientB, "connect");
+    expect((await countB).count).toBe(2);
+
+    disconnectAll();
+  });
+});
+
 describe("chat:send con mute/ban", () => {
   it("rechaza con MUTED y mutedUntil si el mute está activo en el futuro", async () => {
     const user = await createUser();

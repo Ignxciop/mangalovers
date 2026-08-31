@@ -27,26 +27,35 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
+import { useFriendStore } from "@/store/friendStore";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { fetchChatMessages, reportChatMessage } from "@/api/chat";
 import type { ChatMessage, ChatReportReason } from "@/api/chat";
+import { getFriends, type Friend } from "@/api/friends";
 import { adminDeleteChatMessage, adminMuteChatUser } from "@/api/admin";
 import { timeAgo } from "@/lib/date";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 import {
     ArrowDown,
     Ban,
+    BookOpen,
+    Compass,
     Eye,
     EyeOff,
     Flag,
+    Heart,
+    HeartHandshake,
     Loader2,
     MessageSquare,
     MoreVertical,
     Send,
     ShieldCheck,
     Trash2,
+    Users,
 } from "lucide-react";
 
 const REPORT_REASONS: { value: ChatReportReason; label: string }[] = [
@@ -71,6 +80,224 @@ function errorMessage(err: unknown, fallback: string): string {
     return fallback;
 }
 
+const AVATAR_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
+
+const CHAT_RULES = [
+    "Sé respetuoso: no insultes, acoses ni discrimines.",
+    "Marca como spoiler cualquier contenido que revele la trama.",
+    "Evita el spam y los mensajes repetidos en cadena.",
+    "No compartas enlaces maliciosos ni contenido ilegal.",
+    "Máximo 300 caracteres por mensaje.",
+];
+
+const MAX_OFFLINE_VISIBLE = 4;
+
+function friendAvatarUrl(avatar: string | null | undefined): string | undefined {
+    if (!avatar) return undefined;
+    return `${AVATAR_BASE}/uploads/avatars/${avatar}`;
+}
+
+function FriendRow({ friend, online }: { friend: Friend; online: boolean }) {
+    const inner = (
+        <>
+            <div className="relative shrink-0">
+                <Avatar className="size-8 rounded-lg">
+                    <AvatarImage
+                        src={friendAvatarUrl(friend.avatarUrl)}
+                        alt={friend.name}
+                        className="rounded-lg object-cover"
+                    />
+                    <AvatarFallback className="rounded-lg text-xs font-bold bg-primary/10 text-primary">
+                        {friend.name?.[0]?.toUpperCase() ?? "?"}
+                    </AvatarFallback>
+                </Avatar>
+                {online && (
+                    <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 border-2 border-background shadow-[0_0_6px_-1px] shadow-emerald-400" />
+                )}
+            </div>
+            <div className="flex flex-col min-w-0 leading-tight">
+                <span className="text-sm font-medium truncate text-foreground">
+                    {friend.name} {friend.lastname}
+                </span>
+                {friend.alias ? (
+                    <span className="text-xs text-muted-foreground/70 truncate">
+                        @{friend.alias}
+                    </span>
+                ) : null}
+            </div>
+        </>
+    );
+
+    return friend.alias ? (
+        <Link
+            to={`/usuario/${friend.alias}`}
+            className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-colors hover:bg-muted/60"
+        >
+            {inner}
+        </Link>
+    ) : (
+        <div className="flex items-center gap-2.5 px-2 py-1.5">{inner}</div>
+    );
+}
+
+function FriendsOnlinePanel() {
+    const [friends, setFriends] = useState<Friend[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showOffline, setShowOffline] = useState(false);
+    const onlineUserIds = useFriendStore((s) => s.onlineUserIds);
+
+    useEffect(() => {
+        getFriends()
+            .then(setFriends)
+            .catch(() => toast.error("No se pudieron cargar tus amigos"))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const online = friends.filter((f) => onlineUserIds.includes(f.id));
+    const offline = friends.filter((f) => !onlineUserIds.includes(f.id));
+    const visibleOffline = showOffline
+        ? offline
+        : offline.slice(0, MAX_OFFLINE_VISIBLE);
+
+    return (
+        <div className="flex flex-col min-h-0 overflow-hidden rounded-xl border border-border bg-card/60">
+            <div className="shrink-0 flex items-center gap-2 border-b border-border px-3 py-2.5">
+                <HeartHandshake className="size-4 text-brand shrink-0" />
+                <h2 className="text-xs font-bold uppercase tracking-wide text-foreground">
+                    Mis amigos
+                </h2>
+                {!loading && friends.length > 0 && (
+                    <span className="ml-auto text-xs text-muted-foreground/70 tabular-nums shrink-0">
+                        {online.length}/{friends.length} en línea
+                    </span>
+                )}
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto p-1.5">
+                {loading ? (
+                    <div className="flex flex-col gap-1">
+                        {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="flex items-center gap-2.5 px-2 py-1.5">
+                                <Skeleton className="size-8 rounded-lg shrink-0" />
+                                <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                                    <Skeleton className="h-3.5 w-24" />
+                                    <Skeleton className="h-3 w-16" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : friends.length === 0 ? (
+                    <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
+                        <Users className="size-6 text-muted-foreground/40" />
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            Aún no tienes amigos. Envía solicitudes para ver quién está en línea.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-0.5">
+                        <p className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600/80 dark:text-emerald-400/80">
+                            En línea
+                        </p>
+                        {online.length === 0 ? (
+                            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                                Nadie en línea en este momento.
+                            </p>
+                        ) : (
+                            online.map((f) => <FriendRow key={f.id} friend={f} online />)
+                        )}
+
+                        {offline.length > 0 && (
+                            <>
+                                <p className="px-2 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
+                                    Desconectados
+                                </p>
+                                {visibleOffline.map((f) => (
+                                    <FriendRow key={f.id} friend={f} online={false} />
+                                ))}
+                                {offline.length > MAX_OFFLINE_VISIBLE && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowOffline((v) => !v)}
+                                        className="px-2 py-1.5 text-left text-xs font-medium text-brand hover:text-brand/80 transition-colors"
+                                    >
+                                        {showOffline
+                                            ? "Ver menos"
+                                            : `Ver todos (${offline.length})`}
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function ChatSidePanel() {
+    const onlineCount = useChatStore((s) => s.onlineCount);
+
+    return (
+        <div className="flex flex-col gap-3 min-h-0 overflow-y-auto">
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-card/60 p-4">
+                <div className="flex items-center justify-center size-10 rounded-xl bg-emerald-500/10 shrink-0">
+                    <span className="relative flex size-2.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
+                    </span>
+                </div>
+                <div className="min-w-0">
+                    <p className="text-xl font-bold leading-none text-foreground tabular-nums">
+                        {onlineCount}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        personas conectadas ahora
+                    </p>
+                </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card/60 p-4">
+                <h2 className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-foreground">
+                    <ShieldCheck className="size-4 text-brand shrink-0" />
+                    Reglas del chat
+                </h2>
+                <ul className="flex flex-col gap-2.5">
+                    {CHAT_RULES.map((rule) => (
+                        <li
+                            key={rule}
+                            className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground"
+                        >
+                            <span className="mt-1 size-1.5 shrink-0 rounded-full bg-brand/70" />
+                            {rule}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card/60 p-4">
+                <h2 className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-foreground">
+                    <Compass className="size-4 text-brand shrink-0" />
+                    Explora
+                </h2>
+                <div className="flex flex-col gap-2">
+                    <Button asChild variant="outline" className="w-full justify-start gap-2">
+                        <Link to="/mangas">
+                            <BookOpen className="size-4" />
+                            Explorar mangas
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="w-full justify-start gap-2">
+                        <Link to="/favoritos">
+                            <Heart className="size-4" />
+                            Mis favoritos
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function ChatPage() {
     const user = useAuthStore((s) => s.user);
     const isAdmin = user?.role === "ADMIN";
@@ -80,6 +307,7 @@ export default function ChatPage() {
     const prependMessages = useChatStore((s) => s.prependMessages);
     const deletedIds = useChatStore((s) => s.deletedIds);
     const mutedUsers = useChatStore((s) => s.mutedUsers);
+    const onlineCount = useChatStore((s) => s.onlineCount);
     const { sendMessage } = useChatSocket();
     const [draft, setDraft] = useState("");
     const [loading, setLoading] = useState(true);
@@ -294,9 +522,9 @@ export default function ChatPage() {
                 description="Chatea en tiempo real con la comunidad de Mangalovers."
                 canonicalPath="/chat"
             />
-            <div className="bg-background min-h-full">
-                <main className="w-full px-4 lg:px-6 py-8">
-                    <div className="flex flex-col h-[calc(100dvh-7rem)] gap-3">
+            <div className="bg-background flex h-[calc(100svh-4rem)] flex-col overflow-hidden">
+                <main className="h-full w-full px-4 lg:px-6 py-8">
+                    <div className="flex h-full min-h-0 flex-col gap-3">
                         <div className="flex items-center gap-3 px-1.5">
                             <div className="flex items-center justify-center size-9 rounded-xl shrink-0 bg-gradient-to-br from-brand to-brand-cyan text-white shadow-sm">
                                 <MessageSquare className="size-4" />
@@ -309,6 +537,9 @@ export default function ChatPage() {
                                     Conversa en tiempo real con la comunidad
                                 </p>
                             </div>
+                            <span className="ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                🟢 {onlineCount} conectados
+                            </span>
                         </div>
 
                         {selfMute && (
@@ -323,6 +554,12 @@ export default function ChatPage() {
                             </div>
                         )}
 
+                        <div className="grid flex-1 min-h-0 gap-3 grid-cols-1 lg:grid-cols-[224px_minmax(0,1fr)] xl:grid-cols-[224px_minmax(0,1fr)_256px] w-full max-w-6xl mx-auto">
+                            <aside className="hidden lg:flex flex-col min-h-0">
+                                <FriendsOnlinePanel />
+                            </aside>
+
+                            <section className="relative min-w-0 flex flex-col min-h-0 gap-3 w-full max-w-2xl justify-self-center">
                         <div className="relative flex-1 min-h-0">
                             <div
                                 ref={scrollRef}
@@ -440,6 +677,9 @@ export default function ChatPage() {
                                                             ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-tr-sm"
                                                             : "bg-muted text-foreground rounded-bl-sm border border-border",
                                                         deleted && "bg-muted/50 border-dashed",
+                                                        message.isSpoiler &&
+                                                            !revealedSpoilers.has(message.id) &&
+                                                            "min-w-[10rem]",
                                                     )}
                                                 >
                                                     {deleted ? (
@@ -466,7 +706,7 @@ export default function ChatPage() {
                                                             </span>
                                                             <span
                                                                 className={cn(
-                                                                    "absolute inset-0 flex items-center justify-center gap-1.5 text-xs font-medium italic",
+                                                                    "absolute inset-0 flex items-center justify-center gap-1.5 text-xs font-medium italic whitespace-nowrap",
                                                                     mine
                                                                         ? "text-primary-foreground/80"
                                                                         : "text-muted-foreground",
@@ -506,60 +746,66 @@ export default function ChatPage() {
                         </div>
 
                         <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-2">
-                            <button
-                                type="button"
-                                onClick={() => setSpoilerEnabled((v) => !v)}
-                                disabled={!!selfMute}
-                                aria-pressed={spoilerEnabled}
-                                title={
-                                    spoilerEnabled
-                                        ? "Mensaje marcado como spoiler"
-                                        : "Marcar mensaje como spoiler"
-                                }
-                                className={cn(
-                                    "shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                    spoilerEnabled
-                                        ? "border-amber-400/40 bg-amber-400/10 text-amber-600 dark:text-amber-400"
-                                        : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
-                                    selfMute && "opacity-50 cursor-not-allowed",
-                                )}
-                            >
-                                {spoilerEnabled ? (
-                                    <EyeOff className="size-3.5" />
-                                ) : (
-                                    <Eye className="size-3.5" />
-                                )}
-                                <span className="hidden sm:inline">Spoiler</span>
-                            </button>
-                            <input
-                                value={draft}
-                                onChange={(e) => setDraft(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        handleSend();
+                                <button
+                                    type="button"
+                                    onClick={() => setSpoilerEnabled((v) => !v)}
+                                    disabled={!!selfMute}
+                                    aria-pressed={spoilerEnabled}
+                                    title={
+                                        spoilerEnabled
+                                            ? "Mensaje marcado como spoiler"
+                                            : "Marcar mensaje como spoiler"
                                     }
-                                }}
-                                maxLength={300}
-                                placeholder={
-                                    selfMute
-                                        ? "Estás silenciado en el chat"
-                                        : "Escribe un mensaje..."
-                                }
-                                aria-label="Mensaje"
-                                disabled={!!selfMute}
-                                className="flex-1 min-w-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none px-2 py-1.5 disabled:cursor-not-allowed"
-                            />
-                            <Button
-                                size="sm"
-                                onClick={handleSend}
-                                disabled={!draft.trim() || sending || !!selfMute}
-                                aria-label="Enviar mensaje"
-                                className="shrink-0 gap-1.5"
-                            >
-                                <Send className="size-3.5" />
-                                <span className="hidden sm:inline">Enviar</span>
-                            </Button>
+                                    className={cn(
+                                        "shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                        spoilerEnabled
+                                            ? "border-amber-400/40 bg-amber-400/10 text-amber-600 dark:text-amber-400"
+                                            : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+                                        selfMute && "opacity-50 cursor-not-allowed",
+                                    )}
+                                >
+                                    {spoilerEnabled ? (
+                                        <EyeOff className="size-3.5" />
+                                    ) : (
+                                        <Eye className="size-3.5" />
+                                    )}
+                                    <span className="hidden sm:inline">Spoiler</span>
+                                </button>
+                                <input
+                                    value={draft}
+                                    onChange={(e) => setDraft(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            handleSend();
+                                        }
+                                    }}
+                                    maxLength={300}
+                                    placeholder={
+                                        selfMute
+                                            ? "Estás silenciado en el chat"
+                                            : "Escribe un mensaje..."
+                                    }
+                                    aria-label="Mensaje"
+                                    disabled={!!selfMute}
+                                    className="flex-1 min-w-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none px-2 py-1.5 disabled:cursor-not-allowed"
+                                />
+                                <Button
+                                    size="sm"
+                                    onClick={handleSend}
+                                    disabled={!draft.trim() || sending || !!selfMute}
+                                    aria-label="Enviar mensaje"
+                                    className="shrink-0 gap-1.5"
+                                >
+                                    <Send className="size-3.5" />
+                                    <span className="hidden sm:inline">Enviar</span>
+                                </Button>
+                            </div>
+                            </section>
+
+                            <aside className="hidden xl:flex flex-col min-h-0">
+                                <ChatSidePanel />
+                            </aside>
                         </div>
                     </div>
                 </main>

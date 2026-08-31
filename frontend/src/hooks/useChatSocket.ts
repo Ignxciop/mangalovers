@@ -17,6 +17,7 @@ export function useChatSocket() {
     const markMessageDeleted = useChatStore((s) => s.markMessageDeleted);
     const setUserMuted = useChatStore((s) => s.setUserMuted);
     const setUserUnmuted = useChatStore((s) => s.setUserUnmuted);
+    const setOnlineCount = useChatStore((s) => s.setOnlineCount);
     const connectedCountRef = useRef(0);
 
     useEffect(() => {
@@ -52,11 +53,16 @@ export function useChatSocket() {
             setUserUnmuted(payload.userId);
         };
 
+        const handleOnlineCount = (payload: { count: number }) => {
+            setOnlineCount(payload.count);
+        };
+
         socket.on("connect", handleConnect);
         socket.on("chat:message", handleMessage);
         socket.on("chat:message_deleted", handleMessageDeleted);
         socket.on("chat:user_muted", handleUserMuted);
         socket.on("chat:user_unmuted", handleUserUnmuted);
+        socket.on("chat:online_count", handleOnlineCount);
 
         return () => {
             socket.off("connect", handleConnect);
@@ -64,8 +70,9 @@ export function useChatSocket() {
             socket.off("chat:message_deleted", handleMessageDeleted);
             socket.off("chat:user_muted", handleUserMuted);
             socket.off("chat:user_unmuted", handleUserUnmuted);
+            socket.off("chat:online_count", handleOnlineCount);
         };
-    }, [socket, addMessage, markMessageDeleted, setUserMuted, setUserUnmuted]);
+    }, [socket, addMessage, markMessageDeleted, setUserMuted, setUserUnmuted, setOnlineCount]);
 
     const sendMessage = (content: string, isSpoiler = false): Promise<SendResult> => {
         return new Promise((resolve) => {

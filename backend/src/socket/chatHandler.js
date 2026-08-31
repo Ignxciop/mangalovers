@@ -11,6 +11,16 @@ const MAX_CONTENT_LENGTH = 300;
 const HTML_TAG_REGEX =
   /<([a-zA-Z][\w-]*)(?:\s[^>]*)?>[\s\S]*?<\/\1(?:\s[^>]*)?>|<(?:br|img|hr|input|meta|link|source)\b[^>]*?\/?>/i;
 
+function getChatRoomSize(io) {
+  return io.sockets.adapter.rooms.get(CHAT_ROOM)?.size ?? 0;
+}
+
+function emitOnlineCount(io) {
+  io.to(CHAT_ROOM).emit("chat:online_count", {
+    count: getChatRoomSize(io),
+  });
+}
+
 function isValidContent(content) {
   if (typeof content !== "string") return false;
   const trimmed = content.trim();
@@ -22,6 +32,7 @@ export function registerChatHandler(io, socket) {
   if (!socket.data.userId) return;
 
   socket.join(CHAT_ROOM);
+  emitOnlineCount(io);
 
   socket.on("chat:send", (payload, ack) => {
     const respond = typeof ack === "function" ? ack : () => {};
@@ -39,6 +50,10 @@ export function registerChatHandler(io, socket) {
     }
 
     handleSend(io, socket.data.userId, trimmed, isSpoiler, respond);
+  });
+
+  socket.on("disconnect", () => {
+    emitOnlineCount(io);
   });
 }
 
