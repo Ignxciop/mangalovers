@@ -39,7 +39,6 @@ import {
     BookOpen,
     Wrench,
     Flag,
-    MessagesSquare,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
@@ -310,8 +309,8 @@ function ReportsNavItem() {
     const [pendingCount, setPendingCount] = useState(0);
 
     useEffect(() => {
-        getPendingReportCount()
-            .then((res) => setPendingCount(res.count))
+        Promise.all([getPendingReportCount(), getPendingChatReportCount()])
+            .then(([comments, chat]) => setPendingCount(comments.count + chat.count))
             .catch(() => {});
     }, []);
 
@@ -342,56 +341,6 @@ function ReportsNavItem() {
             {!collapsed && <span>Reportes</span>}
             {!collapsed && pendingCount > 0 && (
                 <span className="ml-auto flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-bold leading-none">
-                    {pendingCount}
-                </span>
-            )}
-            {!collapsed && isActive && (
-                <ChevronRight className="ml-auto size-3 opacity-60" />
-            )}
-        </Link>
-    );
-}
-
-function ChatReportsNavItem() {
-    const { state, isMobile, setOpenMobile } = useSidebar();
-    const collapsed = !isMobile && state === "collapsed";
-    const location = useLocation();
-    const isActive = location.pathname === "/admin/reportes/chat";
-    const [pendingCount, setPendingCount] = useState(0);
-
-    useEffect(() => {
-        getPendingChatReportCount()
-            .then((res) => setPendingCount(res.count))
-            .catch(() => {});
-    }, []);
-
-    const handleClick = () => {
-        if (isMobile) setOpenMobile(false);
-    };
-
-    return (
-        <Link
-            to="/admin/reportes/chat"
-            onClick={handleClick}
-            className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative",
-                isActive
-                    ? "bg-gradient-to-r from-amber-500/90 to-amber-500 text-white shadow-sm shadow-amber-500/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                collapsed && "justify-center px-2",
-            )}
-            title={collapsed ? "Reportes de chat" : undefined}
-        >
-            {!collapsed && isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-white/70" />
-            )}
-            <MessagesSquare className={cn(
-                "size-4 shrink-0 transition-all duration-200 group-hover:scale-110",
-                isActive && "text-white",
-            )} />
-            {!collapsed && <span>Reportes de chat</span>}
-            {!collapsed && pendingCount > 0 && (
-                <span className="ml-auto flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-bold leading-none">
                     {pendingCount}
                 </span>
             )}
@@ -512,9 +461,6 @@ export function AdminSidebar() {
                             </SidebarMenuItem>
                             <SidebarMenuItem>
                                 <ReportsNavItem />
-                            </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <ChatReportsNavItem />
                             </SidebarMenuItem>
                             <SidebarMenuItem>
                                 <NavItem

@@ -34,7 +34,6 @@ const AdminSeries = lazy(() => import("./pages/adminSeries.tsx"));
 const AdminSeriesDetail = lazy(() => import("./pages/adminSeriesDetail.tsx"));
 const AdminTools = lazy(() => import("./pages/adminTools.tsx"));
 const AdminReports = lazy(() => import("./pages/adminReports.tsx"));
-const AdminChatReports = lazy(() => import("./pages/adminChatReports.tsx"));
 
 function SmartDirect() {
     const isAutenticated = useAuthStore((s) => s.isAuthenticated);
@@ -178,7 +177,7 @@ function AppRoutes() {
                         />
                         <Route
                             path="/admin/reportes/chat"
-                            element={<AdminChatReports />}
+                            element={<Navigate to="/admin/reportes" replace />}
                         />
                     </Route>
                 </Route>
