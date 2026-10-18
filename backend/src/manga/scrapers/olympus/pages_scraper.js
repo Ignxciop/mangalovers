@@ -8,17 +8,29 @@ import { notifyNewChapter } from "../../../notifications/pushService.js";
 const limit = pLimit(5);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchPages(slug, externalChapterId) {
-    const { data } = await axios.get(
-        `https://olympusxyz.com/api/capitulo/${slug}/${externalChapterId}`,
-        { timeout: 30000 },
-    );
+// URL única de páginas de Olympus (fuente de verdad para scraper y admin).
+// El segmento es el NOMBRE del capítulo, no el id numérico: el endpoint
+// responde 404 con el id. Sin parámetros (?type=comic no es necesario).
+export function buildOlympusChapterPagesUrl(slug, chapterName) {
+    return `https://olympusxyz.com/api/capitulo/${slug}/${encodeURIComponent(chapterName)}`;
+}
 
-    return data.chapter.pages;
+export async function fetchOlympusChapterPages(slug, chapterName) {
+    const { data } = await axios.get(buildOlympusChapterPagesUrl(slug, chapterName), {
+        timeout: 30000,
+    });
+
+    return data.chapter?.pages ?? [];
 }
 
 async function processChapter(providerChapter, providerId) {
+    const chapterId = providerChapter.chapterId;
+    let chapterSegment = null;
+    let slug = null;
+
     try {
+        chapterSegment = providerChapter.externalName ?? providerChapter.chapter.name;
+
         const providerSeries = await prisma.providerSeries.findFirst({
             where: {
                 providerId,
@@ -27,13 +39,19 @@ async function processChapter(providerChapter, providerId) {
             select: { slug: true },
         });
 
-        const pages = await fetchPages(
-            providerSeries.slug,
-            providerChapter.externalId,
-        );
+        if (!providerSeries) {
+            logger.warn(
+                { chapterId, seriesId: providerChapter.chapter.seriesId },
+                "ProviderSeries no encontrado olympus, capítulo omitido",
+            );
+            return;
+        }
+        slug = providerSeries.slug;
+
+        const pages = await fetchOlympusChapterPages(slug, chapterSegment);
 
         if (!pages.length) {
-            logger.warn({ chapterId: providerChapter.chapterId }, "Sin páginas olympus, se reintentará");
+            logger.warn({ chapterId }, "Sin páginas olympus, se reintentará");
             return;
         }
 
@@ -66,10 +84,20 @@ async function processChapter(providerChapter, providerId) {
             });
         }
 
-        logger.debug({ chapterId: providerChapter.chapterId, pageCount: pages.length }, "Páginas olympus scrapeadas");
+        logger.debug({ chapterId, pageCount: pages.length }, "Páginas olympus scrapeadas");
         await sleep(200);
     } catch (err) {
-        logger.error({ chapterId: providerChapter.chapterId, err: err.message }, "Error capítulo olympus");
+        logger.error(
+            {
+                chapterId,
+                slug,
+                segment: chapterSegment,
+                url: slug ? buildOlympusChapterPagesUrl(slug, chapterSegment) : null,
+                status: err.response?.status,
+                err: err.message,
+            },
+            "Error capítulo olympus",
+        );
     }
 }
 

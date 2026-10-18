@@ -1,6 +1,9 @@
 import { Server } from "socket.io";
 import { socketAuthMiddleware } from "./authMiddleware.js";
-import { registerPresenceOnConnect } from "./presenceHandler.js";
+import {
+  presenceFlagsMiddleware,
+  registerPresenceOnConnect,
+} from "./presenceHandler.js";
 import { registerChatHandler } from "./chatHandler.js";
 import { registerNotificationNamespace } from "./notificationHandler.js";
 import { registerAdminNamespace } from "./adminHandler.js";
@@ -26,6 +29,7 @@ export function initSocket(server) {
   });
 
   io.use(socketAuthMiddleware);
+  io.use(presenceFlagsMiddleware);
 
   setAdminEmitterIO(io);
   setChatEmitterIO(io);

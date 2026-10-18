@@ -381,6 +381,9 @@ model ProviderChapter {
   provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   externalId String
+  // Nombre del capítulo en el provider (Olympus): el segmento que su API
+  // espera en /api/capitulo/{slug}/{nombre}. Null para otros providers.
+  externalName String?
 
   chapterId Int
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)

@@ -86,6 +86,21 @@ async function leavePresence(io, userId) {
   });
 }
 
+// Middleware de socket.io: carga los flags de presencia ANTES de que el
+// cliente reciba "connect". Así, al llegar el evento "connection", el
+// registro en onlineUsers es síncrono y ningún socket que se conecte
+// después puede perder al usuario de la lista inicial (race condition).
+export async function presenceFlagsMiddleware(socket, next) {
+  const userId = socket.data.userId;
+  if (!userId) return next();
+  try {
+    socket.data.presenceFlags = await getUserPresenceFlags(userId);
+  } catch {
+    // sin flags, registerPresenceOnConnect vuelve a consultar la BD
+  }
+  next();
+}
+
 async function refreshPresence(io, socket) {
   const flags = await getUserPresenceFlags(socket.data.userId);
   const visible = isUserVisible(flags);
@@ -103,9 +118,14 @@ export async function registerPresenceOnConnect(io, socket) {
   const userId = socket.data.userId;
   if (!userId) return;
 
-  socket._presenceVisible = false;
-
-  await refreshPresence(io, socket);
+  // Sin await previo cuando los flags vienen precargados del middleware:
+  // joinPresence registra al usuario en onlineUsers de forma síncrona,
+  // antes de que este handler ceda el turno a otra conexión entrante.
+  const flags = socket.data.presenceFlags ?? await getUserPresenceFlags(userId);
+  socket._presenceVisible = isUserVisible(flags);
+  if (socket._presenceVisible) {
+    await joinPresence(io, socket, userId);
+  }
 
   socket.on("presence:toggle-visibility", () => {
     refreshPresence(io, socket);
