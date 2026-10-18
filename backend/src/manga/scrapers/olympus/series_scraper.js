@@ -12,7 +12,7 @@ async function fetchPage(page, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             const { data } = await axios.get(
-                "https://olympusbiblioteca.com/api/series",
+                "https://olympusxyz.com/api/series",
                 {
                     params: { page, direction: "asc", type: "comic" },
                     timeout: 30000,
@@ -33,7 +33,7 @@ async function fetchPage(page, retries = 3) {
 async function fetchMetadata(slug) {
     try {
         const { data } = await axios.get(
-            `https://olympusbiblioteca.com/api/series/${slug}`,
+            `https://olympusxyz.com/api/series/${slug}`,
             {
                 params: { type: "comic" },
                 timeout: 30000,
