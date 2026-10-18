@@ -60,6 +60,12 @@ async function processSeries(providerSeries, providerId) {
                     });
 
                 if (existingProviderChapter) {
+                    if (existingProviderChapter.externalName === null) {
+                        await prisma.providerChapter.update({
+                            where: { id: existingProviderChapter.id },
+                            data: { externalName: ch.name },
+                        });
+                    }
                     consecutiveExisting++;
                     if (consecutiveExisting >= MAX_CONSECUTIVE_EXISTING) {
                         logger.debug(
@@ -93,6 +99,7 @@ async function processSeries(providerSeries, providerId) {
                         data: {
                             providerId,
                             externalId: String(ch.id),
+                            externalName: ch.name,
                             chapterId: existingChapter.id,
                         },
                     });
@@ -119,6 +126,7 @@ async function processSeries(providerSeries, providerId) {
                     data: {
                         providerId,
                         externalId: String(ch.id),
+                        externalName: ch.name,
                         chapterId: newChapter.id,
                     },
                 });

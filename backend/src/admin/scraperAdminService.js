@@ -6,7 +6,7 @@ import { syncGenres } from "../manga/scrapers/syncGenres.js";
 import { processSeriesChapters as processOlympusChapters } from "../manga/scrapers/olympus/chapters_scraper.js";
 import { processSeriesChapters as processManhwawebChapters } from "../manga/scrapers/manhwaweb/chapters_scraper.js";
 import { processSeriesChapters as processLeermangaespChapters } from "../manga/scrapers/leermangaesp/chapters_scraper.js";
-import { processChapterPages as processOlympusPages } from "../manga/scrapers/olympus/pages_scraper.js";
+import { processChapterPages as processOlympusPages, fetchOlympusChapterPages } from "../manga/scrapers/olympus/pages_scraper.js";
 import { processChapterPages as processManhwawebPages } from "../manga/scrapers/manhwaweb/pages_scraper.js";
 import { processChapterPages as processLeermangaespPages } from "../manga/scrapers/leermangaesp/pages_scraper.js";
 import logger from "../config/logger.js";
@@ -293,7 +293,9 @@ export class ScraperAdminService {
     let refilledChapters = 0;
     const errors = [];
 
-    const processChapter = async (externalId, chapterData, processPages) => {
+    // externalName solo aplica a Olympus (nombre del capítulo que su API
+    // espera en /api/capitulo). Para manhwaweb/leermangaesp queda null.
+    const processChapter = async (externalId, chapterData, processPages, externalName = null) => {
       try {
         const existingPc = await prisma.providerChapter.findUnique({
           where: { providerId_externalId: { providerId: provider.id, externalId } },
@@ -301,6 +303,12 @@ export class ScraperAdminService {
         });
 
         if (existingPc) {
+          if (existingPc.externalName === null && externalName) {
+            await prisma.providerChapter.update({
+              where: { id: existingPc.id },
+              data: { externalName },
+            });
+          }
           if (!existingPc.chapter.pagesScraped) {
             await prisma.page.deleteMany({ where: { chapterId: existingPc.chapterId } });
             const freshPc = await prisma.providerChapter.findUnique({
@@ -334,7 +342,7 @@ export class ScraperAdminService {
         }
 
         await prisma.providerChapter.create({
-          data: { providerId: provider.id, externalId, chapterId },
+          data: { providerId: provider.id, externalId, externalName, chapterId },
         });
 
         const pc = await prisma.providerChapter.findUnique({
@@ -374,7 +382,7 @@ export class ScraperAdminService {
               name: ch.name,
               number: chapterNumber,
               publishedAt: new Date(ch.published_at),
-            }, processPages);
+            }, processPages, ch.name);
           }
           await sleep(300);
         }
@@ -511,11 +519,8 @@ export class ScraperAdminService {
       if (!ps?.slug) {
         throw Object.assign(new Error(`ProviderSeries slug no encontrado`), { statusCode: 400 });
       }
-      const { data } = await axios.get(
-        `https://olympusxyz.com/api/capitulo/${ps.slug}/${pc.externalId}`,
-        { params: { type: "comic" }, timeout: 30000 },
-      );
-      pages = data.chapter?.pages ?? [];
+      const chapterSegment = pc.externalName ?? chapter.name;
+      pages = await fetchOlympusChapterPages(ps.slug, chapterSegment);
     } else if (providerName === "manhwaweb") {
       const { data } = await axios.get(
         `https://manhwawebbackend-production.up.railway.app/chapters/see/${pc.externalId}`,

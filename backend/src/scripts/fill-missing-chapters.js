@@ -42,7 +42,15 @@ async function processOlympusSeries(providerSeries, providerId) {
                         },
                     },
                 });
-                if (existing) continue;
+                if (existing) {
+                    if (existing.externalName === null) {
+                        await prisma.providerChapter.update({
+                            where: { id: existing.id },
+                            data: { externalName: ch.name },
+                        });
+                    }
+                    continue;
+                }
 
                 const existingChapter = await prisma.chapter.findFirst({
                     where: { seriesId, name: ch.name },
@@ -53,6 +61,7 @@ async function processOlympusSeries(providerSeries, providerId) {
                         data: {
                             providerId,
                             externalId: String(ch.id),
+                            externalName: ch.name,
                             chapterId: existingChapter.id,
                         },
                     });
@@ -69,6 +78,7 @@ async function processOlympusSeries(providerSeries, providerId) {
                         data: {
                             providerId,
                             externalId: String(ch.id),
+                            externalName: ch.name,
                             chapterId: newChapter.id,
                         },
                     });
