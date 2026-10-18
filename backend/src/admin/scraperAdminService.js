@@ -108,7 +108,7 @@ export class ScraperAdminService {
       try {
         if (providerName === "olympus") {
           const { data } = await axios.get(
-            `https://olympusbiblioteca.com/api/series/${ps.slug}`,
+            `https://olympusxyz.com/api/series/${ps.slug}`,
             { params: { type: "comic" }, timeout: 30000 },
           );
           const d = data.data;
@@ -354,14 +354,14 @@ export class ScraperAdminService {
         const processPages = (pc) => processOlympusPages(pc, provider.id);
 
         const { data: firstPage } = await axios.get(
-          `https://panel.olympusxyz.com/api/series/${ps.slug}/chapters`,
+          `https://olympusxyz.com/api/series/${ps.slug}/chapters`,
           { params: { page: 1, direction: "desc", type: "comic" }, timeout: 30000 },
         );
         const lastPage = firstPage.meta.last_page;
 
         for (let page = 1; page <= lastPage; page++) {
           const data = page === 1 ? firstPage : (await axios.get(
-            `https://panel.olympusxyz.com/api/series/${ps.slug}/chapters`,
+            `https://olympusxyz.com/api/series/${ps.slug}/chapters`,
             { params: { page, direction: "desc", type: "comic" }, timeout: 30000 },
           )).data;
 
@@ -512,7 +512,7 @@ export class ScraperAdminService {
         throw Object.assign(new Error(`ProviderSeries slug no encontrado`), { statusCode: 400 });
       }
       const { data } = await axios.get(
-        `https://olympusbiblioteca.com/api/capitulo/${ps.slug}/${pc.externalId}`,
+        `https://olympusxyz.com/api/capitulo/${ps.slug}/${pc.externalId}`,
         { params: { type: "comic" }, timeout: 30000 },
       );
       pages = data.chapter?.pages ?? [];
